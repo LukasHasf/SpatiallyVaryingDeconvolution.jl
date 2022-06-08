@@ -43,6 +43,7 @@ function nn_convolve(img::Array{T,N}; kernel = nothing) where {T,N}
             return convolved
         end
     elseif ndims(kernel)==3
+        # TODO: This is likely wrong
         if N == 5
             img = view(img, :, :, :, 1, 1)
             @tullio convolved[x+_, y+_, z+_] := img[x+i, y+j, z+k] * kernel[i, j, k]
@@ -100,11 +101,9 @@ function plot_losses(train_loss, test_loss, epoch, plotdirectory)
 end
 
 function train_real_gradient!(loss, ps, data, opt)
-    # We are training to optimize a mapping from the Real domain
-    # to the Real domain, so we expect a real gradient. However, defaultkernel
-    # to the fft, we have complex sensitivities in the computational graph.
-    # Since Zygote does not use Wirtinger derivatives, we need to take the
-    # real part of the gradient ourselves
+    # Zygote calculates a complex gradient, even though this is mapping  real -> real.
+    # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
+    # use the real part of the gradient
     for (i,d) in enumerate(data)
         try
             gs = Flux.gradient(ps) do 
