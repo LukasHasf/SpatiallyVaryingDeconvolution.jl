@@ -24,3 +24,9 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 UNet = "0d73aaa9-994a-4556-95d0-da67cb772a03"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
