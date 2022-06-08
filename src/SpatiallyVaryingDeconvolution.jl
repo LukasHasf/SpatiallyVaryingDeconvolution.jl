@@ -24,8 +24,6 @@ function makemodel(psfs)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     modelwiener = MultiWienerNet.MultiWiener(psfs) #|> gpu
-    #modelUNet = UNet.Unet(nrPSFs, 1)s
-    #modelUNet = UNetDeconv.UnetDeconv(nrPSFs, 1)
     if ndims(psfs)==3
         modelUNet = UNet2D.Unet2D(nrPSFs, 1, up="nearest", activation="relu", residual=true, norm="None")
     elseif ndims(psfs)==4
@@ -154,8 +152,6 @@ function train_model(model,
     example_data_y = collect(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)[1:2]...)
     pars = Flux.params(model)
-    # Working training_datapoints = Flux.Data.DataLoader((train_x, train_y); batchsize=1, shuffle=false) 
-    # Not working training_datapoints = Flux.Data.DataLoader((train_x, train_y); batchsize=16, shuffle=true)
     training_datapoints = Flux.Data.DataLoader((train_x, train_y); batchsize=1, shuffle=false)
     opt = optimizer()
     losses_test = zeros(Float64, epochs)
