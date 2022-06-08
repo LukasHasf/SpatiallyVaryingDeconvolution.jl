@@ -1,4 +1,7 @@
 module SpatiallyVaryingDeconvolution
+
+export start_training
+
 using YAML
 using Images, Colors
 using Tullio
@@ -182,7 +185,7 @@ function train_model(model,
     end
 end
 
-function run(options_path; T=Float32)
+function start_training(options_path; T=Float32)
     # Define dictionaries
     optimizer_dict = Dict("ADAM"=>Flux.Optimise.ADAM,
                           "Descent"=>Flux.Optimise.Descent,
