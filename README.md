@@ -45,6 +45,16 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `load_checkpoints`, `checkpoint_path` : You can continue training from a previously saved checkpoint. If you want to do so, set `load_checkpoints` to `true` and provide the path to the checkpoint you want to load.
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this.
 
+## Usage after training (WIP)(Untested)
+After training, you will have fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function:
+```julia
+using SpatiallyVaryingDeconvolution
+using BSON: @load
+@load checkpoint_path model
+# Apply model to new blurry data
+deblurred = model(blurry)
+```
+
 
 ## Sources
 [1] : Yanny, K., Antipa, N., Liberti, W., Dehaeck, S., Monakhova, K., Liu, F. L., Shen, K., Ng, R., & Waller, L. (2020). Miniscope3D: optimized single-shot miniature 3D fluorescence microscopy. In Light: Science &amp; Applications (Vol. 9, Issue 1). Springer Science and Business Media LLC. https://doi.org/10.1038/s41377-020-00403-7 
