@@ -123,6 +123,17 @@ function train_real_gradient!(loss, ps, data, opt)
     end
 end
 
+function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
+    datestring = string(round(now(), Dates.Second))
+    @save checkpointdirectory *
+          datestring *
+          "_loss-" *
+          string(round(losses_train[epoch], digits=3)) *
+          "_epoch-" * 
+          string(epoch + epoch_offset) *
+          ".bson" model
+end
+
 function train_model(model,
     train_x,
     train_y,
@@ -162,14 +173,7 @@ function train_model(model,
         )
 
         if saveevery > 0 && epoch % saveevery == 0
-            datestring = string(round(now(), Dates.Second))
-            @save checkpointdirectory *
-                  datestring *
-                  "_loss-" *
-                  string(round(losses_train[epoch], digits=3)) *
-                  "_epoch-" * 
-                  string(epoch + epoch_offset) *
-                  ".bson" model
+            saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
         end
 
         if plotevery > 0 && epoch % plotevery == 0
@@ -183,6 +187,8 @@ function train_model(model,
         end
         print("\n")
     end
+    # At the end of training, save a checkpoint
+    saveModel(model, checkpointdirectory, losses_train, epochs-epoch_offset, epoch_offset)
 end
 
 function start_training(options_path; T=Float32)
