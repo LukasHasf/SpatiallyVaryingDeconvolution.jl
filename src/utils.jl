@@ -2,6 +2,7 @@ export readPSFs, registerPSFs
 export load_data, applynoise
 export train_test_split
 export gaussian
+export _random_normal
 
 using MAT
 using HDF5
@@ -10,6 +11,13 @@ using FFTW
 using LinearAlgebra
 using Images
 using Noise
+using Distributions: Normal
+
+#>>>> Unet utilities
+function _random_normal(shape...)
+    return Float32.(rand(Normal(0.f0,0.02f0),shape...))
+end
+#<<<< Unet utilities
 
 function addnoise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02+0.005)

@@ -1,7 +1,8 @@
 module UNet3D
-using UNet: expand_dims, _random_normal
+using Distributions: Normal
 using Flux
 include("mybatchnorm.jl")
+
 
 function BatchNormWrap(x, out_ch)
     x = MyBatchNorm(out_ch)(x)

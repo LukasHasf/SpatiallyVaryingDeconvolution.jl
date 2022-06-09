@@ -1399,12 +1399,6 @@ git-tree-sha1 = "859e2e9a7222553a0c052e423557cedb49376da9"
 uuid = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 version = "0.3.4"
 
-[[deps.UNet]]
-deps = ["Distributions", "FileIO", "Flux", "ImageCore", "ImageTransformations", "Reexport", "Statistics", "StatsBase"]
-git-tree-sha1 = "480b8fd23b1f4c7b9395f2f70811ad6581b2cdc2"
-uuid = "0d73aaa9-994a-4556-95d0-da67cb772a03"
-version = "0.2.1"
-
 [[deps.URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
