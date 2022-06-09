@@ -2,6 +2,10 @@
 
 This package provides model definitions and training facilities for the MultiWienerNet described in [[1]](#Sources). This model is capable of reverting the effect of a spatially varying convolution in 2D and 3D.
 
+|  **Build Status**                        |
+|:-----------------------------------------:
+| [![][CI-img]][CI-url]  |
+
 ## Installation
 ```julia
 julia> ] add https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl
@@ -58,3 +62,6 @@ deblurred = model(blurry)
 
 ## Sources
 [1] : Yanny, K., Antipa, N., Liberti, W., Dehaeck, S., Monakhova, K., Liu, F. L., Shen, K., Ng, R., & Waller, L. (2020). Miniscope3D: optimized single-shot miniature 3D fluorescence microscopy. In Light: Science &amp; Applications (Vol. 9, Issue 1). Springer Science and Business Media LLC. https://doi.org/10.1038/s41377-020-00403-7 
+
+[CI-img]: https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl/workflows/CI/badge.svg
+[CI-url]: https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl/actions?query=workflow%3ACI 
