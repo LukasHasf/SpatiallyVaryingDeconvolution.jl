@@ -8,6 +8,7 @@
     model = SpatiallyVaryingDeconvolution.makemodel(psfs)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
+    # Test that inference is working
     @test ndims(prediction) == ndims(img)
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
@@ -15,6 +16,24 @@
     @save "testsave.bson" model
     loaded_model = SpatiallyVaryingDeconvolution.loadmodel("testsave.bson")
     @test loaded_model(img) == prediction
+
+    # Check that model is differentiable
+    loss(x, y) = let model=model
+        kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
+        SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y, kernel=kernel)
+    end
+    img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
+    ps = Flux.params(model)
+    gradient_without_error = true
+    try
+        gs = Flux.gradient(ps) do 
+            loss(img, img2)
+        end
+    catch ex
+        rethrow(ex)
+        gradient_without_error = false
+    end
+    @test gradient_without_error    
 
     # The same for the 3D model
     Ny = 64

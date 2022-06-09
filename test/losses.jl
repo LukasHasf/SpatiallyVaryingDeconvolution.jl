@@ -29,7 +29,7 @@ end
 
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img2; kernel=kernel) == SpatiallyVaryingDeconvolution.SSIM_loss(img2, img1; kernel=kernel)
 
-    @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img2; kernel=kernel) ≈ one(eltype(img1)) - Images.assess_ssim(img1, img2, crop=true)
+    @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img2; kernel=kernel) ≈ one(eltype(img1)) - Images.assess_ssim(img1[:, :, 1, 1], img2[:, :, 1, 1], crop=true)
 end
 
 @testset "SSIM loss 3D" begin
