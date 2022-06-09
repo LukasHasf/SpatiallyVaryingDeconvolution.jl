@@ -3,6 +3,8 @@ using Test
 using Images
 using Tullio
 using FFTW
+using Flux
+using BSON: @save
 include("../src/MultiWienerNet.jl")
 
 include("wienernet.jl")

@@ -11,4 +11,9 @@
     @test ndims(prediction) == ndims(img)
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
+
+    @save "testsave.bson" model
+    loaded_model = SpatiallyVaryingDeconvolution.loadmodel("testsave.bson")
+    @test loaded_model(img) == prediction
+    rm("testsave.bson")
 end
