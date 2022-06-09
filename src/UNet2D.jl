@@ -8,6 +8,14 @@ function BatchNormWrap(x, out_ch)
     return x
 end
 
+"""    channelsize(x)
+
+Return the size of the channel dimension of `x`.
+"""
+function channelsize(x)
+  return size(x, ndims(x)-1)
+end
+
 function uRelu(x)
   return relu.(x)
 end
@@ -72,10 +80,10 @@ end
 function (c::ConvBlock)(x)
     x1 = c.chain(x)
     if c.residual
-        selection = 1:min(size(x1)[3], size(x)[3])
-        filldimension = [size(x)[1], size(x)[2], abs(size(x1)[3] - size(x)[3]), size(x)[4]]
-        if size(x1)[3] > size(x)[3]
-            x1 = x1 .+ cat(x[:, :, selection, :], fill(zero(eltype(x)), filldimension...); dims=3)
+        selection = 1:min(channelsize(x1), channelsize(x))
+        filldimension = [size(x, 1), size(x, 2), abs(size(x1)[3] - size(x)[3]), size(x)[4]]
+        if channelsize(x1) > channelsize(x)
+            x1 = x1 .+ cat(x[:, :, selection, :], fill(zero(eltype(x)), filldimension...); dims=ndims(x1)-1)
         else
             x1 = x1 .+ x[:, :, selection, :]
         end
