@@ -13,7 +13,7 @@ function uRelu(x)
 end
 
 function uUpsampleNearest(x)
-  return upsample_nearest(x, (2,2))
+  return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
 
 struct UNetUpBlock
@@ -24,7 +24,7 @@ Flux.@functor UNetUpBlock
 
 function (u::UNetUpBlock)(x, bridge)
   x = u.upsample(x)
-  return cat(x, bridge, dims = 3)
+  return cat(x, bridge, dims = ndims(x) - 1)
 end
 
 struct ConvBlock
