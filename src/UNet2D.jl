@@ -3,10 +3,6 @@ using Distributions: Normal
 using Flux
 include("mybatchnorm.jl")
 
-function _random_normal(shape...)
-  return Float32.(rand(Normal(0.f0,0.02f0),shape...))
-end
-
 function BatchNormWrap(x, out_ch)
     x = MyBatchNorm(out_ch)(x)
     return x
