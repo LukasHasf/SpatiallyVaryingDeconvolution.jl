@@ -18,7 +18,7 @@ start_training("myOptions.yaml")
 
 ## Preparing the training data
 
-In order to train the model, you need to provide training data, ground truth data and the PSFs. Per sample of data, there should be a file in the training data directory and the ground truth data directory each. Supported file formats are `png` for 2D and `mat` for 3D (`h5` support is WIP). An example directory structure might look like this:
+In order to train the model, you need to provide training data, ground truth data and the PSFs. Per sample of data, there should be a file in the training data directory and the ground truth data directory each. Supported file formats are `png` for 2D and `mat` or HDF5 for 3D . An example directory structure might look like this:
 ```
 ├── ground_truth_data
 │   ├── 001.png
@@ -29,7 +29,7 @@ In order to train the model, you need to provide training data, ground truth dat
     ├── 002.png
     └── 003.png
 ```
-The PSFs should be provided in a single `mat` file as an 3D/4D array with the 2/3 first dimension being the spatial dimensions. (`h5` support again is WIP)
+The PSFs should be provided in a single Matlab/HDF5 file as an 3D/4D array with the 2/3 first dimension being the spatial dimensions.
 
 The paths to the ground truth data directory, the training data directory and the PSFs should be set in your `options.yaml` in the fields `x_path`, `y_path` and `psfs_path`, respectively. Note that if you use relative paths, they will be relative to your current working directory and not the directory where the `options.yaml` file is located.
 

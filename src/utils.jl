@@ -4,6 +4,7 @@ export train_test_split
 export gaussian
 
 using MAT
+using HDF5
 using NDTools
 using FFTW
 using LinearAlgebra
@@ -65,26 +66,28 @@ function loadimages(
     return images_x, images_y
 end
 
-function loadvolumesMAT(complete_files, truth_directory, simulated_directory; newsize=(128, 128, 32), T=Float32, truth_key="gt", sim_key="sim")
+function loadvolumes(complete_files, truth_directory, simulated_directory; newsize=(128, 128, 32), T=Float32, truth_key="gt", sim_key="sim")
     volumes_y = Array{T, 4}(undef, newsize..., length(complete_files))
     volumes_x = Array{T, 4}(undef, newsize..., length(complete_files))
     for (i, filename) in enumerate(complete_files)
         filepath_truth = truth_directory * filename
         filepath_simulated = simulated_directory * filename
-        volumes_y[:, :, :, i] .= imresize(matread(filepath_truth)[truth_key], newsize)
-        volumes_x[:, :, :, i] .= imresize(matread(filepath_simulated)[sim_key], newsize)
+        volumes_y[:, :, :, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
+        volumes_x[:, :, :, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
     end
     return volumes_x, volumes_y
 end
 
 function load_data(nrsamples, truth_directory, simulated_directory; newsize=(128, 128), T=Float32)
+    imageFileEndings = [".png", ".jpg", ".jpeg"]
+    volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
     complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
-    if endswith(complete_files[1], ".png")
+    if any([endswith(complete_files[1], fileEnding) for fileEnding in imageFileEndings])
         # 2D case
         x_data, y_data = loadimages(complete_files, truth_directory, simulated_directory, newsize=newsize, T=T)
-    elseif endswith(complete_files[1], ".mat")
-        # 3D case with mat files
-        x_data, y_data = loadvolumesMAT(complete_files, truth_directory, simulated_directory, newsize=newsize, T=T)
+    elseif any([endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings])
+        # 3D case
+        x_data, y_data = loadvolumes(complete_files, truth_directory, simulated_directory, newsize=newsize, T=T)
     end
     return x_data, y_data
 end
@@ -111,10 +114,16 @@ end
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
 
-function readPSFs(path::String, psf_name::String)
-    file = matopen(path)
-    if haskey(file, psf_name)
-        psfs = read(file, psf_name)
+function readPSFs(path::String, key::String)
+    hdf5FileEndings = [".h5", ".hdf", ".hdf5", ".he5"]
+    matFileEndings = [".mat"]
+    if any([endswith(path, fileEnding) for fileEnding in matFileEndings])
+        file = matopen(path)
+    elseif any([endswith(path, fileEnding) for fileEnding in hdf5FileEndings])
+        file = h5open(path, "r")
+    end
+    if haskey(file, key)
+        psfs = read(file, key)
         return psfs
     end
 end
