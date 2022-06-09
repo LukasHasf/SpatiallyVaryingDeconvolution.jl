@@ -6,5 +6,6 @@ using FFTW
 include("../src/MultiWienerNet.jl")
 
 include("wienernet.jl")
+include("fullmodel.jl")
 include("utils.jl")
 include("losses.jl")
