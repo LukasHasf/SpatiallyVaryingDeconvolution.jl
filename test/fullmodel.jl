@@ -35,7 +35,7 @@
     end
     @test gradient_without_error    
 
-    # The same for the 3D model
+    # Test inference and saveing/loading for 3D UNet
     Ny = 64
     Nx = 64
     Nz = 64
