@@ -199,7 +199,9 @@ function start_training(options_path; T=Float32)
     optimizer_kw = options["training"]["optimizer"]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
     truth_directory = options["data"]["x_path"]
+    truth_directory = endswith(truth_directory, "/") ? truth_directory : truth_directory * "/"
     simulated_directory = options["data"]["y_path"]
+    simulated_directory = endswith(simulated_directory, "/") ? simulated_directory : simulated_directory * "/"
     newsize = tuple(options["data"]["resize_to"]...)
     loadpath = nothing
     if options["training"]["checkpoints"]["load_checkpoints"]
@@ -210,11 +212,13 @@ function start_training(options_path; T=Float32)
     epochs = options["training"]["epochs"]
     plotevery = options["training"]["plot_interval"]
     plotpath = options["training"]["plot_path"]
+    plotpath = endswith(plotpath, "/") ? plotpath : plotpath * "/"
     center_psfs = options["data"]["center_psfs"]
     if center_psfs
         psf_ref_index = options["data"]["reference_index"]
     end
     checkpoint_dir = options["training"]["checkpoints"]["checkpoint_dir"]
+    checkpoint_dir = endswith(checkpoint_dir, "/") ? checkpoint_dir : checkpoint_dir * "/"
     saveevery = options["training"]["checkpoints"]["save_interval"]
     optimizer = optimizer_dict[optimizer_kw]
 
