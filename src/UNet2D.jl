@@ -8,6 +8,7 @@ function BatchNormWrap(x, out_ch)
     return x
 end
 
+
 """    channelsize(x)
 
 Return the size of the channel dimension of `x`.
@@ -29,14 +30,46 @@ function uUpsampleTconv(x)
   return ConvTranspose(tuple(2 .* ones(Int, ndims(x) - 2)...), chs => chs, stride=2, groups=chs)(x)
 end
 
+struct AttentionBlock
+  W_gate
+  W_x
+  ψ
+end
+
+Flux.@functor AttentionBlock
+
+function AttentionBlock(F_g::Integer, F_l::Integer, n_coef::Integer)
+  # This skips batchnorms, but batchsize is currently 1 
+  W_gate = Conv((1, 1), F_g => n_coef)
+  W_x = Conv((1,1), F_l => n_coef)
+  ψ = Conv((1,1), n_coef => 1, σ)
+  return AttentionBlock(W_gate, W_x, ψ)
+end
+
+function (a::AttentionBlock)(gate, skip)
+  g1 = a.W_gate(gate)
+  x1 = a.W_x(skip)
+  α = a.ψ(relu.(g1 .+ x1))
+  out = skip .* α
+  return out
+end
+
 struct UNetUpBlock
   upsample
+  a
 end
 
 Flux.@functor UNetUpBlock
 
+function UNetUpBlock(upsample)
+  return UNetUpBlock(upsample, false)
+end
+
 function (u::UNetUpBlock)(x, bridge)
   x = u.upsample(x)
+  if u.a != false
+    bridge = u.a(x, bridge)
+  end
   return cat(x, bridge, dims = ndims(x) - 1)
 end
 
@@ -113,7 +146,7 @@ Flux.trainable(u::Unet2D) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks,)
 
 Flux.@functor Unet2D
 
-function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch")
+function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch", attention=false)
   kernel_base = tuple(ones(Int, dims-2)...)
   if down=="conv"
     kernel = kernel_base .* 2
@@ -146,13 +179,25 @@ function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Boo
   if residual
     push!(conv_blocks, ConvBlock(channels, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm))
   end
+
+  # Only 2D for now
+  if attention && dims==4
+    attention_blocks = Chain( AttentionBlock(256, 256, 256),
+                            AttentionBlock(128, 128, 128), 
+                            AttentionBlock(64,64, 64),
+                            AttentionBlock(32, 32, 32))
+  else
+    attention_blocks = [false, false, false, false]
+  end
+
+
   if up=="nearest"
     upsample = uUpsampleNearest
 
-    up_blocks = Chain(UNetUpBlock(upsample),
-    UNetUpBlock(upsample),
-    UNetUpBlock(upsample),
-    UNetUpBlock(upsample))
+    up_blocks = Chain(UNetUpBlock(upsample, attention_blocks[1]),
+    UNetUpBlock(upsample, attention_blocks[2]),
+    UNetUpBlock(upsample, attention_blocks[3]),
+    UNetUpBlock(upsample, attention_blocks[4]))
   elseif up=="tconv"
     error("Upscaling method \"tconv\" not implemented yet")
     upsample2 = uUpsampleTconv
