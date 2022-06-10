@@ -209,12 +209,17 @@ function start_training(options_path; T=Float32)
     plotevery = options["training"]["plot_interval"]
     plotpath = options["training"]["plot_path"]
     plotpath = endswith(plotpath, "/") ? plotpath : plotpath * "/"
+    if !isdir(plotpath)
+        mkpath(plotpath)
+    end
     center_psfs = options["data"]["center_psfs"]
     if center_psfs
         psf_ref_index = options["data"]["reference_index"]
     end
     checkpoint_dir = options["training"]["checkpoints"]["checkpoint_dir"]
-    checkpoint_dir = endswith(checkpoint_dir, "/") ? checkpoint_dir : checkpoint_dir * "/"
+    if !isdir(checkpoint_dir)
+        mkpath(checkpoint_dir)
+    end
     saveevery = options["training"]["checkpoints"]["save_interval"]
     optimizer = optimizer_dict[optimizer_kw]
 
