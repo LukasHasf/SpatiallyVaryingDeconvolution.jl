@@ -89,11 +89,11 @@ function plot_losses(train_loss, test_loss, epoch, plotdirectory)
     plot(train_loss[1:epoch])
     xlabel!("Epochs")
     ylabel!("Loss")
-    savefig(plotdirectory * "trainlossplot.png")
+    savefig(joinpath(plotdirectory, "trainlossplot.png"))
     plot(test_loss[1:epoch])
     xlabel!("Epochs")
     ylabel!("Loss")
-    savefig(plotdirectory * "testlossplot.png")
+    savefig(joinpath(plotdirectory, "testlossplot.png"))
 end
 
 function train_real_gradient!(loss, ps, data, opt)
@@ -118,13 +118,10 @@ end
 
 function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
     datestring = string(round(now(), Dates.Second))
-    @save checkpointdirectory *
-          datestring *
-          "_loss-" *
-          string(round(losses_train[epoch], digits=3)) *
-          "_epoch-" * 
-          string(epoch + epoch_offset) *
-          ".bson" model
+    modelname = datestring * "_loss-" * string(round(losses_train[epoch], digits=3)) *
+    "_epoch-" * string(epoch + epoch_offset) * ".bson"
+    modelpath = joinpath(checkpointdirectory, modelname)
+    @save modelpath model
 end
 
 function train_model(model,
@@ -195,9 +192,7 @@ function start_training(options_path; T=Float32)
     optimizer_kw = options["training"]["optimizer"]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
     truth_directory = options["data"]["x_path"]
-    truth_directory = endswith(truth_directory, "/") ? truth_directory : truth_directory * "/"
     simulated_directory = options["data"]["y_path"]
-    simulated_directory = endswith(simulated_directory, "/") ? simulated_directory : simulated_directory * "/"
     newsize = tuple(options["data"]["resize_to"]...)
     loadpath = nothing
     if options["training"]["checkpoints"]["load_checkpoints"]
