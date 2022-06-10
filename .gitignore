@@ -1,2 +1,3 @@
 examples/checkpoints/*
 examples/training_progress/*
+LocalPreferences.toml
