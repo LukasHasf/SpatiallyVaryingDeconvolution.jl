@@ -24,11 +24,7 @@ function makemodel(psfs)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     modelwiener = MultiWienerNet.MultiWiener(psfs) #|> gpu
-    if ndims(psfs)==3
-        modelUNet = UNet2D.Unet2D(nrPSFs, 1, up="nearest", activation="relu", residual=true, norm="None")
-    elseif ndims(psfs)==4
-        modelUNet = UNet3D.Unet3D(nrPSFs, 1, up="nearest", activation="relu", residual=true, norm="None")
-    end
+    modelUNet = UNet2D.Unet2D(nrPSFs, 1, ndims(psfs)+1, up="nearest", activation="relu", residual=true, norm="None")
     model = Flux.Chain(modelwiener,modelUNet)
     return model
 end

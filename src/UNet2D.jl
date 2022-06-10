@@ -24,6 +24,11 @@ function uUpsampleNearest(x)
   return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
 
+function uUpsampleTconv(x)
+  chs = channelsize(x)
+  return ConvTranspose(tuple(2 .* ones(Int, ndims(x) - 2)...), chs => chs, stride=2, groups=chs)(x)
+end
+
 struct UNetUpBlock
   upsample
 end
@@ -43,18 +48,18 @@ end
 Flux.trainable(c::ConvBlock) = (c.chain,)
 Flux.@functor ConvBlock
 
-function ConvBlock(in_chs::Int, out_chs::Int; dropout=false, activation="relu", transpose=false, residual=true, norm="batch")
+function ConvBlock(in_chs::Int, out_chs::Int; kernel = (3,3), dropout=false, activation="relu", transpose=false, residual=true, norm="batch")
   if transpose
-    conv1 = ConvTranspose((3,3),in_chs => out_chs, pad=1, init=_random_normal)
-    conv2 = ConvTranspose((3,3), out_chs => out_chs, pad=1, init=_random_normal)
+    conv1 = ConvTranspose(kernel, in_chs => out_chs, pad=1, init=_random_normal)
+    conv2 = ConvTranspose(kernel, out_chs => out_chs, pad=1, init=_random_normal)
   else
-    conv1 = Conv((3,3), in_chs => out_chs, pad=1)
-    conv2 = Conv((3,3), out_chs => out_chs, pad=1)
+    conv1 = Conv(kernel, in_chs => out_chs, pad=1)
+    conv2 = Conv(kernel, out_chs => out_chs, pad=1)
   end
 
   if norm=="batch"
-    norm1 = x->BatchNormWrap(x,out_chs)
-    norm2 = x->BatchNormWrap(x,out_chs)
+    norm1 = x->BatchNormWrap(x, out_chs)
+    norm2 = x->BatchNormWrap(x, out_chs)
   else
     norm1 = identity
     norm2 = identity
@@ -65,8 +70,8 @@ function ConvBlock(in_chs::Int, out_chs::Int; dropout=false, activation="relu", 
   end
 
   if dropout
-    dropout1 = Dropout(0.05, dims=3)
-    dropout2 = Dropout(0.05, dims=3)
+    dropout1 = Dropout(0.05, dims=ndims(kernel)+1)
+    dropout2 = Dropout(0.05, dims=ndims(kernel)+1)
   else
     dropout1 = identity
     dropout2 = identity
@@ -81,11 +86,12 @@ function (c::ConvBlock)(x)
     x1 = c.chain(x)
     if c.residual
         selection = 1:min(channelsize(x1), channelsize(x))
-        filldimension = [size(x, 1), size(x, 2), abs(size(x1)[3] - size(x)[3]), size(x)[4]]
+        filldimension = [size(x)[1:end-2]..., abs(channelsize(x1) - channelsize(x)), size(x)[end]]
+        selected_x = selectdim(x, ndims(x)-1, selection)
         if channelsize(x1) > channelsize(x)
-            x1 = x1 .+ cat(x[:, :, selection, :], fill(zero(eltype(x)), filldimension...); dims=ndims(x1)-1)
+            x1 = x1 .+ cat( selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1)-1)
         else
-            x1 = x1 .+ x[:, :, selection, :]
+            x1 = x1 .+ selected_x
         end
     end
     x1 = c.actfun(x1)
@@ -107,12 +113,14 @@ Flux.trainable(u::Unet2D) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks,)
 
 Flux.@functor Unet2D
 
-function Unet2D(channels::Int = 1, labels::Int = channels; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch")
+function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch")
+  kernel_base = tuple(ones(Int, dims-2)...)
   if down=="conv"
-    c1 = ConvDown(32)
-    c2 = ConvDown(64)
-    c3 = ConvDown(128)
-    c4 = ConvDown(256)
+    kernel = kernel_base .* 2
+    c1 = ConvDown(32; kernel=kernel)
+    c2 = ConvDown(64; kernel=kernel)
+    c3 = ConvDown(128; kernel=kernel)
+    c4 = ConvDown(256; kernel=kernel)
     c1.weight .= 0.01 .* c1.weight .+ 0.25
     c2.weight .= 0.01 .* c2.weight .+ 0.25
     c3.weight .= 0.01 .* c3.weight .+ 0.25
@@ -124,18 +132,19 @@ function Unet2D(channels::Int = 1, labels::Int = channels; residual::Bool = fals
     conv_down_blocks = Chain(c1, c2, c3, c4)
   end
 
-  conv_blocks = [ConvBlock(channels, 32, residual=residual, activation=activation, norm=norm),
-  ConvBlock(32, 64, residual=residual, activation=activation, norm=norm),
-  ConvBlock(64, 128, residual=residual, activation=activation, norm=norm),
-  ConvBlock(128, 256, residual=residual, activation=activation, norm=norm),
-  ConvBlock(256, 256, residual=residual, activation=activation, norm=norm),
-  ConvBlock(512, 128, residual=residual, activation=activation, norm=norm),
-  ConvBlock(256, 64, residual=residual, activation=activation, norm=norm),
-  ConvBlock(128, 32, residual=residual, activation=activation, norm=norm),
-  ConvBlock(64, labels, residual=residual, activation=activation, norm=norm)]
+  conv_kernel = kernel_base .* 3
+  conv_blocks = [ConvBlock(channels, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(32, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(64, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(128, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(256, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(512, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(256, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(128, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  ConvBlock(64, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)]
 
   if residual
-    push!(conv_blocks, ConvBlock(channels, labels, residual=residual, activation=activation, norm=norm))
+    push!(conv_blocks, ConvBlock(channels, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm))
   end
   if up=="nearest"
     upsample = uUpsampleNearest
@@ -145,12 +154,14 @@ function Unet2D(channels::Int = 1, labels::Int = channels; residual::Bool = fals
     UNetUpBlock(upsample),
     UNetUpBlock(upsample))
   elseif up=="tconv"
-    upsample2(chs) = x -> ConvTranspose((2,2), chs => chs ÷ 2, stride=2, groups=chs)(x)
+    error("Upscaling method \"tconv\" not implemented yet")
+    upsample2 = uUpsampleTconv
+    #upsample2(chs) = x -> ConvTranspose((2,2), chs => chs ÷ 2, stride=2, groups=chs)(x)
     
-    up_blocks = Chain(UNetUpBlock(upsample2(512)),
-    UNetUpBlock(upsample2(128)),
-    UNetUpBlock(upsample2(64)),
-    UNetUpBlock(upsample2(32)))
+    up_blocks = Chain(UNetUpBlock(upsample2),
+    UNetUpBlock(upsample2),
+    UNetUpBlock(upsample2),
+    UNetUpBlock(upsample2))
   end							  
   Unet2D(conv_down_blocks, conv_blocks, up_blocks, residual)
 end
