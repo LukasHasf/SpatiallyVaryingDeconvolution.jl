@@ -146,35 +146,53 @@ Flux.trainable(u::Unet2D) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks,)
 
 Flux.@functor Unet2D
 
-function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch", attention=false)
+function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch", attention=false, depth=4)
   kernel_base = tuple(ones(Int, dims-2)...)
   if down=="conv"
     kernel = kernel_base .* 2
-    c1 = ConvDown(32; kernel=kernel)
-    c2 = ConvDown(64; kernel=kernel)
-    c3 = ConvDown(128; kernel=kernel)
-    c4 = ConvDown(256; kernel=kernel)
-    c1.weight .= 0.01 .* c1.weight .+ 0.25
-    c2.weight .= 0.01 .* c2.weight .+ 0.25
-    c3.weight .= 0.01 .* c3.weight .+ 0.25
-    c4.weight .= 0.01 .* c4.weight .+ 0.25
-    c1.bias .*= 0.01
-    c2.bias .*= 0.01
-    c3.bias .*= 0.01
-    c4.bias .*= 0.01
-    conv_down_blocks = Chain(c1, c2, c3, c4)
+    conv_down_blocks = []
+    for i in 1:depth
+      c = ConvDown(16 * 2^i; kernel=kernel) # 32, 64, 128, 256, ... input channels
+      c.weight .= 0.01 .* c.weight .+ 0.25
+      c.bias .*= 0.01
+      push!(conv_down_blocks, c)
+    end
+    #c1 = ConvDown(32; kernel=kernel)
+    #c2 = ConvDown(64; kernel=kernel)
+    #c3 = ConvDown(128; kernel=kernel)
+    #c4 = ConvDown(256; kernel=kernel)
+    #c1.weight .= 0.01 .* c1.weight .+ 0.25
+    #c2.weight .= 0.01 .* c2.weight .+ 0.25
+    #c3.weight .= 0.01 .* c3.weight .+ 0.25
+    #c4.weight .= 0.01 .* c4.weight .+ 0.25
+    #c1.bias .*= 0.01
+    #c2.bias .*= 0.01
+    #c3.bias .*= 0.01
+    #c4.bias .*= 0.01
+    #conv_down_blocks = Chain(c1, c2, c3, c4)
   end
 
   conv_kernel = kernel_base .* 3
-  conv_blocks = [ConvBlock(channels, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(32, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(64, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(128, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(256, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(512, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(256, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(128, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-  ConvBlock(64, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)]
+  conv_blocks = [ConvBlock(channels, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)]
+  for i in 1:depth
+    second_exponent = i==depth ? i : i+1
+    c = ConvBlock(16*2^i, 16 * 2^second_exponent; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)
+    push!(conv_blocks, c)
+  end
+  for i in 1:depth
+    second_index = i==depth ? labels :  2^(5+depth-(i+1))
+    c = ConvBlock(2^(5+depth-(i-1)), second_index; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)
+    push!(conv_blocks, c)
+  end
+  #conv_blocks = [ConvBlock(channels, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(32, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(64, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(128, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(256, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(512, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(256, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(128, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
+  #ConvBlock(64, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)]
 
   if residual
     push!(conv_blocks, ConvBlock(channels, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm))
@@ -182,22 +200,33 @@ function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Boo
 
   # Only 2D for now
   if attention && dims==4
-    attention_blocks = Chain( AttentionBlock(256, 256, 256),
-                            AttentionBlock(128, 128, 128), 
-                            AttentionBlock(64,64, 64),
-                            AttentionBlock(32, 32, 32))
+    attention_blocks = []
+    for i in 1:depth
+      nrch = 16*2^(depth-(i-1))
+      a = AttentionBlock(nrch, nrch, nrch)
+      push!(attention_blocks, a)
+    end
+    #attention_blocks = Chain( AttentionBlock(256, 256, 256),
+    #                        AttentionBlock(128, 128, 128), 
+    #                        AttentionBlock(64,64, 64),
+    #                        AttentionBlock(32, 32, 32))
   else
-    attention_blocks = [false, false, false, false]
+    attention_blocks = repeat([false], depth)
   end
 
 
   if up=="nearest"
     upsample = uUpsampleNearest
+    up_blocks = []
+    for i in 1:depth
+      u = UNetUpBlock(upsample, attention_blocks[i])
+      push!(up_blocks, u)
+    end
 
-    up_blocks = Chain(UNetUpBlock(upsample, attention_blocks[1]),
-    UNetUpBlock(upsample, attention_blocks[2]),
-    UNetUpBlock(upsample, attention_blocks[3]),
-    UNetUpBlock(upsample, attention_blocks[4]))
+    #up_blocks = Chain(UNetUpBlock(upsample, attention_blocks[1]),
+    #UNetUpBlock(upsample, attention_blocks[2]),
+    #UNetUpBlock(upsample, attention_blocks[3]),
+    #UNetUpBlock(upsample, attention_blocks[4]))
   elseif up=="tconv"
     error("Upscaling method \"tconv\" not implemented yet")
     upsample2 = uUpsampleTconv
