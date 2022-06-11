@@ -241,20 +241,22 @@ function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Boo
 end
 
 function (u::Unet2D)(x::AbstractArray)
-    c0 = x                                           # in_chs channels
-    c1 = u.conv_blocks[1](c0)                        # 32 channels
-    c2 = u.conv_blocks[2](u.conv_down_blocks[1](c1)) # 64 channels
-    c3 = u.conv_blocks[3](u.conv_down_blocks[2](c2)) # 128 channels
-    c4 = u.conv_blocks[4](u.conv_down_blocks[3](c3)) # 256 channels
-    c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4)) # 256 channels
-    up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))   # 128 channels
-    up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))  # 64 channels 
-    up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))  # 32 channels
-    up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))  # labels channels
-    if u.residual
-        up4 = up4 .+ u.conv_blocks[10](c0)           # labels channels
+    depth = length(u.conv_down_blocks)
+    cs = Dict()
+    cs[0] = x
+    cs[1] = u.conv_blocks[1](cs[0])
+    for i in 1:depth
+        cs[i+1] = u.conv_blocks[i+1](u.conv_down_blocks[i](cs[i]))
     end
-    return up4
+    ups = Dict()
+    ups[1] = u.conv_blocks[depth+2](u.up_blocks[1](cs[depth+1], cs[depth]))
+    for i in 2:depth
+        ups[i] = u.conv_blocks[depth+i+1](u.up_blocks[i](ups[i-1], cs[depth-i+1]))
+    end
+    if u.residual
+        ups[depth] = ups[depth] .+ u.conv_blocks[2*depth+2](cs[0])
+    end
+    return ups[depth]
 end
 
 end # module
