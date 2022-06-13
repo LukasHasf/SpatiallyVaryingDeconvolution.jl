@@ -248,15 +248,14 @@ function (u::Unet2D)(x::AbstractArray)
     for i in 1:depth
         cs[i+1] = u.conv_blocks[i+1](u.conv_down_blocks[i](cs[i]))
     end
-    ups = Dict()
-    ups[1] = u.conv_blocks[depth+2](u.up_blocks[1](cs[depth+1], cs[depth]))
+    up = u.conv_blocks[depth+2](u.up_blocks[1](cs[depth+1], cs[depth]))
     for i in 2:depth
-        ups[i] = u.conv_blocks[depth+i+1](u.up_blocks[i](ups[i-1], cs[depth-i+1]))
+        up = u.conv_blocks[depth+i+1](u.up_blocks[i](up, cs[depth-i+1]))
     end
     if u.residual
-        ups[depth] = ups[depth] .+ u.conv_blocks[2*depth+2](cs[0])
+        up = up .+ u.conv_blocks[2*depth+2](cs[0])
     end
-    return ups[depth]
+    return up
 end
 
 end # module
