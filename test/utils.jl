@@ -20,3 +20,28 @@
     @test size(b) == (10, 3, 10)
     @test cat(a, b, dims=2) == x
 end
+
+
+@testset "find_complete" begin
+    filenames = ["File$i.txt" for i in 1:20]
+    dir1 = mktempdir()
+    dir2 = mktempdir()
+    for filename in filenames
+        io = open(joinpath(dir1, filename), "w")
+        close(io)
+        io = open(joinpath(dir2, filename), "w")
+        close(io)
+    end
+    complete_list = find_complete(10, dir1, dir2)
+    @test length(complete_list)==10
+    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    io = open(joinpath(dir1, "onlyInDir1.txt"), "w")
+    close(io)
+    io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
+    close(io)
+    complete_list = find_complete(21, dir1, dir2)
+    @test length(complete_list)==20
+    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    @test !("onlyInDir1.txt" in complete_list)
+    @test !("onlyInDir2.txt" in complete_list)
+end

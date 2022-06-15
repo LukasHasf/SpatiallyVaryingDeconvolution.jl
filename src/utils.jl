@@ -46,6 +46,9 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
             return complete_files
         end
     end
+    if counter<nrsamples
+        return view(complete_files, 1:counter)
+    end
 end
 
 function loadimages(
