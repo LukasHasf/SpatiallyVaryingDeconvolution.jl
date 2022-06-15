@@ -1,8 +1,8 @@
 function wiener_filter(img, psf, ϵ)
-    h = rfft(psf, [1,2])
-    x = rfft(img, [1,2])
+    h = rfft(psf, [1, 2])
+    x = rfft(img, [1, 2])
     out = conj.(h) .* x ./ (abs2.(h) .+ ϵ)
-    return ifftshift(irfft(out, size(img,1), [1,2]))
+    return ifftshift(irfft(out, size(img, 1), [1, 2]))
 end
 
 @testset "WienerNet Deconvolution" begin
@@ -19,10 +19,9 @@ end
     @test ndims(pred) == 4
     @test size(pred) == (Ny, Nx, nrchannels * nrPSFs, batchsize)
 
-    wf1 = wiener_filter(img, PSFs[:,:,1], multiwiener.lambda[1])
-    wf2 = wiener_filter(img, PSFs[:,:,2], multiwiener.lambda[2])
+    wf1 = wiener_filter(img, PSFs[:, :, 1], multiwiener.lambda[1])
+    wf2 = wiener_filter(img, PSFs[:, :, 2], multiwiener.lambda[2])
 
     @test wf1[:, :, 1, 1] ≈ pred[:, :, 1, 1]
     @test wf2[:, :, 1, 1] ≈ pred[:, :, 2, 1]
 end
-

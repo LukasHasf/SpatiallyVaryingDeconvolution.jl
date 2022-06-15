@@ -18,22 +18,23 @@
     @test loaded_model(img) == prediction
 
     # Check that model is differentiable
-    loss(x, y) = let model=model
-        kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
-        SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y, kernel=kernel)
-    end
+    loss(x, y) =
+        let model = model
+            kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
+            SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
+        end
     img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
     ps = Flux.params(model)
     gradient_without_error = true
     try
-        gs = Flux.gradient(ps) do 
+        gs = Flux.gradient(ps) do
             loss(img, img2)
         end
     catch ex
         rethrow(ex)
         gradient_without_error = false
     end
-    @test gradient_without_error    
+    @test gradient_without_error
 
     # Test inference and saveing/loading for 3D UNet
     Ny = 64

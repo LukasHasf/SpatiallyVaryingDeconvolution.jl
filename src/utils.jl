@@ -13,7 +13,7 @@ using Images
 using Noise
 
 function addnoise(img)
-    g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02+0.005)
+    g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
     peak = rand(eltype(img)) * 4500 + 500
     img = poisson(img, peak)
     img .+= g_noise
@@ -39,24 +39,20 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
     simulated_files = readdir(simulated_directory)
     for filename in readdir(truth_directory)
         if filename in simulated_files
-            complete_files[counter+1] = filename
+            complete_files[counter + 1] = filename
             counter += 1
         end
         if counter == nrsamples
             return complete_files
         end
     end
-    if counter<nrsamples
+    if counter < nrsamples
         return view(complete_files, 1:counter)
     end
 end
 
 function loadimages(
-    complete_files,
-    truth_directory,
-    simulated_directory;
-    newsize = (128, 128),
-    T = Float32,
+    complete_files, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
 )
     images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     images_x = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
@@ -70,9 +66,17 @@ function loadimages(
     return images_x, images_y
 end
 
-function loadvolumes(complete_files, truth_directory, simulated_directory; newsize=(128, 128, 32), T=Float32, truth_key="gt", sim_key="sim")
-    volumes_y = Array{T, 4}(undef, newsize..., length(complete_files))
-    volumes_x = Array{T, 4}(undef, newsize..., length(complete_files))
+function loadvolumes(
+    complete_files,
+    truth_directory,
+    simulated_directory;
+    newsize=(128, 128, 32),
+    T=Float32,
+    truth_key="gt",
+    sim_key="sim",
+)
+    volumes_y = Array{T,4}(undef, newsize..., length(complete_files))
+    volumes_x = Array{T,4}(undef, newsize..., length(complete_files))
     for (i, filename) in enumerate(complete_files)
         filepath_truth = truth_directory * filename
         filepath_simulated = simulated_directory * filename
@@ -82,16 +86,24 @@ function loadvolumes(complete_files, truth_directory, simulated_directory; newsi
     return volumes_x, volumes_y
 end
 
-function load_data(nrsamples, truth_directory, simulated_directory; newsize=(128, 128), T=Float32)
+function load_data(
+    nrsamples, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
+)
     imageFileEndings = [".png", ".jpg", ".jpeg"]
     volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
     complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
     if any([endswith(complete_files[1], fileEnding) for fileEnding in imageFileEndings])
         # 2D case
-        x_data, y_data = loadimages(complete_files, truth_directory, simulated_directory, newsize=newsize, T=T)
-    elseif any([endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings])
+        x_data, y_data = loadimages(
+            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
+        )
+    elseif any([
+        endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings
+    ])
         # 3D case
-        x_data, y_data = loadvolumes(complete_files, truth_directory, simulated_directory, newsize=newsize, T=T)
+        x_data, y_data = loadvolumes(
+            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
+        )
     end
     return x_data, y_data
 end
@@ -102,10 +114,10 @@ Split dataset `x` into two datasets, with the first containing `ratio`
 and the second containing `1-ratio` parts of `x`.
 Splits dataset along dimension `dim` (Default is last dimension).
 """
-function train_test_split(x; ratio = 0.7, dim=ndims(x))
+function train_test_split(x; ratio=0.7, dim=ndims(x))
     split_ind = trunc(Int, ratio * size(x, dim))
     train = collect(selectdim(x, dim, 1:split_ind))
-    test = collect(selectdim(x, dim, (1+split_ind):size(x, dim)))
+    test = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
     return train, test
 end
 
@@ -116,7 +128,6 @@ function gaussian(window_size, sigma)
 end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
-
 
 function readPSFs(path::String, key::String)
     hdf5FileEndings = [".h5", ".hdf", ".hdf5", ".he5"]
@@ -137,7 +148,7 @@ end
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
 function padND(x, n)
-    return select_region(x, new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
+    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
 """
@@ -152,46 +163,46 @@ If `ref_im` has size `(Ny, Nx)`/`(Ny, Nx, Nz)`, `stack` should have size
 function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
     @assert N in [3, 4] "stack needs to be a 3d/4d array but was $(N)d"
     ND = ndims(stack)
-    Ns = Array{Int, 1}(undef, ND-1)
-    Ns .= size(stack)[1:end-1]
+    Ns = Array{Int,1}(undef, ND - 1)
+    Ns .= size(stack)[1:(end - 1)]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
-    pad_function = x -> padND(x, ND-1)
+    pad_function = x -> padND(x, ND - 1)
 
     function crossCorr(
-            x::Array{ComplexF64},
-            y::Array{ComplexF64},
-            iplan::AbstractFFTs.ScaledPlan,
-        )
-            return fftshift(iplan * (x .* y))
+        x::Array{ComplexF64}, y::Array{ComplexF64}, iplan::AbstractFFTs.ScaledPlan
+    )
+        return fftshift(iplan * (x .* y))
     end
-    
+
     function norm(x)
         return sqrt(sum(abs2.(x)))
     end
 
-    yi_reg = Array{Float64, N}(undef, size(stack))
+    yi_reg = Array{Float64,N}(undef, size(stack))
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
     # Normalize the stack
-    norms = map(norm, eachslice(stack_dct, dims=ND))
-    norms = reshape(norms, ones(Int, ND-1)...,length(norms))
+    norms = map(norm, eachslice(stack_dct; dims=ND))
+    norms = reshape(norms, ones(Int, ND - 1)..., length(norms))
     stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = zeros(Int, (ND-1, M))
+    si = zeros(Int, (ND - 1, M))
     # Do FFT registration
     good_count = 1
-    dummy_for_plan = Array{eltype(stack_dct), ND-1}(undef, (2 .* Ns)...)
-    plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
-    dummy_for_iplan = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
-    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1], flags = FFTW.MEASURE)
+    dummy_for_plan = Array{eltype(stack_dct),ND - 1}(undef, (2 .* Ns)...)
+    plan = plan_rfft(dummy_for_plan; flags=FFTW.MEASURE)
+    dummy_for_iplan = Array{ComplexF64,ND - 1}(
+        undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...
+    )
+    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1]; flags=FFTW.MEASURE)
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = Array{Float64, ND-1}(undef, Ns...)
-    ft_stack = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    im_reg = Array{Float64,ND - 1}(undef, Ns...)
+    ft_stack = Array{ComplexF64,ND - 1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
-    for m = 1:M
+    for m in 1:M
         mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
         corr_im = crossCorr(ft_stack, pre_comp_ref_im, iplan)
         max_value, max_location = findmax(corr_im)
@@ -205,5 +216,5 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
         selectdim(yi_reg, ND, good_count) .= im_reg
         good_count += 1
     end
-    return collect(selectdim(yi_reg, ND, 1:(good_count-1))), si
+    return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
 end
