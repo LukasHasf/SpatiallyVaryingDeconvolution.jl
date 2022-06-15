@@ -10,8 +10,7 @@ using Flux
 using Statistics
 using Dates
 using Plots
-include("UNet2D.jl")
-include("UNet3D.jl")
+include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
 
@@ -24,7 +23,7 @@ function makemodel(psfs)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     modelwiener = MultiWienerNet.MultiWiener(psfs) #|> gpu
-    modelUNet = UNet2D.Unet2D(nrPSFs, 1, ndims(psfs)+1, up="nearest", activation="relu", residual=true, norm="None", attention=true)
+    modelUNet = UNet.Unet(nrPSFs, 1, ndims(psfs)+1, up="nearest", activation="relu", residual=true, norm="None", attention=true)
     model = Flux.Chain(modelwiener,modelUNet)
     return model
 end

@@ -1,10 +1,9 @@
-module UNet2D
+module UNet
 using Distributions: Normal
 using Flux
-include("mybatchnorm.jl")
 
 function BatchNormWrap(x, out_ch)
-    x = MyBatchNorm(out_ch)(x)
+    x = BatchNorm(out_ch)(x)
     return x
 end
 
@@ -135,18 +134,18 @@ function ConvDown(chs::Int; kernel=(2,2), activation=identity)
   return DepthwiseConv(kernel, chs=>chs, activation, stride=2)
 end
 
-struct Unet2D
+struct Unet
   conv_down_blocks
   conv_blocks
   up_blocks
   residual::Bool
 end
 
-Flux.trainable(u::Unet2D) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks,)
+Flux.trainable(u::Unet) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks,)
 
-Flux.@functor Unet2D
+Flux.@functor Unet
 
-function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch", attention=false, depth=4)
+function Unet(channels::Int = 1, labels::Int = channels, dims=4; residual::Bool = false, up="nearest", down="conv", activation=relu, norm="batch", attention=false, depth=4)
   kernel_base = tuple(ones(Int, dims-2)...)
   if down=="conv"
     kernel = kernel_base .* 2
@@ -237,10 +236,10 @@ function Unet2D(channels::Int = 1, labels::Int = channels, dims=4; residual::Boo
     UNetUpBlock(upsample2),
     UNetUpBlock(upsample2))
   end							  
-  Unet2D(conv_down_blocks, conv_blocks, up_blocks, residual)
+  Unet(conv_down_blocks, conv_blocks, up_blocks, residual)
 end
 
-function (u::Unet2D)(x::AbstractArray)
+function (u::Unet)(x::AbstractArray)
     depth = length(u.conv_down_blocks)
     cs = Dict()
     cs[0] = x
