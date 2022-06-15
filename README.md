@@ -2,9 +2,9 @@
 
 This package provides model definitions and training facilities for the MultiWienerNet described in [[1]](#Sources). This model is capable of reverting the effect of a spatially varying convolution in 2D and 3D.
 
-|  **Build Status**                        |
-|:-----------------------------------------:
-| [![][CI-img]][CI-url]  |
+|  **Build Status**                        |  **Code Coverage**  |
+|:----------------------------------------:|:-------------------:|
+| [![][CI-img]][CI-url]                    |[![][CC-img]][CC-url]|
 
 ## Installation
 ```julia
@@ -65,3 +65,5 @@ deblurred = model(blurry)
 
 [CI-img]: https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl/workflows/CI/badge.svg
 [CI-url]: https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl/actions?query=workflow%3ACI 
+[CC-img]: https://codecov.io/gh/LukasHasf/SpatiallyVaryingDeconvolution.jl/branch/master/graph/badge.svg?token=9Q5HNIVNV8
+[CC-url]: https://codecov.io/gh/LukasHasf/SpatiallyVaryingDeconvolution.jl
