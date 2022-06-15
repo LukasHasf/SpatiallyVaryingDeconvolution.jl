@@ -11,13 +11,6 @@ using FFTW
 using LinearAlgebra
 using Images
 using Noise
-using Distributions: Normal
-
-#>>>> UNet utilities
-function _random_normal(shape...)
-    return Float32.(rand(Normal(0.f0,0.02f0),shape...))
-end
-#<<<< UNet utilities
 
 function addnoise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02+0.005)

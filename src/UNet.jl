@@ -1,5 +1,4 @@
 module UNet
-using Distributions: Normal
 using Flux
 
 function BatchNormWrap(x, out_ch)
@@ -82,11 +81,11 @@ Flux.@functor ConvBlock
 
 function ConvBlock(in_chs::Int, out_chs::Int; kernel = (3,3), dropout=false, activation="relu", transpose=false, residual=true, norm="batch")
   if transpose
-    conv1 = ConvTranspose(kernel, in_chs => out_chs, pad=1, init=_random_normal)
-    conv2 = ConvTranspose(kernel, out_chs => out_chs, pad=1, init=_random_normal)
+    conv1 = ConvTranspose(kernel, in_chs => out_chs, pad=1, init=Flux.glorot_normal)
+    conv2 = ConvTranspose(kernel, out_chs => out_chs, pad=1, init=Flux.glorot_normal)
   else
-    conv1 = Conv(kernel, in_chs => out_chs, pad=1)
-    conv2 = Conv(kernel, out_chs => out_chs, pad=1)
+    conv1 = Conv(kernel, in_chs => out_chs, pad=1, init=Flux.glorot_normal)
+    conv2 = Conv(kernel, out_chs => out_chs, pad=1, init=Flux.glorot_normal)
   end
 
   if norm=="batch"
