@@ -1,3 +1,4 @@
 examples/checkpoints/*
 examples/training_progress/*
 LocalPreferences.toml
+.JuliaFormatter.toml
