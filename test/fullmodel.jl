@@ -13,8 +13,8 @@
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
-    @save "testsave.bson" model
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel("testsave.bson")
+    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
+    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(testsave_path)
     @test loaded_model(img) == prediction
 
     # Check that model is differentiable
@@ -51,8 +51,7 @@
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
-    @save "testsave.bson" model
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel("testsave.bson")
+    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
+    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(testsave_path)
     @test loaded_model(img) == prediction
-    rm("testsave.bson")
 end
