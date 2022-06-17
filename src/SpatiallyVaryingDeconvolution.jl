@@ -168,7 +168,9 @@ function train_model(
     losses_train = zeros(Float64, epochs)
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
+        trainmode!(model)
         train_real_gradient!(loss, pars, training_datapoints, opt)
+        testmode!(model)
         losses_train[epoch] = loss(train_x, train_y)
         losses_test[epoch] = loss(test_x, test_y)
         print(
