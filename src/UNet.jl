@@ -1,11 +1,6 @@
 module UNet
 using Flux
 
-function BatchNormWrap(x, out_ch)
-    x = BatchNorm(out_ch)(x)
-    return x
-end
-
 """    channelsize(x)
 
 Return the size of the channel dimension of `x`.
@@ -101,8 +96,8 @@ function ConvBlock(
     end
 
     if norm == "batch"
-        norm1 = x -> BatchNormWrap(x, out_chs)
-        norm2 = x -> BatchNormWrap(x, out_chs)
+        norm1 = BatchNorm(out_chs)
+        norm2 = BatchNorm(out_chs)
     else
         norm1 = identity
         norm2 = identity
