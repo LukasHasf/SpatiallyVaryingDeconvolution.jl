@@ -40,25 +40,15 @@ end
 
 function nn_convolve(img::Array{T,N}; kernel=nothing) where {T,N}
     kernel = T.(kernel)
+    @assert ndims(img) == ndims(kernel) + 2
     if ndims(kernel) == 2
-        if N == 3
-            img = view(img, :, :, 1)
-        elseif N == 4
-            @tullio convolved[x + _, y + _, a, b] := img[x + i, y + j, a, b] * kernel[i, j]
-            return convolved
-        end
+        @tullio convolved[x + _, y + _, a, b] := img[x + i, y + j, a, b] * kernel[i, j]
+        return convolved
     elseif ndims(kernel) == 3
-        # TODO: This is likely wrong
-        if N == 5
-            img = view(img, :, :, :, 1, 1)
-            @tullio convolved[x + _, y + _, z + _] :=
-                img[x + i, y + j, z + k] * kernel[i, j, k]
-            return convolved
-        elseif N == 3
-            @tullio convolved[x + _, y + _, z + _] :=
-                img[x + i, y + j, z + k] * kernel[i, j, k]
-            return convolved
-        end
+        img = view(img, :, :, :, 1, 1)
+        @tullio convolved[x + _, y + _, z + _] :=
+            img[x + i, y + j, z + k] * kernel[i, j, k]
+        return convolved
     end
 end
 
