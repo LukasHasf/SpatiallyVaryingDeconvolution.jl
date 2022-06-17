@@ -44,3 +44,19 @@ end
     @test !("onlyInDir1.txt" in complete_list)
     @test !("onlyInDir2.txt" in complete_list)
 end
+
+@testset "channelsize" begin
+    img = rand(Float32, 10, 11, 12, 5)
+    vol = rand(Float32, 10, 11, 12, 13, 5)
+    @test UNet.channelsize(img) == 12
+    @test UNet.channelsize(vol) == 13
+    img2 = rand(Float64, 5, 6, 7, 4)
+    vol2 = rand(Float64, 5, 6, 7, 8, 4)
+    @test UNet.channelsize(img2) == 7
+    @test UNet.channelsize(vol2) == 8
+end
+
+@testset "uRelu" begin
+    x = -10:0.1:10
+    @test UNet.uRelu(x) == relu.(x)
+end

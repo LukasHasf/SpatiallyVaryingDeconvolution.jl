@@ -7,6 +7,7 @@ using Flux
 using BSON: @save
 include("../src/MultiWienerNet.jl")
 include("../src/utils.jl")
+include("../src/UNet.jl")
 
 include("utils.jl")
 include("wienernet.jl")
