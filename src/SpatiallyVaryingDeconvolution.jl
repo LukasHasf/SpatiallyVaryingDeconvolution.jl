@@ -118,7 +118,7 @@ function train_real_gradient!(loss, ps, data, opt)
 end
 
 function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
-    datestring = string(round(now(), Dates.Second))
+    datestring = replace(string(round(now(), Dates.Second)), ":"=>"_")
     modelname =
         datestring *
         "_loss-" *
