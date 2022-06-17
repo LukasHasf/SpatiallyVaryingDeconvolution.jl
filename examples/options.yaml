@@ -4,7 +4,7 @@ data:
     # Path to ground truth
     y_path : ../../training_data/Data/JuliaForwardModel/
     # Data needs to be resized to be a power of two along each axis
-    resize_to : [128, 128]
+    resize_to : [64, 64]
     # Should the data be centered?
     center_psfs: true
     # If center_psfs, which index corresponds to the central PSF? -1 means length \div 2 + 1
@@ -22,9 +22,9 @@ training:
     # Key under which the PSFs are stored
     psfs_key: psfs
     # How many training+testing samples to load from x_path and y_path
-    nrsamples: 200
+    nrsamples: 700
     # How many epochs to train
-    epochs: 10
+    epochs: 20
     # The employed optimizer
     optimizer: ADADelta
     # How often should a plot of the evaluation of the model on the first test data be plotted? 0 for never

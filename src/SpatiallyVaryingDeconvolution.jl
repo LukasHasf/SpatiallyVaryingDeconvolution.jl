@@ -30,8 +30,9 @@ function makemodel(psfs)
         up="nearest",
         activation="relu",
         residual=true,
-        norm="None",
-        attention=true,
+        norm="batch",
+        attention=false,
+        depth=3,
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
@@ -161,7 +162,7 @@ function train_model(
     example_data_y = reshape(example_data_y, size(example_data_y)[1:2]...)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
-        (train_x, train_y); batchsize=1, shuffle=false
+        (train_x, train_y); batchsize=1, shuffle=false,
     )
     opt = optimizer()
     losses_test = zeros(Float64, epochs)
