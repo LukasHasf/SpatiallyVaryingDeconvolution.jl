@@ -128,6 +128,7 @@ function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset
         ".bson"
     modelpath = joinpath(checkpointdirectory, modelname)
     @save modelpath model
+    return modelpath
 end
 
 function train_model(
