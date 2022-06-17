@@ -160,7 +160,7 @@ function Unet(
     residual::Bool=false,
     up="nearest",
     down="conv",
-    activation=relu,
+    activation="relu",
     norm="batch",
     attention=false,
     depth=4,
