@@ -68,24 +68,24 @@ end
     # Since img is just ones, dominating noise is Gaussian with std 1 * (rand(Float64) * 0.02 + 0.005)and mean zero => 0 to 0.025
     # But there is still Poisson noise of 1/sqrt(x) where x is 500 ... 5000
     @test size(img) == size(nimg)
-    @test inv(sqrt(5000)) < std(nimg) < 0.025 + inv(sqrt(500))
+    @test zero(eltype(nimg)) < std(nimg) < 0.025 + inv(sqrt(500))
     @test mean(nimg) ≈ 1.0 atol = 0.01
 
     img = ones(Float64, 200, 200, 1, 1) .* 1000
     nimg = addnoise(img)
-    @test 1000 / sqrt(5000) < std(nimg) < 0.025 + 1000 / sqrt(500)
+    @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
     @test mean(nimg) ≈ 1000.0 atol = 10
 
     # Test addnoise for volumes
     img = ones(Float32, 100, 200, 300, 1, 1)
     nimg = addnoise(img)
     @test size(img) == size(nimg)
-    @test inv(sqrt(5000)) < std(nimg) < 0.025 + inv(sqrt(500))
+    @test zero(eltype(nimg)) < std(nimg) < 0.025 + inv(sqrt(500))
     @test mean(nimg) ≈ 1.0 atol = 0.01
 
     img = ones(Float32, 100, 200, 300, 1, 1) .* 1000
     nimg = addnoise(img)
-    @test 1000 / sqrt(5000) < std(nimg) < 0.025 + 1000 / sqrt(500)
+    @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
     @test mean(nimg) ≈ 1000.0 atol = 10
 end
 
@@ -99,7 +99,7 @@ end
         s = scales[i]
         nimg = img_batch[:, :, :, i]
         @test mean(nimg) ≈ s atol = s * 0.01
-        @test s / sqrt(5000) < std(nimg) < 0.025 + s / sqrt(500)
+        @test zero(eltype(nimg)) < std(nimg) < 0.025 + s / sqrt(500)
     end
 
     # Testing applynoise for volumes
@@ -111,6 +111,6 @@ end
         s = scales[i]
         nimg = img_batch[:, :, :, :, i]
         @test mean(nimg) ≈ s atol = s * 0.01
-        @test s / sqrt(5000) < std(nimg) < 0.025 + s / sqrt(500)
+        @test zero(eltype(nimg)) < std(nimg) < 0.025 + s / sqrt(500)
     end
 end
