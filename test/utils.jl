@@ -92,7 +92,7 @@ end
 @testset "applynoise" begin
     # Testing applynoise for images
     scales = [1.0, 20.0, 300.0, 4000.0]
-    img_batch = ones(Float32, 200, 300, 1, 5) .* reshape(scales, 1, 1, 1, :)
+    img_batch = ones(Float32, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, :)
     noisy_batch = applynoise(img_batch)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
@@ -104,7 +104,7 @@ end
 
     # Testing applynoise for volumes
     scales = [1.0, 20.0, 300.0, 4000.0]
-    img_batch = ones(Float32, 100, 200, 300, 1, 5) .* reshape(scales, 1, 1, 1, 1, :)
+    img_batch = ones(Float32, 100, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, 1, :)
     noisy_batch = applynoise(img_batch)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
