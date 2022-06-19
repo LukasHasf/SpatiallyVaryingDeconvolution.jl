@@ -46,8 +46,7 @@ function nn_convolve(img::Array{T,N}; kernel=nothing) where {T,N}
         return convolved
     elseif ndims(kernel) == 3
         img = view(img, :, :, :, 1, 1)
-        @tullio convolved[x + _, y + _, z + _] :=
-            img[x + i, y + j, z + k] * kernel[i, j, k]
+        @tullio convolved[x + _, y + _, z + _] := img[x + i, y + j, z + k] * kernel[i, j, k]
         return convolved
     end
 end
@@ -118,7 +117,7 @@ function train_real_gradient!(loss, ps, data, opt)
 end
 
 function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
-    datestring = replace(string(round(now(), Dates.Second)), ":"=>"_")
+    datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *
         "_loss-" *
@@ -153,7 +152,7 @@ function train_model(
     example_data_y = reshape(example_data_y, size(example_data_y)[1:2]...)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
-        (train_x, train_y); batchsize=1, shuffle=false,
+        (train_x, train_y); batchsize=1, shuffle=false
     )
     opt = optimizer()
     losses_test = zeros(Float64, epochs)
