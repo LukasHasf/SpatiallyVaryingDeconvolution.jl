@@ -75,13 +75,13 @@ function loadvolumes(
     truth_key="gt",
     sim_key="sim",
 )
-    volumes_y = Array{T,4}(undef, newsize..., length(complete_files))
-    volumes_x = Array{T,4}(undef, newsize..., length(complete_files))
+    volumes_y = Array{T,5}(undef, newsize..., 1, length(complete_files))
+    volumes_x = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
         filepath_truth = truth_directory * filename
         filepath_simulated = simulated_directory * filename
-        volumes_y[:, :, :, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
-        volumes_x[:, :, :, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
+        volumes_y[:, :, :, 1, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
+        volumes_x[:, :, :, 1, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
     end
     return volumes_x, volumes_y
 end
