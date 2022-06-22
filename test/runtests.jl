@@ -5,6 +5,7 @@ using Tullio
 using FFTW
 using Flux
 using BSON: @save
+using Statistics
 include("../src/MultiWienerNet.jl")
 include("../src/utils.jl")
 include("../src/UNet.jl")

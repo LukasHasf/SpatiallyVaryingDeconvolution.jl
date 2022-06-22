@@ -27,9 +27,9 @@ function uUpsampleTconv(x)
 end
 
 struct AttentionBlock
-    W_gate
-    W_x
-    ψ
+    W_gate::Any
+    W_x::Any
+    ψ::Any
 end
 
 Flux.@functor AttentionBlock
@@ -51,8 +51,8 @@ function (a::AttentionBlock)(gate, skip)
 end
 
 struct UNetUpBlock
-    upsample
-    a
+    upsample::Any
+    a::Any
 end
 
 Flux.@functor UNetUpBlock
@@ -71,7 +71,7 @@ end
 
 struct ConvBlock
     chain::Chain
-    actfun
+    actfun::Any
     residual::Bool
 end
 Flux.trainable(c::ConvBlock) = (c.chain,)
@@ -144,9 +144,9 @@ function ConvDown(chs::Int; kernel=(2, 2), activation=identity)
 end
 
 struct Unet
-    conv_down_blocks
-    conv_blocks
-    up_blocks
+    conv_down_blocks::Any
+    conv_blocks::Any
+    up_blocks::Any
     residual::Bool
 end
 
