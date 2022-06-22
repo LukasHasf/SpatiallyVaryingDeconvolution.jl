@@ -167,6 +167,8 @@ function Unet(
     depth=4,
     dropout=false,
 )
+    upsample_functions = Dict("nearest"=> uUpsampleNearest, "tconv" => uUpsampleTconv)
+    @assert up in keys(upsample_functions) "Upsample method \"$up\" not in $(keys(upsample_function))."
     kernel_base = tuple(ones(Int, dims - 2)...)
     if down == "conv"
         kernel = kernel_base .* 2
@@ -271,29 +273,11 @@ function Unet(
         attention_blocks = repeat([false], depth)
     end
 
-    if up == "nearest"
-        upsample = uUpsampleNearest
-        up_blocks = []
-        for i in 1:depth
-            u = UNetUpBlock(upsample, attention_blocks[i])
-            push!(up_blocks, u)
-        end
-
-        #up_blocks = Chain(UNetUpBlock(upsample, attention_blocks[1]),
-        #UNetUpBlock(upsample, attention_blocks[2]),
-        #UNetUpBlock(upsample, attention_blocks[3]),
-        #UNetUpBlock(upsample, attention_blocks[4]))
-    elseif up == "tconv"
-        error("Upscaling method \"tconv\" not implemented yet")
-        upsample2 = uUpsampleTconv
-        #upsample2(chs) = x -> ConvTranspose((2,2), chs => chs ÷ 2, stride=2, groups=chs)(x)
-
-        up_blocks = Chain(
-            UNetUpBlock(upsample2),
-            UNetUpBlock(upsample2),
-            UNetUpBlock(upsample2),
-            UNetUpBlock(upsample2),
-        )
+    upsample_function = upsample_functions[up]
+    up_blocks = []
+    for i in 1:depth
+        u = UNetUpBlock(upsample_function, attention_blocks[i])
+        push!(up_blocks, u)
     end
     return Unet(conv_down_blocks, conv_blocks, up_blocks, residual)
 end
