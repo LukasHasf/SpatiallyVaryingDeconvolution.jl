@@ -294,13 +294,13 @@ function start_training(options_path; T=Float32)
     end
 
     # Test so far
-    selection_x = collect(selectdim(train_x, ndims(train_x), 1:10))
-    selection_y = collect(selectdim(train_x, ndims(train_x), 1:10))
+    selection_x = collect(selectdim(train_x, ndims(train_x), 1))
+    selection_y = collect(selectdim(train_x, ndims(train_x), 1))
     reshaped_size = size(train_x)[1:(end - 1)]
     display(
         loss_fn(
-            reshape(selection_x, reshaped_size..., 10),
-            reshape(selection_y, reshaped_size..., 10),
+            reshape(selection_x, reshaped_size..., 1),
+            reshape(selection_y, reshaped_size..., 1),
         ),
     )
 
