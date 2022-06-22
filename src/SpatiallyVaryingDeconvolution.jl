@@ -168,7 +168,7 @@ function train_model(
     example_data_x = collect(selectdim(test_x, ndims(test_x), 1))
     example_data_x = reshape(example_data_x, size(example_data_x)..., 1)
     example_data_y = collect(selectdim(test_y, ndims(test_y), 1))
-    example_data_y = reshape(example_data_y, size(example_data_y)[1:2]...)
+    example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
         (train_x, train_y); batchsize=1, shuffle=false
