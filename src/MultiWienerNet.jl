@@ -9,14 +9,12 @@ A Wiener-deconvolution layer with multiple learnable kernels.
 struct MultiWiener{T,N}
     PSF::Array{T,N}
     lambda::Array{T,N}
-    planH::FFTW.rFFTWPlan{T}
 end
 
 function MultiWiener(PSFs)
     return MultiWiener{eltype(PSFs),ndims(PSFs)}(
         PSFs,
         randn(eltype(PSFs), (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end])),
-        plan_rfft(copy(PSFs), 1:(ndims(PSFs) - 1); flags=FFTW.MEASURE),
     )
 end
 
@@ -26,7 +24,7 @@ Apply `MultiWiener` layer to image/volume `x`.
 """
 function (m::MultiWiener)(x)
     dims = 1:(ndims(m.PSF) - 1)
-    H = m.planH * m.PSF
+    H = rfft(m.PSF, dims)
     x̂ = rfft(fftshift(x, dims), dims)
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = irfft(output, size(x, 1), dims)

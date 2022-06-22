@@ -49,10 +49,12 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `load_checkpoints`, `checkpoint_path` : You can continue training from a previously saved checkpoint. If you want to do so, set `load_checkpoints` to `true` and provide the path to the checkpoint you want to load.
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this. At the end of training, a checkpoint will be saved regardless.
 
-## Usage after training (Untested)
+## Usage after training
 After training, you will have a fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function:
 ```julia
 using SpatiallyVaryingDeconvolution
+using Flux
+using FFTW
 using BSON: @load
 @load checkpoint_path model
 # Apply model to new blurry data
