@@ -165,6 +165,7 @@ function Unet(
     norm="batch",
     attention=false,
     depth=4,
+    dropout=false,
 )
     kernel_base = tuple(ones(Int, dims - 2)...)
     if down == "conv"
@@ -200,6 +201,7 @@ function Unet(
             residual=residual,
             activation=activation,
             norm=norm,
+            dropout=dropout,
         ),
     ]
     for i in 1:depth
@@ -211,6 +213,7 @@ function Unet(
             residual=residual,
             activation=activation,
             norm=norm,
+            dropout=dropout,
         )
         push!(conv_blocks, c)
     end
@@ -223,6 +226,7 @@ function Unet(
             residual=residual,
             activation=activation,
             norm=norm,
+            dropout=dropout,
         )
         push!(conv_blocks, c)
     end
@@ -246,6 +250,7 @@ function Unet(
                 residual=residual,
                 activation=activation,
                 norm=norm,
+                dropout=dropout,
             ),
         )
     end
