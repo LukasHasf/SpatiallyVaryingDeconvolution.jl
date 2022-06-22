@@ -76,14 +76,32 @@ function L1_SSIM_loss(ŷ, y; kernel=nothing)
     return L1_loss(ŷ, y) + SSIM_loss(ŷ, y; kernel=kernel)
 end
 
+function sliced_plot(arr)
+    l = @layout [a b; c d]
+    clim = extrema(arr)
+    p_yx = heatmap(arr[:, :, end÷2+1], clim=clim, colorbar=false, ylabel="y", ticks=false)
+    p_yz = heatmap(arr[:, end÷2+1, :], clim=clim, colorbar=false, xlabel="z", ticks=false)
+    p_xz = heatmap(arr[end÷2+1, :, :]', clim=clim, colorbar=false, ylabel="z", xlabel="x", ticks=false)
+
+    my_colorbar = scatter([0,0], [1,0], zcolor=[0,3], clims=clim,
+    xlims=(1,1.1), framstyle=:none, label="", grid=false,
+    xshowaxis=false, yshowaxis=false, ticks=false)
+
+    return plot(p_yx, p_yz, p_xz, my_colorbar, layout=l)
+end
+
 function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
     if ndims(psf) == 3
         # 2D case -> prediction is (Ny, Nx, channels, batchsize)
-        heatmap(prediction[:, :, 1, 1])
-        savefig(plotdirectory * "Epoch" * string(epoch + epoch_offset) * "_predict.png")
-        heatmap(abs2.(psf[:, :, 1]))
-        savefig(plotdirectory * "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+        p1 = heatmap(prediction[:, :, 1, 1])
+        p2 = heatmap(abs2.(psf[:, :, 1]))
+    elseif ndims(psf) == 4
+        # 3D case -> prediction is (Ny, Nx, Nz, channels, batchsize)
+        p1 = sliced_plot(prediction[:, :, :, 1, 1])
+        p2 = sliced_plot(abs2.(psf[:, :, :, 1]))
     end
+    savefig(p1, plotdirectory * "Epoch" * string(epoch + epoch_offset) * "_predict.png")
+    savefig(p2, plotdirectory * "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
 end
 
 function plot_losses(train_loss, test_loss, epoch, plotdirectory)
