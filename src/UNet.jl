@@ -108,8 +108,9 @@ function ConvBlock(
     end
 
     if dropout
-        dropout1 = Dropout(0.05; dims=ndims(kernel) + 1)
-        dropout2 = Dropout(0.05; dims=ndims(kernel) + 1)
+        # Channel-wise droput
+        dropout1 = Dropout(0.05; dims=length(kernel) + 1)
+        dropout2 = Dropout(0.05; dims=length(kernel) + 1)
     else
         dropout1 = identity
         dropout2 = identity
