@@ -224,8 +224,8 @@ function start_training(options_path; T=Float32)
     options = YAML.load_file(options_path)
     optimizer_kw = options["training"]["optimizer"]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
-    truth_directory = options["data"]["x_path"]
-    simulated_directory = options["data"]["y_path"]
+    simulated_directory = options["data"]["x_path"]
+    truth_directory = options["data"]["y_path"]
     newsize = tuple(options["data"]["resize_to"]...)
     loadpath = nothing
     if options["training"]["checkpoints"]["load_checkpoints"]
