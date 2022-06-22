@@ -1,0 +1,42 @@
+data:
+    # Path to blurred data
+    x_path : ../../training_data/3D/simulated/
+    # Path to ground truth
+    y_path : ../../training_data/3D/ground_truth/
+    # Data needs to be resized to be a power of two along each axis
+    resize_to : [64, 64, 64]
+    # Should the data be centered?
+    center_psfs: true
+    # If center_psfs, which index corresponds to the central PSF? -1 means length \div 2 + 1
+    reference_index: -1
+
+
+# model params unused as of now
+model:
+    metric: 'SSIM + MAE'
+    learning_rate: 0.1
+
+training:
+    # Path to the PSF file
+    psfs_path: ../../SpatiallyVaryingConvolution/comaPSF3D.mat
+    # Key under which the PSFs are stored
+    psfs_key: psfs
+    # How many training+testing samples to load from x_path and y_path
+    nrsamples: 70
+    # How many epochs to train
+    epochs: 10
+    # The employed optimizer
+    optimizer: ADADelta
+    # How often should a plot of the evaluation of the model on the first test data be plotted? 0 for never
+    plot_interval: 1
+    # Where should that plot be saved?
+    plot_path: examples/training_progress/
+    checkpoints:
+        # Should a previously trained model be loaded?
+        load_checkpoints: false
+        # If load_checkpoints, what is the path to the checkpoint?
+        checkpoint_path: nothing
+        # Directory where new checkpoints will be saved
+        checkpoint_dir: examples/checkpoints/
+        # How often should a checkpoint be saved? 0 for never
+        save_interval: 1
