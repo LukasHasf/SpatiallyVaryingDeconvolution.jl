@@ -57,10 +57,6 @@ end
 
 Flux.@functor UNetUpBlock
 
-function UNetUpBlock(upsample)
-    return UNetUpBlock(upsample, false)
-end
-
 function (u::UNetUpBlock)(x, bridge)
     x = u.upsample(x)
     if u.a != false
