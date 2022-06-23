@@ -277,6 +277,7 @@ function start_training(options_path; T=Float32)
         end
         model = makemodel(resized_psfs)
     else
+        Core.eval(Main, :(import Flux))
         model = loadmodel(loadpath)
     end
 
