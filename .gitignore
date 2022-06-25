@@ -1,5 +1,6 @@
 examples/checkpoints/*
 examples/training_progress/*
+examples/cpu/*
 LocalPreferences.toml
 .JuliaFormatter.toml
 debug.jl
