@@ -7,9 +7,11 @@ using Images, Colors
 using Tullio
 using BSON: @save, @load
 using Flux
+using CUDA
 using Statistics
 using Dates
 using Plots
+using KernelAbstractions, CUDAKernels
 include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
@@ -32,19 +34,21 @@ function makemodel(psfs)
         residual=true,
         norm="none",
         attention=true,
-        depth=3,
+        depth=4,
         dropout=true,
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
 end
 
-function nn_convolve(img::Array{T,N}; kernel=nothing) where {T,N}
-    kernel = T.(kernel)
+function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
     @assert ndims(img) == ndims(kernel) + 2
+    kernel = gpu(reshape(kernel, size(kernel)...,1, 1))
+    convolved = conv(img, kernel;)
+    return convolved
     if ndims(kernel) == 2
         @tullio convolved[x + _, y + _, a, b] := img[x + i, y + j, a, b] * kernel[i, j]
-        return convolved
+        return gpu(convolved)
     elseif ndims(kernel) == 3
         img = view(img, :, :, :, 1, 1)
         @tullio convolved[x + _, y + _, z + _] := img[x + i, y + j, z + k] * kernel[i, j, k]
@@ -65,7 +69,7 @@ function SSIM_loss(ŷ, y; kernel=nothing)
     sigma12 = nn_convolve(y .* ŷ; kernel=kernel) .- mu1_mu2
     ssim_map = @. ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) /
         ((mu1_sq + mu2_sq + c1) * (sigma1 + sigma2 + c2))
-    return one(eltype(y)) - oftype(y[1], mean(ssim_map))
+    return one(eltype(y)) - convert(eltype(y), mean(ssim_map))
 end
 
 function L1_loss(ŷ, y)
@@ -91,6 +95,8 @@ function sliced_plot(arr)
 end
 
 function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
+    prediction = cpu(prediction)
+    psf = cpu(psf)
     if ndims(psf) == 3
         # 2D case -> prediction is (Ny, Nx, channels, batchsize)
         p1 = heatmap(prediction[:, :, 1, 1])
@@ -165,9 +171,9 @@ function train_model(
     checkpointdirectory="checkpoints/",
     optimizer=Flux.Optimise.ADAM,
 )
-    example_data_x = collect(selectdim(test_x, ndims(test_x), 1))
+    example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = reshape(example_data_x, size(example_data_x)..., 1)
-    example_data_y = collect(selectdim(test_y, ndims(test_y), 1))
+    example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
@@ -262,8 +268,8 @@ function start_training(options_path; T=Float32)
         nrsamples, truth_directory, simulated_directory; newsize=newsize
     )
     x_data = applynoise(x_data)
-    train_x, test_x = train_test_split(x_data)
-    train_y, test_y = train_test_split(y_data)
+    train_x, test_x = train_test_split(x_data) |> gpu
+    train_y, test_y = train_test_split(y_data) |> gpu
 
     # Define / load the model
     dims = length(newsize)
@@ -275,10 +281,10 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = makemodel(resized_psfs)
+        model = makemodel(resized_psfs) |> gpu
     else
         Core.eval(Main, :(import Flux))
-        model = loadmodel(loadpath)
+        model = loadmodel(loadpath) |> gpu
     end
 
     # Define the loss function
@@ -296,8 +302,8 @@ function start_training(options_path; T=Float32)
     end
 
     # Test so far
-    selection_x = collect(selectdim(train_x, ndims(train_x), 1))
-    selection_y = collect(selectdim(train_x, ndims(train_x), 1))
+    selection_x = copy(selectdim(train_x, ndims(train_x), 1))
+    selection_y = copy(selectdim(train_x, ndims(train_x), 1))
     reshaped_size = size(train_x)[1:(end - 1)]
     display(
         loss_fn(

@@ -81,7 +81,7 @@ function ConvBlock(
     activation="relu",
     transpose=false,
     residual=true,
-    norm="batch",
+    norm="batch"
 )
     if transpose
         conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
@@ -136,7 +136,7 @@ function (c::ConvBlock)(x)
 end
 
 function ConvDown(chs::Int; kernel=(2, 2), activation=identity)
-    return DepthwiseConv(kernel, chs => chs, activation; stride=2)
+    return Conv(kernel, chs => chs, activation; stride=2, groups=chs)
 end
 
 struct Unet
@@ -175,19 +175,6 @@ function Unet(
             c.bias .*= 0.01
             push!(conv_down_blocks, c)
         end
-        #c1 = ConvDown(32; kernel=kernel)
-        #c2 = ConvDown(64; kernel=kernel)
-        #c3 = ConvDown(128; kernel=kernel)
-        #c4 = ConvDown(256; kernel=kernel)
-        #c1.weight .= 0.01 .* c1.weight .+ 0.25
-        #c2.weight .= 0.01 .* c2.weight .+ 0.25
-        #c3.weight .= 0.01 .* c3.weight .+ 0.25
-        #c4.weight .= 0.01 .* c4.weight .+ 0.25
-        #c1.bias .*= 0.01
-        #c2.bias .*= 0.01
-        #c3.bias .*= 0.01
-        #c4.bias .*= 0.01
-        #conv_down_blocks = Chain(c1, c2, c3, c4)
     end
 
     conv_kernel = kernel_base .* 3
@@ -228,15 +215,6 @@ function Unet(
         )
         push!(conv_blocks, c)
     end
-    #conv_blocks = [ConvBlock(channels, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(32, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(64, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(128, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(256, 256; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(512, 128; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(256, 64; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(128, 32; kernel=conv_kernel, residual=residual, activation=activation, norm=norm),
-    #ConvBlock(64, labels; kernel=conv_kernel, residual=residual, activation=activation, norm=norm)]
 
     if residual
         push!(
@@ -261,10 +239,6 @@ function Unet(
             a = AttentionBlock(nrch, nrch, nrch)
             push!(attention_blocks, a)
         end
-        #attention_blocks = Chain( AttentionBlock(256, 256, 256),
-        #                        AttentionBlock(128, 128, 128), 
-        #                        AttentionBlock(64,64, 64),
-        #                        AttentionBlock(32, 32, 32))
     else
         attention_blocks = repeat([false], depth)
     end
@@ -280,20 +254,27 @@ end
 
 function (u::Unet)(x::AbstractArray)
     depth = length(u.conv_down_blocks)
-    cs = Dict()
-    cs[0] = x
-    cs[1] = u.conv_blocks[1](cs[0])
-    for i in 1:depth
-        cs[i + 1] = u.conv_blocks[i + 1](u.conv_down_blocks[i](cs[i]))
-    end
-    up = u.conv_blocks[depth + 2](u.up_blocks[1](cs[depth + 1], cs[depth]))
-    for i in 2:depth
-        up = u.conv_blocks[depth + i + 1](u.up_blocks[i](up, cs[depth - i + 1]))
-    end
+    c0 = x
+    c1 = u.conv_blocks[1](c0)
+    c2 = u.conv_blocks[2](u.conv_down_blocks[1](c1))
+    c3 = u.conv_blocks[3](u.conv_down_blocks[2](c2))
+    c4 = u.conv_blocks[4](u.conv_down_blocks[3](c3))
+    c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4))
+    #for i in 1:depth
+    #    cs[i + 1] = u.conv_blocks[i + 1](u.conv_down_blocks[i](cs[i]))
+    #    println("cs is $(typeof(cs))")
+    #end
+    up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))
+    up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))
+    up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))
+    up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))
+    #for i in 2:depth
+    #    up = u.conv_blocks[depth + i + 1](u.up_blocks[i](up, cs[depth - i + 1]))
+    #end
     if u.residual
-        up = up .+ u.conv_blocks[2 * depth + 2](cs[0])
+        up4 = up4 .+ u.conv_blocks[10](c0)
     end
-    return up
+    return up4
 end
 
 end # module

@@ -7,8 +7,8 @@ using FFTW
 A Wiener-deconvolution layer with multiple learnable kernels.
 """
 struct MultiWiener{T,N}
-    PSF::Array{T,N}
-    lambda::Array{T,N}
+    PSF::AbstractArray{T,N}
+    lambda::AbstractArray{T,N}
 end
 
 function MultiWiener(PSFs)
