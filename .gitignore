@@ -3,3 +3,4 @@ examples/training_progress/*
 LocalPreferences.toml
 .JuliaFormatter.toml
 debug.jl
+myoptions.yaml
