@@ -12,6 +12,7 @@ using Statistics
 using Dates
 using Plots
 using KernelAbstractions, CUDAKernels
+using ProgressMeter
 include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
