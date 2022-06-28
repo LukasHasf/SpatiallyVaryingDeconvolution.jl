@@ -244,7 +244,7 @@ function start_training(options_path; T=Float32)
     epoch_offset = 0
     if options["training"]["checkpoints"]["load_checkpoints"]
         loadpath = options["training"]["checkpoints"]["checkpoint_path"]
-        epoch_offset = parse(Int, split(match(r"epoch[-][^.]", loadpath).match, "-")[2])
+        epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
     end
     nrsamples = options["training"]["nrsamples"]
     epochs = options["training"]["epochs"]
