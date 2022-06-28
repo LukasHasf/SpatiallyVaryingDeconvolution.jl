@@ -19,12 +19,12 @@ include("utils.jl")
 
 const CUDA_functional = CUDA.functional() && any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
 
-function my_gpu(x::AbstractArray)
+function my_gpu(x)
     global CUDA_functional
     if CUDA_functional
         return gpu(x)
     end
-    return Array(x)
+    return x
 end
 
 function loadmodel(path)
