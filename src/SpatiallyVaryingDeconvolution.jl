@@ -27,9 +27,14 @@ function my_gpu(x)
     return x
 end
 
-function loadmodel(path)
+function loadmodel(path; load_optimizer=true)
+    if load_optimizer
+        @load path model opt
+        return model, opt
+    else
     @load path model
     return model
+end
 end
 
 function makemodel(psfs)
@@ -148,7 +153,8 @@ function train_real_gradient!(loss, ps, data, opt)
     end
 end
 
-function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
+function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing)
+    model = cpu(model)
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *
@@ -158,7 +164,11 @@ function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset
         string(epoch + epoch_offset) *
         ".bson"
     modelpath = joinpath(checkpointdirectory, modelname)
+    if isnothing(opt)
     @save modelpath model
+    else
+        @save modelpath model opt
+    end
     return modelpath
 end
 
@@ -191,7 +201,7 @@ function train_model(
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
-        train_real_gradient!(loss, pars, training_datapoints, opt)
+        train_real_gradient!(loss, pars, training_datapoints, optimizer)
         trainmode!(model, false)
         losses_train[epoch] = loss(my_gpu(train_x), my_gpu(train_y))
         losses_test[epoch] = loss(my_gpu(test_x), my_gpu(test_y))
@@ -203,7 +213,7 @@ function train_model(
         )
 
         if saveevery > 0 && epoch % saveevery == 0
-            saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset)
+            saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer)
         end
 
         if plotevery > 0 && epoch % plotevery == 0
@@ -218,7 +228,7 @@ function train_model(
     end
     # At the end of training, save a checkpoint
     return saveModel(
-        model, checkpointdirectory, losses_train, epochs - epoch_offset, epoch_offset
+        model, checkpointdirectory, losses_train, epochs - epoch_offset, epoch_offset; opt=optimizer
     )
 end
 
@@ -289,7 +299,9 @@ function start_training(options_path; T=Float32)
         model = makemodel(resized_psfs) |> my_gpu
     else
         Core.eval(Main, :(import Flux))
-        model = loadmodel(loadpath) |> my_gpu
+        Core.eval(Main, :(import CUDA))
+        Core.eval(Main, :(import NNlib))
+        model, optimizer = loadmodel(loadpath) |> my_gpu
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
