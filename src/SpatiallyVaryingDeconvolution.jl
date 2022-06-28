@@ -176,7 +176,7 @@ function train_model(
     plotdirectory="training_progress/",
     saveevery=1,
     checkpointdirectory="checkpoints/",
-    optimizer=Flux.Optimise.ADAM,
+    optimizer=Flux.Optimise.ADAM(),
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> my_gpu
@@ -186,7 +186,6 @@ function train_model(
     training_datapoints = Flux.Data.DataLoader(
         (train_x, train_y); batchsize=1, shuffle=false
     )
-    opt = optimizer()
     losses_test = zeros(Float64, epochs)
     losses_train = zeros(Float64, epochs)
     for epoch in 1:(epochs - epoch_offset)
@@ -262,7 +261,7 @@ function start_training(options_path; T=Float32)
         mkpath(checkpoint_dir)
     end
     saveevery = options["training"]["checkpoints"]["save_interval"]
-    optimizer = optimizer_dict[optimizer_kw]
+    optimizer = optimizer_dict[optimizer_kw]()
 
     # Load and process the data
     psfs = readPSFs(options["training"]["psfs_path"], options["training"]["psfs_key"])
