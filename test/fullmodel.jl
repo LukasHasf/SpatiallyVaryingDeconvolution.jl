@@ -15,7 +15,9 @@
     @test eltype(prediction) == eltype(img)
 
     testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(testsave_path)
+    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
+        testsave_path; load_optimizer=false
+    )
     @test loaded_model(img) == prediction
 
     # Check that model is differentiable
@@ -53,6 +55,8 @@
     @test eltype(prediction) == eltype(img)
 
     testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(testsave_path)
+    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
+        testsave_path; load_optimizer=false
+    )
     @test loaded_model(img) == prediction
 end
