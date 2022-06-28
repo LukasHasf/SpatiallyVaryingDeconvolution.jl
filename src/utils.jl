@@ -69,8 +69,8 @@ function loadimages(
     images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     images_x = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = truth_directory * filename
-        filepath_simulated = simulated_directory * filename
+        filepath_truth = joinpath(truth_directory, filename)
+        filepath_simulated = joinpath(simulated_directory, filename)
         # TODO: Flip images along first axis?
         images_y[:, :, 1, i] .= imresize(load(filepath_truth), newsize)
         images_x[:, :, 1, i] .= imresize(load(filepath_simulated), newsize)
@@ -90,8 +90,8 @@ function loadvolumes(
     volumes_y = Array{T,5}(undef, newsize..., 1, length(complete_files))
     volumes_x = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = truth_directory * filename
-        filepath_simulated = simulated_directory * filename
+        filepath_truth = joinpath(truth_directory, filename)
+        filepath_simulated = joinpath(simulated_directory, filename)
         volumes_y[:, :, :, 1, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
         volumes_x[:, :, :, 1, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
     end
