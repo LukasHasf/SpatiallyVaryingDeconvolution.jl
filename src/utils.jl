@@ -11,6 +11,18 @@ using FFTW
 using LinearAlgebra
 using Images
 using Noise
+using MappedArrays
+using FileIO
+
+function load_dataset(nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128,128))
+    files = find_complete(nrsamples, truth_directory, simulated_directory)
+    if nd==2
+        loader = x -> my_gpu(addnoise(loadimages(x, truth_directory, simulated_directory, newsize=newsize)))
+    elseif nd==3
+        loader = x -> my_gpu(addnoise(loadvolumes(x, truth_directory, simulated_directory, newsize=newsize)))
+    end
+    return mappedarray(loader, files)
+end
 
 function addnoise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
@@ -57,8 +69,8 @@ function loadimages(
     images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     images_x = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = truth_directory * filename
-        filepath_simulated = simulated_directory * filename
+        filepath_truth = joinpath(truth_directory, filename)
+        filepath_simulated = joinpath(simulated_directory, filename)
         # TODO: Flip images along first axis?
         images_y[:, :, 1, i] .= imresize(load(filepath_truth), newsize)
         images_x[:, :, 1, i] .= imresize(load(filepath_simulated), newsize)
@@ -78,8 +90,8 @@ function loadvolumes(
     volumes_y = Array{T,5}(undef, newsize..., 1, length(complete_files))
     volumes_x = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = truth_directory * filename
-        filepath_simulated = simulated_directory * filename
+        filepath_truth = joinpath(truth_directory, filename)
+        filepath_simulated = joinpath(simulated_directory, filename)
         volumes_y[:, :, :, 1, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
         volumes_x[:, :, :, 1, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
     end

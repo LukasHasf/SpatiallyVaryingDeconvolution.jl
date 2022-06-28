@@ -7,12 +7,25 @@ using Images, Colors
 using Tullio
 using BSON: @save, @load
 using Flux
+using CUDA
 using Statistics
 using Dates
 using Plots
+using KernelAbstractions, CUDAKernels
+using ProgressMeter
 include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
+
+const CUDA_functional = CUDA.functional() && any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+
+function my_gpu(x::AbstractArray)
+    global CUDA_functional
+    if CUDA_functional
+        return gpu(x)
+    end
+    return Array(x)
+end
 
 function loadmodel(path)
     @load path model
@@ -22,7 +35,7 @@ end
 function makemodel(psfs)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> gpu
+    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -39,17 +52,11 @@ function makemodel(psfs)
     return model
 end
 
-function nn_convolve(img::Array{T,N}; kernel=nothing) where {T,N}
-    kernel = T.(kernel)
+function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
     @assert ndims(img) == ndims(kernel) + 2
-    if ndims(kernel) == 2
-        @tullio convolved[x + _, y + _, a, b] := img[x + i, y + j, a, b] * kernel[i, j]
-        return convolved
-    elseif ndims(kernel) == 3
-        img = view(img, :, :, :, 1, 1)
-        @tullio convolved[x + _, y + _, z + _] := img[x + i, y + j, z + k] * kernel[i, j, k]
-        return convolved
-    end
+    kernel = my_gpu(reshape(kernel, size(kernel)...,1, 1))
+    convolved = conv(my_gpu(img), kernel;)
+    return convolved
 end
 
 function SSIM_loss(ŷ, y; kernel=nothing)
@@ -65,7 +72,7 @@ function SSIM_loss(ŷ, y; kernel=nothing)
     sigma12 = nn_convolve(y .* ŷ; kernel=kernel) .- mu1_mu2
     ssim_map = @. ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) /
         ((mu1_sq + mu2_sq + c1) * (sigma1 + sigma2 + c2))
-    return one(eltype(y)) - oftype(y[1], mean(ssim_map))
+    return one(eltype(y)) - convert(eltype(y), mean(ssim_map))
 end
 
 function L1_loss(ŷ, y)
@@ -91,6 +98,8 @@ function sliced_plot(arr)
 end
 
 function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
+    prediction = cpu(prediction)
+    psf = cpu(psf)
     if ndims(psf) == 3
         # 2D case -> prediction is (Ny, Nx, channels, batchsize)
         p1 = heatmap(prediction[:, :, 1, 1])
@@ -100,8 +109,10 @@ function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
         p1 = sliced_plot(prediction[:, :, :, 1, 1])
         p2 = sliced_plot(abs2.(psf[:, :, :, 1]))
     end
-    savefig(p1, plotdirectory * "Epoch" * string(epoch + epoch_offset) * "_predict.png")
-    savefig(p2, plotdirectory * "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+    prediction_path = joinpath(plotdirectory, "Epoch" * string(epoch + epoch_offset) * "_predict.png")
+    psf_path = joinpath(plotdirectory, "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+    savefig(p1, prediction_path)
+    savefig(p2, psf_path)
 end
 
 function plot_losses(train_loss, test_loss, epoch, plotdirectory)
@@ -119,12 +130,14 @@ function train_real_gradient!(loss, ps, data, opt)
     # Zygote calculates a complex gradient, even though this is mapping  real -> real.
     # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
     # use the real part of the gradient
-    for (i, d) in enumerate(data)
+    @showprogress "Epoch progress:" for (i, d) in enumerate(data)
         try
+            d = my_gpu(d)
             gs = Flux.gradient(ps) do
                 loss(Flux.Optimise.batchmemaybe(d)...)
             end
             Flux.update!(opt, ps, real.(gs))
+            d = nothing
         catch ex
             if ex isa Flux.Optimise.StopException
                 break
@@ -165,9 +178,9 @@ function train_model(
     checkpointdirectory="checkpoints/",
     optimizer=Flux.Optimise.ADAM,
 )
-    example_data_x = collect(selectdim(test_x, ndims(test_x), 1))
-    example_data_x = reshape(example_data_x, size(example_data_x)..., 1)
-    example_data_y = collect(selectdim(test_y, ndims(test_y), 1))
+    example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
+    example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> my_gpu
+    example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
@@ -181,8 +194,8 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, opt)
         trainmode!(model, false)
-        losses_train[epoch] = loss(train_x, train_y)
-        losses_test[epoch] = loss(test_x, test_y)
+        losses_train[epoch] = loss(my_gpu(train_x), my_gpu(train_y))
+        losses_test[epoch] = loss(my_gpu(test_x), my_gpu(test_y))
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
@@ -275,12 +288,13 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = makemodel(resized_psfs)
+        model = makemodel(resized_psfs) |> my_gpu
     else
         Core.eval(Main, :(import Flux))
-        model = loadmodel(loadpath)
+        model = loadmodel(loadpath) |> my_gpu
     end
-
+    pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
+    println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     if dims == 3
         @tullio kernel[x, y, z] :=
@@ -295,16 +309,16 @@ function start_training(options_path; T=Float32)
         end
     end
 
-    # Test so far
-    selection_x = collect(selectdim(train_x, ndims(train_x), 1))
-    selection_y = collect(selectdim(train_x, ndims(train_x), 1))
+    #= Test so far
+    selection_x = copy(selectdim(train_x, ndims(train_x), 1))
+    selection_y = copy(selectdim(train_x, ndims(train_x), 1))
     reshaped_size = size(train_x)[1:(end - 1)]
     display(
         loss_fn(
             reshape(selection_x, reshaped_size..., 1),
             reshape(selection_y, reshaped_size..., 1),
         ),
-    )
+    ) # =#
 
     # Training
     return train_model(

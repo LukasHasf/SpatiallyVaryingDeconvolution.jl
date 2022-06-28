@@ -1,6 +1,7 @@
 @testset "Test full model" begin
-    Ny = 64
-    Nx = 64
+    # Make Ny, Nx as small as possible for test -> 2^depth = 2^4 = 16
+    Ny = 16
+    Nx = 16
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
@@ -37,9 +38,9 @@
     @test gradient_without_error
 
     # Test inference and saveing/loading for 3D UNet
-    Ny = 64
-    Nx = 64
-    Nz = 64
+    Ny = 16
+    Nx = 16
+    Nz = 16
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
