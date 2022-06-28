@@ -32,9 +32,9 @@ function loadmodel(path; load_optimizer=true)
         @load path model opt
         return model, opt
     else
-    @load path model
-    return model
-end
+        @load path model
+        return model
+    end
 end
 
 function makemodel(psfs)
@@ -165,7 +165,7 @@ function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset
         ".bson"
     modelpath = joinpath(checkpointdirectory, modelname)
     if isnothing(opt)
-    @save modelpath model
+        @save modelpath model
     else
         @save modelpath model opt
     end
