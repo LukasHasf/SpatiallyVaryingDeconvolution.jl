@@ -939,10 +939,10 @@ uuid = "98581153-e998-4eef-8d0d-5ec2c052313d"
 version = "0.4.4"
 
 [[deps.NNlib]]
-deps = ["Adapt", "ChainRulesCore", "Compat", "LinearAlgebra", "Pkg", "Requires", "Statistics"]
-git-tree-sha1 = "f89de462a7bc3243f95834e75751d70b3a33e59d"
+deps = ["Adapt", "ChainRulesCore", "LinearAlgebra", "Pkg", "Requires", "Statistics"]
+git-tree-sha1 = "1a80840bcdb73de345230328d49767ab115be6f2"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-version = "0.8.5"
+version = "0.8.8"
 
 [[deps.NNlibCUDA]]
 deps = ["CUDA", "LinearAlgebra", "NNlib", "Random", "Statistics"]
