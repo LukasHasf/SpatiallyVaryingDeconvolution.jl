@@ -13,8 +13,7 @@ end
 
 function MultiWiener(PSFs)
     return MultiWiener{eltype(PSFs),ndims(PSFs)}(
-        PSFs,
-        randn(eltype(PSFs), (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end])),
+        PSFs, randn(eltype(PSFs), (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end]))
     )
 end
 

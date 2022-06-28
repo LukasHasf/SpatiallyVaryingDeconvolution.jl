@@ -104,7 +104,8 @@ end
 
     # Testing applynoise for volumes
     scales = [1.0, 20.0, 300.0, 4000.0]
-    img_batch = ones(Float32, 100, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, 1, :)
+    img_batch =
+        ones(Float32, 100, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, 1, :)
     noisy_batch = applynoise(img_batch)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
@@ -123,7 +124,9 @@ end
     epoch = 5
     epoch_offset = 1
     plotdirectory = mktempdir()
-    SpatiallyVaryingDeconvolution.plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
+    SpatiallyVaryingDeconvolution.plot_prediction(
+        prediction, psf, epoch, epoch_offset, plotdirectory
+    )
     produced_files = readdir(plotdirectory)
     @test "Epoch6_predict.png" in produced_files
     @test "LearnedPSF_epoch6.png" in produced_files
@@ -134,7 +137,9 @@ end
     epoch = 6
     epoch_offset = 2
     plotdirectory = mktempdir()
-    SpatiallyVaryingDeconvolution.plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
+    SpatiallyVaryingDeconvolution.plot_prediction(
+        prediction, psf, epoch, epoch_offset, plotdirectory
+    )
     produced_files = readdir(plotdirectory)
     @test "Epoch8_predict.png" in produced_files
     @test "LearnedPSF_epoch8.png" in produced_files
@@ -166,23 +171,23 @@ end
     imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32), T=Float32)
     @test size(imgs_x) == (32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 1, 2)
-    @test imgs_y[:, :, 1, 1] ≈ imgs[:, :, 1] atol=1e-1
-    @test imgs_y[:, :, 1, 2] ≈ imgs[:, :, 2] atol=1e-1
-    @test imgs_x[:, :, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
-    @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
+    @test imgs_y[:, :, 1, 1] ≈ imgs[:, :, 1] atol = 1e-1
+    @test imgs_y[:, :, 1, 2] ≈ imgs[:, :, 2] atol = 1e-1
+    @test imgs_x[:, :, 1, 1] ≈ imgs[:, :, 4] atol = 1e-1
+    @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol = 1e-1
 
     # Similarly for 3D volumes
     imgs = rand(32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
-    
-    save(joinpath(train_dir, "a.h5"), Dict("gt"=>imgs[:, :, :, 1]))
-    save(joinpath(train_dir, "b.h5"), Dict("gt"=>imgs[:, :, :, 2]))
-    save(joinpath(train_dir, "exclusive_train.h5"), Dict("gt"=>imgs[:, :, :, 3]))
-    save(joinpath(test_dir, "a.h5"), Dict("sim"=>imgs[:, :, :, 4]))
-    save(joinpath(test_dir, "b.h5"), Dict("sim"=>imgs[:, :, :, 5]))
-    save(joinpath(test_dir, "exclusive_test.h5"), Dict("sim"=>imgs[:, :, :, 6]))
+
+    save(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
+    save(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
+    save(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => imgs[:, :, :, 3]))
+    save(joinpath(test_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
+    save(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
+    save(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
     # Load the pictures and compare
     imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)

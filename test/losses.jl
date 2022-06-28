@@ -7,8 +7,8 @@
     @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ==
         SpatiallyVaryingDeconvolution.L1_loss(img2, img1)
 
-    @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ≈
-        sum(abs.(img1 .- img2)) ./ N^2 atol=1e-6
+    @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ≈ sum(abs.(img1 .- img2)) ./ N^2 atol =
+        1e-6
 end
 
 @testset "L1 loss 3D" begin
@@ -20,8 +20,8 @@ end
     @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ==
         SpatiallyVaryingDeconvolution.L1_loss(img2, img1)
 
-    @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ≈
-        sum(abs.(img1 .- img2)) ./ N^3 atol=1-6
+    @test SpatiallyVaryingDeconvolution.L1_loss(img1, img2) ≈ sum(abs.(img1 .- img2)) ./ N^3 atol =
+        1 - 6
 end
 
 @testset "SSIM loss 2D" begin
@@ -37,7 +37,7 @@ end
 
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img2; kernel=kernel) ≈
         one(eltype(img1)) -
-          Images.assess_ssim(img1[:, :, 1, 1], img2[:, :, 1, 1]; crop=true) atol=1e-6
+          Images.assess_ssim(img1[:, :, 1, 1], img2[:, :, 1, 1]; crop=true) atol = 1e-6
 end
 
 @testset "SSIM loss 3D" begin
@@ -54,7 +54,8 @@ end
     # Removing singleton dimension from input greatly speeds up assess_ssim
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img2; kernel=kernel) ≈
         one(eltype(img1)) -
-          Images.assess_ssim(img1[:, :, :, 1, 1], img2[:, :, :, 1, 1]; crop=true) atol=1e-6
+          Images.assess_ssim(img1[:, :, :, 1, 1], img2[:, :, :, 1, 1]; crop=true) atol =
+        1e-6
 end
 
 @testset "L1_SSIM loss" begin

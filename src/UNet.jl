@@ -81,7 +81,7 @@ function ConvBlock(
     activation="relu",
     transpose=false,
     residual=true,
-    norm="batch"
+    norm="batch",
 )
     if transpose
         conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
@@ -163,7 +163,7 @@ function Unet(
     depth=4,
     dropout=false,
 )
-    upsample_functions = Dict("nearest"=> uUpsampleNearest, "tconv" => uUpsampleTconv)
+    upsample_functions = Dict("nearest" => uUpsampleNearest, "tconv" => uUpsampleTconv)
     @assert up in keys(upsample_functions) "Upsample method \"$up\" not in $(keys(upsample_function))."
     kernel_base = tuple(ones(Int, dims - 2)...)
     if down == "conv"
@@ -259,19 +259,19 @@ function (u::Unet)(x::AbstractArray)
     c2 = u.conv_blocks[2](u.conv_down_blocks[1](c1))
     c3 = u.conv_blocks[3](u.conv_down_blocks[2](c2))
     c4 = u.conv_blocks[4](u.conv_down_blocks[3](c3))
-    if depth==4
+    if depth == 4
         c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4))
     end
     #for i in 1:depth
     #    cs[i + 1] = u.conv_blocks[i + 1](u.conv_down_blocks[i](cs[i]))
     #    println("cs is $(typeof(cs))")
     #end
-    if depth==4
+    if depth == 4
         up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))
         up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))
         up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))
         up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))
-    elseif depth==3
+    elseif depth == 3
         up1 = u.conv_blocks[5](u.up_blocks[1](c4, c3))
         up2 = u.conv_blocks[6](u.up_blocks[2](up1, c2))
         up4 = u.conv_blocks[7](u.up_blocks[3](up2, c1))

@@ -17,7 +17,9 @@ include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
 
-const CUDA_functional = CUDA.functional() && any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+const CUDA_functional =
+    CUDA.functional() &&
+    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
 
 function my_gpu(x)
     global CUDA_functional
@@ -59,7 +61,7 @@ end
 
 function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
     @assert ndims(img) == ndims(kernel) + 2
-    kernel = my_gpu(reshape(kernel, size(kernel)...,1, 1))
+    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
     convolved = conv(my_gpu(img), kernel;)
     return convolved
 end
@@ -91,15 +93,36 @@ end
 function sliced_plot(arr)
     l = @layout [a b; c d]
     clim = extrema(arr)
-    p_yx = heatmap(arr[:, :, end÷2+1], clim=clim, colorbar=false, ylabel="y", ticks=false)
-    p_yz = heatmap(arr[:, end÷2+1, :], clim=clim, colorbar=false, xlabel="z", ticks=false)
-    p_xz = heatmap(arr[end÷2+1, :, :]', clim=clim, colorbar=false, ylabel="z", xlabel="x", ticks=false)
+    p_yx = heatmap(
+        arr[:, :, end ÷ 2 + 1]; clim=clim, colorbar=false, ylabel="y", ticks=false
+    )
+    p_yz = heatmap(
+        arr[:, end ÷ 2 + 1, :]; clim=clim, colorbar=false, xlabel="z", ticks=false
+    )
+    p_xz = heatmap(
+        arr[end ÷ 2 + 1, :, :]';
+        clim=clim,
+        colorbar=false,
+        ylabel="z",
+        xlabel="x",
+        ticks=false,
+    )
 
-    my_colorbar = scatter([0,0], [1,0], zcolor=[0,3], clims=clim,
-    xlims=(1,1.1), framstyle=:none, label="", grid=false,
-    xshowaxis=false, yshowaxis=false, ticks=false)
+    my_colorbar = scatter(
+        [0, 0],
+        [1, 0];
+        zcolor=[0, 3],
+        clims=clim,
+        xlims=(1, 1.1),
+        framstyle=:none,
+        label="",
+        grid=false,
+        xshowaxis=false,
+        yshowaxis=false,
+        ticks=false,
+    )
 
-    return plot(p_yx, p_yz, p_xz, my_colorbar, layout=l)
+    return plot(p_yx, p_yz, p_xz, my_colorbar; layout=l)
 end
 
 function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
@@ -114,10 +137,14 @@ function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
         p1 = sliced_plot(prediction[:, :, :, 1, 1])
         p2 = sliced_plot(abs2.(psf[:, :, :, 1]))
     end
-    prediction_path = joinpath(plotdirectory, "Epoch" * string(epoch + epoch_offset) * "_predict.png")
-    psf_path = joinpath(plotdirectory, "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+    prediction_path = joinpath(
+        plotdirectory, "Epoch" * string(epoch + epoch_offset) * "_predict.png"
+    )
+    psf_path = joinpath(
+        plotdirectory, "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png"
+    )
     savefig(p1, prediction_path)
-    savefig(p2, psf_path)
+    return savefig(p2, psf_path)
 end
 
 function plot_losses(train_loss, test_loss, epoch, plotdirectory)
@@ -153,7 +180,9 @@ function train_real_gradient!(loss, ps, data, opt)
     end
 end
 
-function saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing)
+function saveModel(
+    model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
+)
     model = cpu(model)
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
@@ -189,7 +218,7 @@ function train_model(
     optimizer=Flux.Optimise.ADAM(),
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
-    example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> my_gpu
+    example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
@@ -213,7 +242,9 @@ function train_model(
         )
 
         if saveevery > 0 && epoch % saveevery == 0
-            saveModel(model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer)
+            saveModel(
+                model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer
+            )
         end
 
         if plotevery > 0 && epoch % plotevery == 0
@@ -228,7 +259,12 @@ function train_model(
     end
     # At the end of training, save a checkpoint
     return saveModel(
-        model, checkpointdirectory, losses_train, epochs - epoch_offset, epoch_offset; opt=optimizer
+        model,
+        checkpointdirectory,
+        losses_train,
+        epochs - epoch_offset,
+        epoch_offset;
+        opt=optimizer,
     )
 end
 
@@ -296,12 +332,12 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = makemodel(resized_psfs) |> my_gpu
+        model = my_gpu(makemodel(resized_psfs))
     else
-        Core.eval(Main, :(import Flux))
-        Core.eval(Main, :(import CUDA))
-        Core.eval(Main, :(import NNlib))
-        model, optimizer = loadmodel(loadpath) |> my_gpu
+        Core.eval(Main, :(using Flux: Flux))
+        Core.eval(Main, :(using CUDA: CUDA))
+        Core.eval(Main, :(using NNlib: NNlib))
+        model, optimizer = my_gpu(loadmodel(loadpath))
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
