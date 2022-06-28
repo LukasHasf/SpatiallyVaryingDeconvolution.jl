@@ -125,7 +125,7 @@ function train_real_gradient!(loss, ps, data, opt)
     # Zygote calculates a complex gradient, even though this is mapping  real -> real.
     # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
     # use the real part of the gradient
-    for (i, d) in enumerate(data)
+    @showprogress "Epoch progress:" for (i, d) in enumerate(data)
         try
             gs = Flux.gradient(ps) do
                 loss(Flux.Optimise.batchmemaybe(d)...)
