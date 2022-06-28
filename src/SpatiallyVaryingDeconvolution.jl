@@ -17,6 +17,16 @@ include("UNet.jl")
 include("MultiWienerNet.jl")
 include("utils.jl")
 
+const CUDA_functional = CUDA.functional() && any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+
+function my_gpu(x::AbstractArray)
+    global CUDA_functional
+    if CUDA_functional
+        return gpu(x)
+    end
+    return Array(x)
+end
+
 function loadmodel(path)
     @load path model
     return model
@@ -25,7 +35,7 @@ end
 function makemodel(psfs)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> gpu
+    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -44,8 +54,8 @@ end
 
 function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
     @assert ndims(img) == ndims(kernel) + 2
-    kernel = gpu(reshape(kernel, size(kernel)...,1, 1))
-    convolved = conv(gpu(img), kernel;)
+    kernel = my_gpu(reshape(kernel, size(kernel)...,1, 1))
+    convolved = conv(my_gpu(img), kernel;)
     return convolved
 end
 
@@ -120,7 +130,7 @@ function train_real_gradient!(loss, ps, data, opt)
     # use the real part of the gradient
     @showprogress "Epoch progress:" for (i, d) in enumerate(data)
         try
-            d = gpu(d)
+            d = my_gpu(d)
             gs = Flux.gradient(ps) do
                 loss(Flux.Optimise.batchmemaybe(d)...)
             end
@@ -167,7 +177,7 @@ function train_model(
     optimizer=Flux.Optimise.ADAM,
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
-    example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> gpu
+    example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> my_gpu
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
@@ -182,8 +192,8 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, opt)
         trainmode!(model, false)
-        losses_train[epoch] = loss(gpu(train_x), gpu(train_y))
-        losses_test[epoch] = loss(gpu(test_x), gpu(test_y))
+        losses_train[epoch] = loss(my_gpu(train_x), my_gpu(train_y))
+        losses_test[epoch] = loss(my_gpu(test_x), my_gpu(test_y))
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
@@ -276,10 +286,10 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = makemodel(resized_psfs) |> gpu
+        model = makemodel(resized_psfs) |> my_gpu
     else
         Core.eval(Main, :(import Flux))
-        model = loadmodel(loadpath) |> gpu
+        model = loadmodel(loadpath) |> my_gpu
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
