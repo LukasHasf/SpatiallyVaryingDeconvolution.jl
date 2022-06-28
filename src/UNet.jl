@@ -259,20 +259,29 @@ function (u::Unet)(x::AbstractArray)
     c2 = u.conv_blocks[2](u.conv_down_blocks[1](c1))
     c3 = u.conv_blocks[3](u.conv_down_blocks[2](c2))
     c4 = u.conv_blocks[4](u.conv_down_blocks[3](c3))
-    c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4))
+    if depth==4
+        c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4))
+    end
     #for i in 1:depth
     #    cs[i + 1] = u.conv_blocks[i + 1](u.conv_down_blocks[i](cs[i]))
     #    println("cs is $(typeof(cs))")
     #end
-    up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))
-    up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))
-    up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))
-    up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))
+    if depth==4
+        up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))
+        up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))
+        up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))
+        up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))
+    elseif depth==3
+        up1 = u.conv_blocks[5](u.up_blocks[1](c4, c3))
+        up2 = u.conv_blocks[6](u.up_blocks[2](up1, c2))
+        up4 = u.conv_blocks[7](u.up_blocks[3](up2, c1))
+    end
+
     #for i in 2:depth
     #    up = u.conv_blocks[depth + i + 1](u.up_blocks[i](up, cs[depth - i + 1]))
     #end
     if u.residual
-        up4 = up4 .+ u.conv_blocks[10](c0)
+        up4 = up4 .+ u.conv_blocks[2 * depth + 2](c0)
     end
     return up4
 end
