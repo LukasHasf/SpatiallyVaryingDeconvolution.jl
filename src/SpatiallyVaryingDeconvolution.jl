@@ -250,7 +250,6 @@ function start_training(options_path; T=Float32)
     epochs = options["training"]["epochs"]
     plotevery = options["training"]["plot_interval"]
     plotpath = options["training"]["plot_path"]
-    plotpath = endswith(plotpath, "/") ? plotpath : plotpath * "/"
     if !isdir(plotpath)
         mkpath(plotpath)
     end
