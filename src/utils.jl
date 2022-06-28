@@ -11,6 +11,18 @@ using FFTW
 using LinearAlgebra
 using Images
 using Noise
+using MappedArrays
+using FileIO
+
+function load_dataset(nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128,128))
+    files = find_complete(nrsamples, truth_directory, simulated_directory)
+    if nd==2
+        loader = x -> gpu(addnoise(loadimages(x, truth_directory, simulated_directory, newsize=newsize)))
+    elseif nd==3
+        loader = x -> gpu(addnoise(loadvolumes(x, truth_directory, simulated_directory, newsize=newsize)))
+    end
+    return mappedarray(loader, files)
+end
 
 function addnoise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)

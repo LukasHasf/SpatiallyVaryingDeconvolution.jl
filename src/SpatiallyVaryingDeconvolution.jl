@@ -35,7 +35,7 @@ function makemodel(psfs)
         residual=true,
         norm="none",
         attention=true,
-        depth=4,
+        depth=3,
         dropout=true,
     )
     model = Flux.Chain(modelwiener, modelUNet)
@@ -45,16 +45,8 @@ end
 function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
     @assert ndims(img) == ndims(kernel) + 2
     kernel = gpu(reshape(kernel, size(kernel)...,1, 1))
-    convolved = conv(img, kernel;)
+    convolved = conv(gpu(img), kernel;)
     return convolved
-    if ndims(kernel) == 2
-        @tullio convolved[x + _, y + _, a, b] := img[x + i, y + j, a, b] * kernel[i, j]
-        return gpu(convolved)
-    elseif ndims(kernel) == 3
-        img = view(img, :, :, :, 1, 1)
-        @tullio convolved[x + _, y + _, z + _] := img[x + i, y + j, z + k] * kernel[i, j, k]
-        return convolved
-    end
 end
 
 function SSIM_loss(ŷ, y; kernel=nothing)
@@ -128,10 +120,12 @@ function train_real_gradient!(loss, ps, data, opt)
     # use the real part of the gradient
     @showprogress "Epoch progress:" for (i, d) in enumerate(data)
         try
+            d = gpu(d)
             gs = Flux.gradient(ps) do
                 loss(Flux.Optimise.batchmemaybe(d)...)
             end
             Flux.update!(opt, ps, real.(gs))
+            d = nothing
         catch ex
             if ex isa Flux.Optimise.StopException
                 break
@@ -173,7 +167,7 @@ function train_model(
     optimizer=Flux.Optimise.ADAM,
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
-    example_data_x = reshape(example_data_x, size(example_data_x)..., 1)
+    example_data_x = reshape(example_data_x, size(example_data_x)..., 1) |> gpu
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     pars = Flux.params(model)
@@ -188,8 +182,8 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, opt)
         trainmode!(model, false)
-        losses_train[epoch] = loss(train_x, train_y)
-        losses_test[epoch] = loss(test_x, test_y)
+        losses_train[epoch] = loss(gpu(train_x), gpu(train_y))
+        losses_test[epoch] = loss(gpu(test_x), gpu(test_y))
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
@@ -269,8 +263,8 @@ function start_training(options_path; T=Float32)
         nrsamples, truth_directory, simulated_directory; newsize=newsize
     )
     x_data = applynoise(x_data)
-    train_x, test_x = train_test_split(x_data) |> gpu
-    train_y, test_y = train_test_split(y_data) |> gpu
+    train_x, test_x = train_test_split(x_data)
+    train_y, test_y = train_test_split(y_data)
 
     # Define / load the model
     dims = length(newsize)
@@ -287,7 +281,8 @@ function start_training(options_path; T=Float32)
         Core.eval(Main, :(import Flux))
         model = loadmodel(loadpath) |> gpu
     end
-
+    pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
+    println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     if dims == 3
         @tullio kernel[x, y, z] :=
@@ -302,7 +297,7 @@ function start_training(options_path; T=Float32)
         end
     end
 
-    # Test so far
+    #= Test so far
     selection_x = copy(selectdim(train_x, ndims(train_x), 1))
     selection_y = copy(selectdim(train_x, ndims(train_x), 1))
     reshaped_size = size(train_x)[1:(end - 1)]
@@ -311,7 +306,7 @@ function start_training(options_path; T=Float32)
             reshape(selection_x, reshaped_size..., 1),
             reshape(selection_y, reshaped_size..., 1),
         ),
-    )
+    ) # =#
 
     # Training
     return train_model(
