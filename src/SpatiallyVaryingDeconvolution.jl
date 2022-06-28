@@ -109,8 +109,10 @@ function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
         p1 = sliced_plot(prediction[:, :, :, 1, 1])
         p2 = sliced_plot(abs2.(psf[:, :, :, 1]))
     end
-    savefig(p1, plotdirectory * "Epoch" * string(epoch + epoch_offset) * "_predict.png")
-    savefig(p2, plotdirectory * "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+    prediction_path = joinpath(plotdirectory, "Epoch" * string(epoch + epoch_offset) * "_predict.png")
+    psf_path = joinpath(plotdirectory, "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png")
+    savefig(p1, prediction_path)
+    savefig(p2, psf_path)
 end
 
 function plot_losses(train_loss, test_loss, epoch, plotdirectory)
