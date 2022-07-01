@@ -2,7 +2,7 @@ export readPSFs, registerPSFs
 export load_data, applynoise
 export train_test_split
 export gaussian
-export _random_normal
+export my_gpu, my_cu
 
 using MAT
 using HDF5
@@ -13,6 +13,7 @@ using Images
 using Noise
 using MappedArrays
 using FileIO
+using CUDA
 
 function load_dataset(
     nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128, 128)
@@ -151,6 +152,25 @@ function gaussian(window_size, sigma)
     return gauss / sum(gauss)
 end
 
+const CUDA_functional =
+    CUDA.functional() &&
+    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+
+function my_cu(x)
+    global CUDA_functional
+    if CUDA_functional
+        return cu(x)
+    end
+    return x
+end
+
+function my_gpu(x)
+    global CUDA_functional
+    if CUDA_functional
+        return gpu(x)
+    end
+    return x
+end
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
 function readPSFs(path::String, key::String)
