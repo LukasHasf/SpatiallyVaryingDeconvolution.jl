@@ -18,6 +18,9 @@ include("MultiWienerNet.jl")
 include("utils.jl")
 
 function loadmodel(path; load_optimizer=true)
+    Core.eval(Main, :(using Flux: Flux))
+    Core.eval(Main, :(using CUDA: CUDA))
+    Core.eval(Main, :(using NNlib: NNlib))
     if load_optimizer
         @load path model opt
         return model, opt
@@ -334,9 +337,6 @@ function start_training(options_path; T=Float32)
             makemodel(resized_psfs; depth=depth, attention=attention, dropout=dropout)
         )
     else
-        Core.eval(Main, :(using Flux: Flux))
-        Core.eval(Main, :(using CUDA: CUDA))
-        Core.eval(Main, :(using NNlib: NNlib))
         model, optimizer = my_gpu(loadmodel(loadpath))
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
