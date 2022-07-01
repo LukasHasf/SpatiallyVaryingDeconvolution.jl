@@ -189,7 +189,6 @@ function saveModel(
     return modelpath
 end
 
-
 function train_model(
     model,
     train_x,
@@ -221,8 +220,14 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, optimizer)
         trainmode!(model, false)
-        losses_train[epoch] = mean([_help_evaluate_loss(train_x, train_y, i, loss) for i in 1:size(train_x, ndims(train_x))])
-        losses_test[epoch] = mean([_help_evaluate_loss(test_x, test_y, i, loss) for i in 1:size(test_x, ndims(test_x))])
+        losses_train[epoch] = mean([
+            _help_evaluate_loss(train_x, train_y, i, loss) for
+            i in 1:size(train_x, ndims(train_x))
+        ])
+        losses_test[epoch] = mean([
+            _help_evaluate_loss(test_x, test_y, i, loss) for
+            i in 1:size(test_x, ndims(test_x))
+        ])
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
@@ -325,7 +330,9 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = my_gpu(makemodel(resized_psfs, depth=depth, attention=attention, dropout=dropout))
+        model = my_gpu(
+            makemodel(resized_psfs; depth=depth, attention=attention, dropout=dropout)
+        )
     else
         Core.eval(Main, :(using Flux: Flux))
         Core.eval(Main, :(using CUDA: CUDA))

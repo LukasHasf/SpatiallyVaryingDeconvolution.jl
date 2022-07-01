@@ -173,7 +173,7 @@ function my_gpu(x)
     return x
 end
 
-function _help_evaluate_loss(arr_x, arr_y, index::Union{Int, UnitRange}, loss_fn)
+function _help_evaluate_loss(arr_x, arr_y, index::Union{Int,UnitRange}, loss_fn)
     tmp_x = copy(selectdim(arr_x, ndims(arr_x), index))
     tmp_y = copy(selectdim(arr_y, ndims(arr_y), index))
     if index isa Int
