@@ -2,6 +2,7 @@ export readPSFs, registerPSFs
 export load_data, applynoise
 export train_test_split
 export gaussian
+export _random_normal, _help_evaluate_loss
 export my_gpu, my_cu
 
 using MAT
@@ -171,6 +172,18 @@ function my_gpu(x)
     end
     return x
 end
+
+function _help_evaluate_loss(arr_x, arr_y, index::Union{Int, UnitRange}, loss_fn)
+    tmp_x = copy(selectdim(arr_x, ndims(arr_x), index))
+    tmp_y = copy(selectdim(arr_y, ndims(arr_y), index))
+    if index isa Int
+        tmp_x = reshape(tmp_x, size(tmp_x)..., 1)
+        tmp_y = reshape(tmp_y, size(tmp_y)..., 1)
+    else
+    end
+    return loss_fn(my_gpu(tmp_x), my_gpu(tmp_y))
+end
+
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
 function readPSFs(path::String, key::String)

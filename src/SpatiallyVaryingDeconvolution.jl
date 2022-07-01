@@ -152,12 +152,12 @@ function train_real_gradient!(loss, ps, data, opt)
     # use the real part of the gradient
     @showprogress "Epoch progress:" for (i, d) in enumerate(data)
         try
-            d = my_gpu(d)
+            d = my_cu(d)
             gs = Flux.gradient(ps) do
                 loss(Flux.Optimise.batchmemaybe(d)...)
             end
-            Flux.update!(opt, ps, real.(gs))
             d = nothing
+            Flux.update!(opt, ps, real.(gs))
         catch ex
             if ex isa Flux.Optimise.StopException
                 break
@@ -220,8 +220,8 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, optimizer)
         trainmode!(model, false)
-        losses_train[epoch] = loss(my_gpu(train_x), my_gpu(train_y))
-        losses_test[epoch] = loss(my_gpu(test_x), my_gpu(test_y))
+        losses_train[epoch] = mean([_help_evaluate_loss(train_x, train_y, i, loss) for i in 1:size(train_x, ndims(train_x))])
+        losses_test[epoch] = mean([_help_evaluate_loss(test_x, test_y, i, loss) for i in 1:size(test_x, ndims(test_x))])
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
