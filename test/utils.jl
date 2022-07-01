@@ -200,7 +200,7 @@ end
 
 @testset "_help_evaluate_loss" begin
     arr_x = [1 2 3 4]
-    arr_y = [5 6 7; 8]
+    arr_y = [5 6 7 8]
     loss_fn(x,y) = x .+ y
     ans = _help_evaluate_loss(arr_x, arr_y, 1, loss_fn)
     @test  cpu(ans) == [6;;]
