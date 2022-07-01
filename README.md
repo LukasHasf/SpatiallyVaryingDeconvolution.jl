@@ -42,6 +42,9 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `x_path`, `y_path` : The paths to the ground_truth and training dat directories. See [Preparing the training data](#preparing-the-training-data)
 - `resize_to` : The UNet implementation requires samples to be powers of 2 in size along each spatial dimension. Each sample is resized to the dimension specified by this.
 - `center_psfs`, `reference_index` : If your PSFs are not already centered, set `center_psfs` to `true` and set the `reference_index` to the PSF closest to the center.
+- `depth` : The number of downsampling / upsampling steps in the UNet.
+- `attention` : Boolean to indicate if the UNet should use attention gates.
+- `dropout` : Boolean to indicate if the UNet should employ dopout-layers during training.
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.
 - `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
 - `epochs` : The number of epochs the model will be trained.

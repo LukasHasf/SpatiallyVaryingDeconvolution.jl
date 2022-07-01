@@ -13,8 +13,9 @@ data:
 
 # model params unused as of now
 model:
-    metric: 'SSIM + MAE'
-    learning_rate: 0.1
+    depth: 3
+    attention: true
+    dropout: true
 
 training:
     # Path to the PSF file

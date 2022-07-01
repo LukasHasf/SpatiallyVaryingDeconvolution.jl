@@ -27,7 +27,7 @@ function loadmodel(path; load_optimizer=true)
     end
 end
 
-function makemodel(psfs)
+function makemodel(psfs; attention=true, dropout=true, depth=3)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
@@ -39,9 +39,9 @@ function makemodel(psfs)
         activation="relu",
         residual=true,
         norm="none",
-        attention=true,
-        depth=3,
-        dropout=true,
+        attention=attention,
+        depth=depth,
+        dropout=dropout,
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
@@ -189,6 +189,7 @@ function saveModel(
     return modelpath
 end
 
+
 function train_model(
     model,
     train_x,
@@ -279,6 +280,10 @@ function start_training(options_path; T=Float32)
         loadpath = options["training"]["checkpoints"]["checkpoint_path"]
         epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
     end
+    # Model parameters
+    depth = options["model"]["depth"]
+    attention = options["model"]["attentions"]
+    dropout = options["model"]["dropout"]
     nrsamples = options["training"]["nrsamples"]
     epochs = options["training"]["epochs"]
     plotevery = options["training"]["plot_interval"]
@@ -320,7 +325,7 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), newsize
             )
         end
-        model = my_gpu(makemodel(resized_psfs))
+        model = my_gpu(makemodel(resized_psfs, depth=depth, attention=attention, dropout=dropout))
     else
         Core.eval(Main, :(using Flux: Flux))
         Core.eval(Main, :(using CUDA: CUDA))
