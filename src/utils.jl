@@ -179,7 +179,6 @@ function _help_evaluate_loss(arr_x, arr_y, index::Union{Int,UnitRange}, loss_fn)
     if index isa Int
         tmp_x = reshape(tmp_x, size(tmp_x)..., 1)
         tmp_y = reshape(tmp_y, size(tmp_y)..., 1)
-    else
     end
     return loss_fn(my_gpu(tmp_x), my_gpu(tmp_y))
 end
