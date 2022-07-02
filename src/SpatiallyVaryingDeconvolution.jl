@@ -290,7 +290,7 @@ function start_training(options_path; T=Float32)
     end
     # Model parameters
     depth = options["model"]["depth"]
-    attention = options["model"]["attentions"]
+    attention = options["model"]["attention"]
     dropout = options["model"]["dropout"]
     nrsamples = options["training"]["nrsamples"]
     epochs = options["training"]["epochs"]
