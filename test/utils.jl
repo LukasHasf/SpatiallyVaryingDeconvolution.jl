@@ -215,3 +215,13 @@ end
     ans = _help_evaluate_loss(arr_x, arr_y, 1:3, loss_fn)
     @test cpu(ans) == [6 8 10]
 end
+
+@testset "_ensure_existence" begin
+    dir = mktempdir()
+    mypath = joinpath(dir, "test")
+    _ensure_existence(joinpath(dir, "test"))
+    _ensure_existence(joinpath(dir, "test2"))
+    dirlist = readdir(dir)
+    @test length(dirlist) == 2
+    @test issetequal(["test", "test2"], dirlist)
+end

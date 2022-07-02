@@ -207,6 +207,7 @@ function train_model(
     saveevery=1,
     checkpointdirectory="checkpoints/",
     optimizer=Flux.Optimise.ADAM(),
+    logfile=nothing
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
@@ -252,6 +253,11 @@ function train_model(
                 plot_losses(losses_train, losses_test, epoch, plotdirectory)
             end
         end
+        if !isnothing(logfile)
+            open(logfile,"a") do io
+                println(io, "Epoch $(epoch + epoch_offset): Train loss $(losses_train[epoch]), test loss $(losses_test[epoch])")
+             end
+        end
         print("\n")
     end
     # At the end of training, save a checkpoint
@@ -296,17 +302,15 @@ function start_training(options_path; T=Float32)
     epochs = options["training"]["epochs"]
     plotevery = options["training"]["plot_interval"]
     plotpath = options["training"]["plot_path"]
-    if !isdir(plotpath)
-        mkpath(plotpath)
-    end
+    _ensure_existence(plotpath)
+    log_losses = options["training"]["log_losses"]
+    logfile = log_losses ? joinpath(dirname(options_path), "losses.log") : nothing
     center_psfs = options["data"]["center_psfs"]
     if center_psfs
         psf_ref_index = options["data"]["reference_index"]
     end
     checkpoint_dir = options["training"]["checkpoints"]["checkpoint_dir"]
-    if !isdir(checkpoint_dir)
-        mkpath(checkpoint_dir)
-    end
+    _ensure_existence(checkpoint_dir)
     saveevery = options["training"]["checkpoints"]["save_interval"]
     optimizer = optimizer_dict[optimizer_kw]()
 
@@ -382,6 +386,7 @@ function start_training(options_path; T=Float32)
         optimizer=optimizer,
         plotdirectory=plotpath,
         saveevery=saveevery,
+        logfile=logfile,
     )
 end
 
