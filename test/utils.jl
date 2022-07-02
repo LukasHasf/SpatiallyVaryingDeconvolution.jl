@@ -61,6 +61,12 @@ end
     @test UNet.uRelu(x) == relu.(x)
 end
 
+@testset "uUpsampleTconv" begin
+    x = rand(Float32, 10, 10, 1, 1)
+    x̂ = UNet.uUpsampleTconv(x)
+    @test size(x̂) == (20, 20, 1, 1)
+end
+
 @testset "addnoise" begin
     # Test addnoise for images
     img = ones(Float64, 200, 300, 1, 1)
