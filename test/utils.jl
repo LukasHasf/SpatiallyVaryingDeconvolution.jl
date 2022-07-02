@@ -61,6 +61,12 @@ end
     @test UNet.uRelu(x) == relu.(x)
 end
 
+@testset "uUpsampleTconv" begin
+    x = rand(Float32, 10, 10, 1, 1)
+    x̂ = UNet.uUpsampleTconv(x)
+    @test size(x̂) == (20, 20, 1, 1)
+end
+
 @testset "addnoise" begin
     # Test addnoise for images
     img = ones(Float64, 200, 300, 1, 1)
@@ -208,4 +214,14 @@ end
     @test cpu(ans) == [12;;]
     ans = _help_evaluate_loss(arr_x, arr_y, 1:3, loss_fn)
     @test cpu(ans) == [6 8 10]
+end
+
+@testset "_ensure_existence" begin
+    dir = mktempdir()
+    mypath = joinpath(dir, "test")
+    _ensure_existence(joinpath(dir, "test"))
+    _ensure_existence(joinpath(dir, "test2"))
+    dirlist = readdir(dir)
+    @test length(dirlist) == 2
+    @test issetequal(["test", "test2"], dirlist)
 end

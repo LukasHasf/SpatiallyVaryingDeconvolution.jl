@@ -2,7 +2,7 @@ export readPSFs, registerPSFs
 export load_data, applynoise
 export train_test_split
 export gaussian
-export _random_normal, _help_evaluate_loss
+export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
 
 using MAT
@@ -181,6 +181,16 @@ function _help_evaluate_loss(arr_x, arr_y, index::Union{Int,UnitRange}, loss_fn)
         tmp_y = reshape(tmp_y, size(tmp_y)..., 1)
     end
     return loss_fn(my_gpu(tmp_x), my_gpu(tmp_y))
+end
+
+"""    _ensure_existence(dir)
+
+If directory `dir` does not exist, create it (including intermediate directories).
+"""
+function _ensure_existence(dir)
+    if !isdir(dir)
+        mkpath(dir)
+    end
 end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
