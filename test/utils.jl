@@ -65,12 +65,16 @@ end
     x = rand(Float32, 10, 10, 1, 1)
     x̂ = UNet.uUpsampleTconv(x)
     @test size(x̂) == (20, 20, 1, 1)
+
+    x = rand(Float32, 10, 10, 10, 1, 1)
+    x̂ = UNet.uUpsampleTconv(x)
+    @test size(x̂) == (20, 20, 20, 1, 1)
 end
 
 @testset "train_real_gradient!" begin
     model = Chain(Dense(1, 10), Dense(10, 1))
-    X = my_gpu(rand(1, 100))
-    Y = my_gpu(rand(1, 100))
+    X = my_gpu(rand(Float32, 1, 100))
+    Y = my_gpu(rand(Float32, 1, 100))
     data = Flux.DataLoader((X, Y), batchsize=1)
     ps = Flux.params(model)
     opt = Flux.Optimise.Descent()
