@@ -4,6 +4,7 @@ export train_test_split
 export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
+export train_real_gradient!
 
 using MAT
 using HDF5
@@ -15,6 +16,7 @@ using Noise
 using MappedArrays
 using FileIO
 using CUDA
+using ProgressMeter
 
 function load_dataset(
     nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128, 128)
@@ -190,6 +192,32 @@ If directory `dir` does not exist, create it (including intermediate directories
 function _ensure_existence(dir)
     if !isdir(dir)
         mkpath(dir)
+    end
+end
+
+"""    train_real_gradient!(loss, ps, data, opt)
+
+Same as `Flux.train!` but with real gradient.
+"""
+function train_real_gradient!(loss, ps, data, opt)
+    # Zygote calculates a complex gradient, even though this is mapping  real -> real.
+    # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
+    # use the real part of the gradient
+    @showprogress "Epoch progress:" for (i, d) in enumerate(data)
+        try
+            d = my_cu(d)
+            gs = Flux.gradient(ps) do
+                loss(Flux.Optimise.batchmemaybe(d)...)
+            end
+            d = nothing
+            Flux.update!(opt, ps, real.(gs))
+        catch ex
+            if ex isa Flux.Optimise.StopException
+                break
+            else
+                rethrow(ex)
+            end
+        end
     end
 end
 

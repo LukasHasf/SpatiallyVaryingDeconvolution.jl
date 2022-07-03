@@ -149,28 +149,6 @@ function plot_losses(train_loss, test_loss, epoch, plotdirectory)
     return savefig(joinpath(plotdirectory, "testlossplot.png"))
 end
 
-function train_real_gradient!(loss, ps, data, opt)
-    # Zygote calculates a complex gradient, even though this is mapping  real -> real.
-    # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
-    # use the real part of the gradient
-    @showprogress "Epoch progress:" for (i, d) in enumerate(data)
-        try
-            d = my_cu(d)
-            gs = Flux.gradient(ps) do
-                loss(Flux.Optimise.batchmemaybe(d)...)
-            end
-            d = nothing
-            Flux.update!(opt, ps, real.(gs))
-        catch ex
-            if ex isa Flux.Optimise.StopException
-                break
-            else
-                rethrow(ex)
-            end
-        end
-    end
-end
-
 function saveModel(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
