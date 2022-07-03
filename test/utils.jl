@@ -67,6 +67,25 @@ end
     @test size(x̂) == (20, 20, 1, 1)
 end
 
+@testset "train_real_gradient!" begin
+    model = Chain(Dense(1, 10), Dense(10, 1))
+    X = my_gpu(rand(1, 100))
+    Y = my_gpu(rand(1, 100))
+    data = Flux.DataLoader((X, Y), batchsize=1)
+    ps = Flux.params(model)
+    opt = Flux.Optimise.Descent()
+    loss_fn(x, y) = Flux.mse(model(x), y)
+
+    model2 = deepcopy(model)
+    model = my_gpu(model)
+    model2 = my_gpu(model2)
+    ps2 = Flux.params(model2)
+
+    Flux.train!(loss_fn, ps, data, opt)
+    train_real_gradient!(loss_fn, ps2, data, opt)
+    @test Flux.params(model) == Flux.params(model2)
+end
+
 @testset "addnoise" begin
     # Test addnoise for images
     img = ones(Float64, 200, 300, 1, 1)
