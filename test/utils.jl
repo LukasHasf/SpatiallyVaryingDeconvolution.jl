@@ -72,22 +72,41 @@ end
 end
 
 @testset "train_real_gradient!" begin
-    model = Chain(Dense(1, 10), Dense(10, 1))
-    X = my_gpu(rand(Float32, 1, 100))
-    Y = my_gpu(rand(Float32, 1, 100))
-    data = Flux.DataLoader((X, Y), batchsize=1)
-    ps = Flux.params(model)
-    opt = Flux.Optimise.Descent()
-    loss_fn(x, y) = Flux.mse(model(x), y)
+    # Create two identical models with predetermined weights
+    model = Chain(Dense(1, 5), Dense(5, 1))
+    model2 = Chain(Dense(1,5), Dense(5, 1))
 
-    model2 = deepcopy(model)
+    weight1 = Float32.([-0.8949249; 0.46093643; 0.39633024; -0.584888; 0.6077639;;])
+    bias1 = Float32.([0.0, 0.0, 0.0, 0.0, 0.0])
+    weight2 = Float32.([-0.389786 0.35682404 -0.40063584 -0.56246924 0.6892315])
+    bias2 = Float32.([0.0])
+    myparams = [weight1, bias1, weight2, bias2]
+    for (i, (p, q)) in enumerate(zip(Flux.params(model), Flux.params(model2)))
+        q .= myparams[i]
+        p .= myparams[i]
+    end
+
+    # Create a predetermined dataset
+    X = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    Y = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    data = Flux.DataLoader((X, Y), batchsize=1)
+    # Define optimizer and losses; Only need one optimizer since Descent is not stateful
+    opt = Flux.Optimise.Descent(0.001)
+    loss_fn(x, y) = Flux.mse(model(x), y)
+    loss_fn2(x, y) = Flux.mse(model2(x), y)
+
+    # Transfer to gpu if available
     model = my_gpu(model)
     model2 = my_gpu(model2)
+    ps = Flux.params(model)
     ps2 = Flux.params(model2)
 
+    # Compare result of Flux.train! with train_real_gradient! in a purely real case -> should be identical
     Flux.train!(loss_fn, ps, data, opt)
-    train_real_gradient!(loss_fn, ps2, data, opt)
-    @test Flux.params(model) == Flux.params(model2)
+    train_real_gradient!(loss_fn2, ps2, data, opt)
+    answer = Flux.Params([Float32[-0.88388497; 0.45069993; 0.4081554; -0.56870055; 0.5878888;;], Float32[0.002074556, -0.0019173549, 0.0021992736, 0.0030295767, -0.0037178881], Float32[-0.36383954 0.34351882 -0.41234216 -0.5456273 0.6717704], Float32[-0.0054387837]])
+    @test cpu(ps[:]) ≈ answer[:]
+    @test ps == ps2
 end
 
 @testset "addnoise" begin
