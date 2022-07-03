@@ -61,16 +61,6 @@ end
     @test UNet.uRelu(x) == relu.(x)
 end
 
-@testset "uUpsampleTconv" begin
-    x = rand(Float32, 10, 10, 1, 1)
-    x̂ = UNet.uUpsampleTconv(x)
-    @test size(x̂) == (20, 20, 1, 1)
-
-    x = rand(Float32, 10, 10, 10, 1, 1)
-    x̂ = UNet.uUpsampleTconv(x)
-    @test size(x̂) == (20, 20, 20, 1, 1)
-end
-
 @testset "train_real_gradient!" begin
     # Create two identical models with predetermined weights
     model = Chain(Dense(1, 5), Dense(5, 1))
