@@ -4,6 +4,7 @@ authors = ["LukasHasf <lukas.hassfurth@uni-jena.de>"]
 version = "0.1.0"
 
 [deps]
+AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 CUDAKernels = "72cfdca4-0801-4ab0-bf6a-d52aa10adc57"
