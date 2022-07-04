@@ -57,7 +57,7 @@ function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,
     return convolved
 end
 
-function SSIM_loss(ŷ::AbstractArrays{T, N}, y::AbstractArrays{T, N}; kernel=nothing) where {T, N}
+function SSIM_loss(ŷ::AbstractArray{T, N}, y::AbstractArray{T, N}; kernel=nothing) where {T, N}
     c1 = T(0.01)^2
     c2 = T(0.03)^2
     mu1 = nn_convolve(y; kernel=kernel)
