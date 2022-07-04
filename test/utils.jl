@@ -280,3 +280,27 @@ end
     @test length(dirlist) == 2
     @test issetequal(["test", "test2"], dirlist)
 end
+
+@testset "read_yaml" begin
+    options = read_yaml("../examples/options.yaml")
+    @test options["sim dir"] == "../../training_data/Data/Ground_truth_downsampled/"
+    @test options["truth dir"] == "../../training_data/Data/JuliaForwardModel/"
+    @test options["newsize"] == (64, 64)
+    @test options["center psfs"] == true
+    @test options["psf ref index"] == -1
+    @test options["depth"] == 3
+    @test options["attention"] == true
+    @test options["dropout"] == true
+    @test options["psfs path"] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
+    @test options["psfs key"] == "psfs"
+    @test options["nrsamples"] == 700
+    @test options["epochs"] == 20
+    @test options["optimizer"] isa ADADelta
+    @test options["plot interval"] == 1
+    @test options["plot dir"] == "examples/training_progress/"
+    @test options["load checkpoints"] == false
+    @test !("checkpoint path" in keys(options))
+    @test options["checkpoint dir"] == "examples/checkpoints/"
+    @test options["save interval"] == 1
+    @test options["log losses"] == false
+end

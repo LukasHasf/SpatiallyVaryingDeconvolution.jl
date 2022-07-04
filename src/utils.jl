@@ -5,6 +5,7 @@ export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
 export train_real_gradient!
+export read_yaml
 
 using MAT
 using HDF5
@@ -54,6 +55,58 @@ function applynoise(imgs)
         selectdim(imgs, N, i) .= addnoise(collect(selectdim(imgs, N, i)))
     end
     return imgs
+end
+
+function read_yaml(path)
+    # Define dictionaries
+    optimizer_dict = Dict(
+        "ADAM" => Flux.Optimise.ADAM,
+        "Descent" => Flux.Optimise.Descent,
+        "ADAMW" => Flux.Optimise.ADAMW,
+        "ADAGrad" => Flux.Optimise.ADAGrad,
+        "ADADelta" => Flux.Optimise.ADADelta,
+    )
+    options = YAML.load_file(path)
+    optimizer_kw = options["training"]["optimizer"]
+    @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
+    output = Dict()
+    output["optimizer"] = optimizer_dict[optimizer_kw]()
+    output["sim dir"] = options["data"]["x_path"]
+    output["truth dir"] = options["data"]["y_path"]
+    output["newsize"] = tuple(options["data"]["resize_to"]...)
+    loadpath = nothing
+    epoch_offset = 0
+    output["load checkpoints"] = options["training"]["checkpoints"]["load_checkpoints"]
+    if output["load checkpoints"] 
+        loadpath = options["training"]["checkpoints"]["checkpoint_path"]
+        epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
+        output["checkpoint path"] = loadpath
+    end
+    output["epoch offset"] = epoch_offset
+    # Model parameters
+    output["depth"] = options["model"]["depth"]
+    output["attention"] = options["model"]["attention"]
+    output["dropout"] = options["model"]["dropout"]
+    output["nrsamples"] = options["training"]["nrsamples"]
+    output["epochs"] = options["training"]["epochs"]
+    output["plot interval"] = options["training"]["plot_interval"]
+    output["plot dir"] =  options["training"]["plot_path"]
+    _ensure_existence(output["plot dir"])
+    output["log losses"] = options["training"]["log_losses"]
+    logfile =  output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
+    if output["log losses"]
+        output["logfile"] = logfile
+    end
+    output["psfs path"] = options["training"]["psfs_path"]
+    output["psfs key"] = options["training"]["psfs_key"]
+    output["center psfs"] = options["data"]["center_psfs"]
+    if output["center psfs"]
+        output["psf ref index"] = options["data"]["reference_index"]
+    end
+    output["checkpoint dir"] = options["training"]["checkpoints"]["checkpoint_dir"]
+    _ensure_existence(output["checkpoint dir"])
+    output["save interval"] = options["training"]["checkpoints"]["save_interval"]
+    return output
 end
 
 """    find_complete(nrsamples, truth_directory, simulated_directory)
