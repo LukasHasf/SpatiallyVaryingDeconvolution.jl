@@ -234,6 +234,29 @@ end
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+
+    # Similarly for 3D volumes in MAT format
+    imgs = rand(32, 32, 32, 6)
+    img_dir = mktempdir()
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    mkdir(train_dir)
+    mkdir(test_dir)
+
+    matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
+    matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
+    matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => imgs[:, :, :, 3]))
+    matwrite(joinpath(test_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
+    matwrite(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
+    matwrite(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
+    # Load the pictures and compare
+    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    @test size(imgs_x) == (32, 32, 32, 1, 2)
+    @test size(imgs_y) == (32, 32, 32, 1, 2)
+    @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
+    @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
+    @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
+    @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
 end
 
 @testset "_help_evaluate_loss" begin
