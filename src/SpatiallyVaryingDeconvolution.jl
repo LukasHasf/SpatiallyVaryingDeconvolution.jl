@@ -275,6 +275,7 @@ function start_training(options_path; T=Float32)
 
     # Define / load the model
     dims = length(options2["newsize"])
+    optimizer = options2["optimizer"]
     if !options2["load checkpoints"]
         nrPSFs = size(psfs)[end]
         resized_psfs = Array{T,dims + 1}(undef, options2["newsize"]..., nrPSFs)
