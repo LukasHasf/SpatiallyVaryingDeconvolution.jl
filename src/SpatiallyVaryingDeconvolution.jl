@@ -21,11 +21,17 @@ function loadmodel(path; load_optimizer=true)
     Core.eval(Main, :(using Flux: Flux))
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
+    Core.eval(Main, :(using FFTW: FFTW))
+    Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
+        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
         return model, opt
     else
         @load path model
+        if model isa Flux.Chain
+            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
+        end
         return model
     end
 end
@@ -33,7 +39,7 @@ end
 function makemodel(psfs; attention=true, dropout=true, depth=3)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
+    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs) #|> my_gpu
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -153,6 +159,9 @@ function saveModel(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
     model = cpu(model)
+    if model isa Flux.Chain
+        model = Chain(MultiWienerNet.toMultiWiener(model[1]), model[2])
+    end
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *
@@ -320,7 +329,7 @@ function start_training(options_path; T=Float32)
         checkpointdirectory=options2["checkpoint dir"],
         plotloss=true,
         plotevery=options2["plot interval"],
-        optimizer=options2["optimizer"],
+        optimizer=optimizer,
         plotdirectory=options2["plot dir"],
         saveevery=options2["save interval"],
         logfile=options2["logfile"],
