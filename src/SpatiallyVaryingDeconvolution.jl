@@ -57,7 +57,7 @@ function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,
     return convolved
 end
 
-function SSIM_loss(ŷ::AbstractArrays{T, N}, y::AbstractArrays{T, N}; kernel=nothing where {T, N}
+function SSIM_loss(ŷ::AbstractArray{T, N}, y::AbstractArray{T, N}; kernel=nothing) where {T, N}
     c1 = T(0.01)^2
     c2 = T(0.03)^2
     mu1 = nn_convolve(y; kernel=kernel)
@@ -70,7 +70,7 @@ function SSIM_loss(ŷ::AbstractArrays{T, N}, y::AbstractArrays{T, N}; kernel=no
     sigma12 = nn_convolve(y .* ŷ; kernel=kernel) .- mu1_mu2
     ssim_map = @. ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) /
         ((mu1_sq + mu2_sq + c1) * (sigma1 + sigma2 + c2))
-    return one(eltype(y)) - convert(eltype(y), mean(ssim_map))
+    return one(T) - mean(ssim_map)
 end
 
 function L1_loss(ŷ, y)
@@ -147,28 +147,6 @@ function plot_losses(train_loss, test_loss, epoch, plotdirectory)
     xlabel!("Epochs")
     ylabel!("Loss")
     return savefig(joinpath(plotdirectory, "testlossplot.png"))
-end
-
-function train_real_gradient!(loss, ps, data, opt)
-    # Zygote calculates a complex gradient, even though this is mapping  real -> real.
-    # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
-    # use the real part of the gradient
-    @showprogress "Epoch progress:" for (i, d) in enumerate(data)
-        try
-            d = my_cu(d)
-            gs = Flux.gradient(ps) do
-                loss(Flux.Optimise.batchmemaybe(d)...)
-            end
-            d = nothing
-            Flux.update!(opt, ps, real.(gs))
-        catch ex
-            if ex isa Flux.Optimise.StopException
-                break
-            else
-                rethrow(ex)
-            end
-        end
-    end
 end
 
 function saveModel(
@@ -272,76 +250,36 @@ function train_model(
 end
 
 function start_training(options_path; T=Float32)
-    # Define dictionaries
-    optimizer_dict = Dict(
-        "ADAM" => Flux.Optimise.ADAM,
-        "Descent" => Flux.Optimise.Descent,
-        "ADAMW" => Flux.Optimise.ADAMW,
-        "ADAGrad" => Flux.Optimise.ADAGrad,
-        "ADADelta" => Flux.Optimise.ADADelta,
-    )
-
-    # Load options
-    options = YAML.load_file(options_path)
-    optimizer_kw = options["training"]["optimizer"]
-    @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
-    simulated_directory = options["data"]["x_path"]
-    truth_directory = options["data"]["y_path"]
-    newsize = tuple(options["data"]["resize_to"]...)
-    loadpath = nothing
-    epoch_offset = 0
-    if options["training"]["checkpoints"]["load_checkpoints"]
-        loadpath = options["training"]["checkpoints"]["checkpoint_path"]
-        epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
-    end
-    # Model parameters
-    depth = options["model"]["depth"]
-    attention = options["model"]["attention"]
-    dropout = options["model"]["dropout"]
-    nrsamples = options["training"]["nrsamples"]
-    epochs = options["training"]["epochs"]
-    plotevery = options["training"]["plot_interval"]
-    plotpath = options["training"]["plot_path"]
-    _ensure_existence(plotpath)
-    log_losses = options["training"]["log_losses"]
-    logfile = log_losses ? joinpath(dirname(options_path), "losses.log") : nothing
-    center_psfs = options["data"]["center_psfs"]
-    if center_psfs
-        psf_ref_index = options["data"]["reference_index"]
-    end
-    checkpoint_dir = options["training"]["checkpoints"]["checkpoint_dir"]
-    _ensure_existence(checkpoint_dir)
-    saveevery = options["training"]["checkpoints"]["save_interval"]
-    optimizer = optimizer_dict[optimizer_kw]()
-
+    options2 = read_yaml(options_path)
     # Load and process the data
-    psfs = readPSFs(options["training"]["psfs_path"], options["training"]["psfs_key"])
-    if center_psfs
-        psf_ref_index = psf_ref_index == -1 ? size(psfs)[end] ÷ 2 + 1 : psf_ref_index
-        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), psf_ref_index)))
+    psfs = readPSFs(options2["psfs path"], options2["psfs key"])
+    if options2["center psfs"]
+        options2["psf ref index"] = options2["psf ref index"] == -1 ? size(psfs)[end] ÷ 2 + 1 : options2["psf ref index"]
+        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), options2["psf ref index"])))
     end
     x_data, y_data = load_data(
-        nrsamples, truth_directory, simulated_directory; newsize=newsize
+        options2["nrsamples"], options2["truth dir"], options2["sim dir"]; newsize=options2["newsize"]
     )
     x_data = applynoise(x_data)
     train_x, test_x = train_test_split(x_data)
     train_y, test_y = train_test_split(y_data)
 
     # Define / load the model
-    dims = length(newsize)
-    if isnothing(loadpath)
+    dims = length(options2["newsize"])
+    optimizer = options2["optimizer"]
+    if !options2["load checkpoints"]
         nrPSFs = size(psfs)[end]
-        resized_psfs = Array{T,dims + 1}(undef, newsize..., nrPSFs)
+        resized_psfs = Array{T,dims + 1}(undef, options2["newsize"]..., nrPSFs)
         for i in 1:nrPSFs
             selectdim(resized_psfs, dims + 1, i) .= imresize(
-                collect(selectdim(psfs, dims + 1, i)), newsize
+                collect(selectdim(psfs, dims + 1, i)), options2["newsize"]
             )
         end
         model = my_gpu(
-            makemodel(resized_psfs; depth=depth, attention=attention, dropout=dropout)
+            makemodel(resized_psfs; depth=options2["depth"], attention=options2["attention"], dropout=options2["dropout"])
         )
     else
-        model, optimizer = my_gpu(loadmodel(loadpath))
+        model, optimizer = my_gpu(loadmodel(options2["loadpath"]))
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
@@ -378,15 +316,15 @@ function start_training(options_path; T=Float32)
         test_x,
         test_y,
         loss_fn;
-        epochs=epochs,
-        epoch_offset=epoch_offset,
-        checkpointdirectory=checkpoint_dir,
+        epochs=options2["epochs"],
+        epoch_offset=options2["epoch offset"],
+        checkpointdirectory=options2["checkpoint dir"],
         plotloss=true,
-        plotevery=plotevery,
+        plotevery=options2["plot interval"],
         optimizer=optimizer,
-        plotdirectory=plotpath,
-        saveevery=saveevery,
-        logfile=logfile,
+        plotdirectory=options2["plot dir"],
+        saveevery=options2["save interval"],
+        logfile=options2["logfile"],
     )
 end
 

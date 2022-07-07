@@ -72,5 +72,5 @@ end
     # Removing singleton dimension from input greatly speeds up assess_ssim
     @test SpatiallyVaryingDeconvolution.L1_SSIM_loss(img1, img2; kernel=kernel) ≈
         sum(abs.(img1 .- img2)) ./ N^3 + one(eltype(img1)) -
-          Images.assess_ssim(img1[:, :, :, 1, 1], img2[:, :, :, 1, 1]; crop=true)
+          Images.assess_ssim(img1[:, :, :, 1, 1], img2[:, :, :, 1, 1]; crop=true) atol=1e-4
 end

@@ -48,6 +48,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.
 - `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
 - `epochs` : The number of epochs the model will be trained.
+- `log_losses` : Boolean to indicate if the train and test loss after each epoch should be saved into a file.
 - `plot_interval`, `plot_path` : Plot the result of using the model on the first testing sample every `plot_interval`-th epoch and save the result in the directory `plot_path`. Set `plot_interval` to `0` to deactivate. Currently works only for 2D deconvolution.
 - `load_checkpoints`, `checkpoint_path` : You can continue training from a previously saved checkpoint. If you want to do so, set `load_checkpoints` to `true` and provide the path to the checkpoint you want to load.
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this. At the end of training, a checkpoint will be saved regardless.

@@ -61,10 +61,42 @@ end
     @test UNet.uRelu(x) == relu.(x)
 end
 
-@testset "uUpsampleTconv" begin
-    x = rand(Float32, 10, 10, 1, 1)
-    x̂ = UNet.uUpsampleTconv(x)
-    @test size(x̂) == (20, 20, 1, 1)
+@testset "train_real_gradient!" begin
+    # Create two identical models with predetermined weights
+    model = Chain(Dense(1, 5), Dense(5, 1))
+    model2 = Chain(Dense(1,5), Dense(5, 1))
+
+    weight1 = Float32.([-0.8949249; 0.46093643; 0.39633024; -0.584888; 0.6077639;;])
+    bias1 = Float32.([0.0, 0.0, 0.0, 0.0, 0.0])
+    weight2 = Float32.([-0.389786 0.35682404 -0.40063584 -0.56246924 0.6892315])
+    bias2 = Float32.([0.0])
+    myparams = [weight1, bias1, weight2, bias2]
+    for (i, (p, q)) in enumerate(zip(Flux.params(model), Flux.params(model2)))
+        q .= myparams[i]
+        p .= myparams[i]
+    end
+
+    # Create a predetermined dataset
+    X = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    Y = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    data = Flux.DataLoader((X, Y), batchsize=1)
+    # Define optimizer and losses; Only need one optimizer since Descent is not stateful
+    opt = Flux.Optimise.Descent(0.001)
+    loss_fn(x, y) = Flux.mse(model(x), y)
+    loss_fn2(x, y) = Flux.mse(model2(x), y)
+
+    # Transfer to gpu if available
+    model = my_gpu(model)
+    model2 = my_gpu(model2)
+    ps = Flux.params(model)
+    ps2 = Flux.params(model2)
+
+    # Compare result of Flux.train! with train_real_gradient! in a purely real case -> should be identical
+    Flux.train!(loss_fn, ps, data, opt)
+    train_real_gradient!(loss_fn2, ps2, data, opt)
+    answer = Flux.Params([Float32[-0.88388497; 0.45069993; 0.4081554; -0.56870055; 0.5878888;;], Float32[0.002074556, -0.0019173549, 0.0021992736, 0.0030295767, -0.0037178881], Float32[-0.36383954 0.34351882 -0.41234216 -0.5456273 0.6717704], Float32[-0.0054387837]])
+    @test cpu(ps[:]) ≈ answer[:]
+    @test ps == ps2
 end
 
 @testset "addnoise" begin
@@ -202,6 +234,29 @@ end
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+
+    # Similarly for 3D volumes in MAT format
+    imgs = rand(32, 32, 32, 6)
+    img_dir = mktempdir()
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    mkdir(train_dir)
+    mkdir(test_dir)
+
+    matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
+    matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
+    matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => imgs[:, :, :, 3]))
+    matwrite(joinpath(test_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
+    matwrite(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
+    matwrite(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
+    # Load the pictures and compare
+    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    @test size(imgs_x) == (32, 32, 32, 1, 2)
+    @test size(imgs_y) == (32, 32, 32, 1, 2)
+    @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
+    @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
+    @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
+    @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
 end
 
 @testset "_help_evaluate_loss" begin
@@ -224,4 +279,28 @@ end
     dirlist = readdir(dir)
     @test length(dirlist) == 2
     @test issetequal(["test", "test2"], dirlist)
+end
+
+@testset "read_yaml" begin
+    options = read_yaml("../examples/options.yaml")
+    @test options["sim dir"] == "../../training_data/Data/Ground_truth_downsampled/"
+    @test options["truth dir"] == "../../training_data/Data/JuliaForwardModel/"
+    @test options["newsize"] == (64, 64)
+    @test options["center psfs"] == true
+    @test options["psf ref index"] == -1
+    @test options["depth"] == 3
+    @test options["attention"] == true
+    @test options["dropout"] == true
+    @test options["psfs path"] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
+    @test options["psfs key"] == "psfs"
+    @test options["nrsamples"] == 700
+    @test options["epochs"] == 20
+    @test options["optimizer"] isa ADADelta
+    @test options["plot interval"] == 1
+    @test options["plot dir"] == "examples/training_progress/"
+    @test options["load checkpoints"] == false
+    @test !("checkpoint path" in keys(options))
+    @test options["checkpoint dir"] == "examples/checkpoints/"
+    @test options["save interval"] == 1
+    @test options["log losses"] == false
 end

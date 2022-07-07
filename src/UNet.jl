@@ -17,15 +17,6 @@ function uUpsampleNearest(x)
     return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
 
-function uUpsampleTconv(x)
-    chs = channelsize(x)
-    return ConvTranspose(
-        tuple(2 .* ones(Int, ndims(x) - 2)...), chs => chs; stride=2, groups=chs
-    )(
-        x
-    )
-end
-
 struct AttentionBlock
     W_gate::Any
     W_x::Any
@@ -163,8 +154,8 @@ function Unet(
     depth=4,
     dropout=false,
 )
-    upsample_functions = Dict("nearest" => uUpsampleNearest, "tconv" => uUpsampleTconv)
-    @assert up in keys(upsample_functions) "Upsample method \"$up\" not in $(keys(upsample_function))."
+    valid_upsampling_methods = ["nearest", "tconv"]
+    @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
     if down == "conv"
         kernel = kernel_base .* 2
@@ -243,9 +234,14 @@ function Unet(
         attention_blocks = repeat([false], depth)
     end
 
-    upsample_function = upsample_functions[up]
     up_blocks = []
     for i in 1:depth
+        if up=="nearest"
+            upsample_function = uUpsampleNearest
+        elseif up=="tconv"
+            chs = 16 * 2^(depth - (i - 1))
+            upsample_function = ConvTranspose(tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs)
+        end
         u = UNetUpBlock(upsample_function, attention_blocks[i])
         push!(up_blocks, u)
     end
