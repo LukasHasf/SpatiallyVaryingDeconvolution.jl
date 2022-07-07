@@ -70,7 +70,7 @@ function SSIM_loss(ŷ::AbstractArray{T, N}, y::AbstractArray{T, N}; kernel=noth
     sigma12 = nn_convolve(y .* ŷ; kernel=kernel) .- mu1_mu2
     ssim_map = @. ((2 * mu1_mu2 + c1) * (2 * sigma12 + c2)) /
         ((mu1_sq + mu2_sq + c1) * (sigma1 + sigma2 + c2))
-    return one(eltype(y)) - convert(eltype(y), mean(ssim_map))
+    return one(T) - mean(ssim_map)
 end
 
 function L1_loss(ŷ, y)
