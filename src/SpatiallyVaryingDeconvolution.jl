@@ -250,36 +250,36 @@ function train_model(
 end
 
 function start_training(options_path; T=Float32)
-    options2 = read_yaml(options_path)
+    options = read_yaml(options_path)
     # Load and process the data
-    psfs = readPSFs(options2["psfs path"], options2["psfs key"])
-    if options2["center psfs"]
-        options2["psf ref index"] = options2["psf ref index"] == -1 ? size(psfs)[end] ÷ 2 + 1 : options2["psf ref index"]
-        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), options2["psf ref index"])))
+    psfs = readPSFs(options["psfs path"], options["psfs key"])
+    if options["center psfs"]
+        options["psf ref index"] = options["psf ref index"] == -1 ? size(psfs)[end] ÷ 2 + 1 : options["psf ref index"]
+        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), options["psf ref index"])))
     end
     x_data, y_data = load_data(
-        options2["nrsamples"], options2["truth dir"], options2["sim dir"]; newsize=options2["newsize"]
+        options["nrsamples"], options["truth dir"], options["sim dir"]; newsize=options["newsize"]
     )
     x_data = applynoise(x_data)
     train_x, test_x = train_test_split(x_data)
     train_y, test_y = train_test_split(y_data)
 
     # Define / load the model
-    dims = length(options2["newsize"])
-    optimizer = options2["optimizer"]
-    if !options2["load checkpoints"]
+    dims = length(options["newsize"])
+    optimizer = options["optimizer"]
+    if !options["load checkpoints"]
         nrPSFs = size(psfs)[end]
-        resized_psfs = Array{T,dims + 1}(undef, options2["newsize"]..., nrPSFs)
+        resized_psfs = Array{T,dims + 1}(undef, options["newsize"]..., nrPSFs)
         for i in 1:nrPSFs
             selectdim(resized_psfs, dims + 1, i) .= imresize(
-                collect(selectdim(psfs, dims + 1, i)), options2["newsize"]
+                collect(selectdim(psfs, dims + 1, i)), options["newsize"]
             )
         end
         model = my_gpu(
-            makemodel(resized_psfs; depth=options2["depth"], attention=options2["attention"], dropout=options2["dropout"])
+            makemodel(resized_psfs; depth=options["depth"], attention=options["attention"], dropout=options["dropout"])
         )
     else
-        model, optimizer = my_gpu(loadmodel(options2["loadpath"]))
+        model, optimizer = my_gpu(loadmodel(options["loadpath"]))
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
@@ -311,15 +311,15 @@ function start_training(options_path; T=Float32)
         test_x,
         test_y,
         loss_fn;
-        epochs=options2["epochs"],
-        epoch_offset=options2["epoch offset"],
-        checkpointdirectory=options2["checkpoint dir"],
+        epochs=options["epochs"],
+        epoch_offset=options["epoch offset"],
+        checkpointdirectory=options["checkpoint dir"],
         plotloss=true,
-        plotevery=options2["plot interval"],
+        plotevery=options["plot interval"],
         optimizer=optimizer,
-        plotdirectory=options2["plot dir"],
-        saveevery=options2["save interval"],
-        logfile=options2["logfile"],
+        plotdirectory=options["plot dir"],
+        saveevery=options["save interval"],
+        logfile=options["logfile"],
     )
 end
 
