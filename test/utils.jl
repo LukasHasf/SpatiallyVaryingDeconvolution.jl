@@ -304,3 +304,28 @@ end
     @test options["save interval"] == 1
     @test options["log losses"] == false
 end
+
+@testset "_get_default_kernel" begin
+    kernel2D = _get_default_kernel(2)
+    @test size(kernel2D) == (11, 11)
+    mykernel = similar(kernel2D)
+    mygaussian = gaussian(11, 1.5)
+    for j in 1:size(kernel2D, 2)
+        for i in 1:size(kernel2D, 1)
+            mykernel[i, j] = mygaussian[i] * mygaussian[j]
+        end
+    end
+    @test mykernel == kernel2D
+
+    kernel3D = _get_default_kernel(3)
+    @test size(kernel3D) == (11, 11, 11)
+    mykernel = similar(kernel3D)
+    for k in 1:size(kernel3D, 3)
+        for j in 1:size(kernel3D, 2)
+            for i in 1:size(kernel3D, 1)
+                mykernel[i, j, k] = mygaussian[i] * mygaussian[j] * mygaussian[k]
+            end
+        end
+    end
+    @test mykernel == kernel3D
+end

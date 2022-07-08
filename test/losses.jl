@@ -28,7 +28,7 @@ end
     N = 60
     img1 = rand(N, N, 1, 1)
     img2 = rand(N, N, 1, 1)
-    kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
+    kernel = _get_default_kernel(2)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 
@@ -44,8 +44,7 @@ end
     N = 60
     img1 = rand(N, N, N, 1, 1)
     img2 = rand(N, N, N, 1, 1)
-    @tullio kernel[x, y, z] :=
-        gaussian(11, 1.5)[x] * gaussian(11, 1.5)[y] * gaussian(11, 1.5)[z]
+    kernel = _get_default_kernel(3)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 
@@ -62,8 +61,7 @@ end
     N = 60
     img1 = rand(N, N, N, 1, 1)
     img2 = rand(N, N, N, 1, 1)
-    @tullio kernel[x, y, z] :=
-        gaussian(11, 1.5)[x] * gaussian(11, 1.5)[y] * gaussian(11, 1.5)[z]
+    kernel = _get_default_kernel(3)
     @test SpatiallyVaryingDeconvolution.L1_SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 

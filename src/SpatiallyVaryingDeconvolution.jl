@@ -284,12 +284,7 @@ function start_training(options_path; T=Float32)
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
-    if dims == 3
-        @tullio kernel[x, y, z] :=
-            gaussian(11, 1.5)[x] * gaussian(11, 1.5)[y] * gaussian(11, 1.5)[z]
-    elseif dims == 2
-        kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
-    end
+    kernel = _get_default_kernel(dims)
 
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)

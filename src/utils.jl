@@ -6,6 +6,7 @@ export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
 export train_real_gradient!
 export read_yaml
+export _get_default_kernel
 
 using MAT
 using HDF5
@@ -246,6 +247,21 @@ function _ensure_existence(dir)
     if !isdir(dir)
         mkpath(dir)
     end
+end
+
+"""    _get_default_kernel(dims)
+
+Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5.
+"""
+function _get_default_kernel(dims)
+    mygaussian = gaussian(11, 1.5)
+    if dims == 3
+        @tullio kernel[x, y, z] :=
+        mygaussian[x] * mygaussian[y] * mygaussian[z]
+    elseif dims == 2
+        kernel = mygaussian .* mygaussian'
+    end
+    return kernel
 end
 
 """    train_real_gradient!(loss, ps, data, opt)
