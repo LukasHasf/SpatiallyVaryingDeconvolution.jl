@@ -66,7 +66,9 @@ end
     Nx = 16
     nrch = 1
     batchsize = 2
-    model = UNet.Unet(nrch, 1, 4; residual=false, up="tconv", depth=4, dropout=false, norm="batch")
+    model = UNet.Unet(
+        nrch, 1, 4; residual=false, up="tconv", depth=4, dropout=false, norm="batch"
+    )
     img = rand(Float32, Ny, Nx, nrch, batchsize)
 
     prediction = model(img)

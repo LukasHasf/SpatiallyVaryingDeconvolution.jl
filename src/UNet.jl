@@ -236,11 +236,13 @@ function Unet(
 
     up_blocks = []
     for i in 1:depth
-        if up=="nearest"
+        if up == "nearest"
             upsample_function = uUpsampleNearest
-        elseif up=="tconv"
+        elseif up == "tconv"
             chs = 16 * 2^(depth - (i - 1))
-            upsample_function = ConvTranspose(tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs)
+            upsample_function = ConvTranspose(
+                tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
+            )
         end
         u = UNetUpBlock(upsample_function, attention_blocks[i])
         push!(up_blocks, u)

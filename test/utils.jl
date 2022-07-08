@@ -64,9 +64,9 @@ end
 @testset "train_real_gradient!" begin
     # Create two identical models with predetermined weights
     model = Chain(Dense(1, 5), Dense(5, 1))
-    model2 = Chain(Dense(1,5), Dense(5, 1))
+    model2 = Chain(Dense(1, 5), Dense(5, 1))
 
-    weight1 = Float32.([-0.8949249; 0.46093643; 0.39633024; -0.584888; 0.6077639;;])
+    weight1 = Float32.([-0.8949249; 0.46093643; 0.39633024; -0.584888; 0.6077639])
     bias1 = Float32.([0.0, 0.0, 0.0, 0.0, 0.0])
     weight2 = Float32.([-0.389786 0.35682404 -0.40063584 -0.56246924 0.6892315])
     bias2 = Float32.([0.0])
@@ -79,7 +79,7 @@ end
     # Create a predetermined dataset
     X = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
     Y = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
-    data = Flux.DataLoader((X, Y), batchsize=1)
+    data = Flux.DataLoader((X, Y); batchsize=1)
     # Define optimizer and losses; Only need one optimizer since Descent is not stateful
     opt = Flux.Optimise.Descent(0.001)
     loss_fn(x, y) = Flux.mse(model(x), y)
@@ -94,7 +94,12 @@ end
     # Compare result of Flux.train! with train_real_gradient! in a purely real case -> should be identical
     Flux.train!(loss_fn, ps, data, opt)
     train_real_gradient!(loss_fn2, ps2, data, opt)
-    answer = Flux.Params([Float32[-0.88388497; 0.45069993; 0.4081554; -0.56870055; 0.5878888;;], Float32[0.002074556, -0.0019173549, 0.0021992736, 0.0030295767, -0.0037178881], Float32[-0.36383954 0.34351882 -0.41234216 -0.5456273 0.6717704], Float32[-0.0054387837]])
+    answer = Flux.Params([
+        Float32[-0.88388497; 0.45069993; 0.4081554; -0.56870055; 0.5878888],
+        Float32[0.002074556, -0.0019173549, 0.0021992736, 0.0030295767, -0.0037178881],
+        Float32[-0.36383954 0.34351882 -0.41234216 -0.5456273 0.6717704],
+        Float32[-0.0054387837],
+    ])
     @test cpu(ps[:]) ≈ answer[:]
     @test ps == ps2
 end
