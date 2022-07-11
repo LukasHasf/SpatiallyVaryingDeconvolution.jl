@@ -11,7 +11,7 @@ struct MultiWiener{T,N}
     lambda::AbstractArray{T,N}
 end
 
-struct MultiWienerWithPlan{T, N}
+struct MultiWienerWithPlan{T,N}
     PSF::AbstractArray{T,N}
     lambda::AbstractArray{T,N}
     plan::Any
@@ -36,10 +36,22 @@ end
 
 function toMultiWienerWithPlan(m::MultiWiener)
     nrPSFs = size(m.PSF, ndims(m.PSF))
-    plan_x = plan_rfft(similar(m.PSF, size(m.PSF)[1:(ndims(m.PSF)-1)]..., 1, 1), 1:(ndims(m.PSF) - 1))
+    plan_x = plan_rfft(
+        similar(m.PSF, size(m.PSF)[1:(ndims(m.PSF) - 1)]..., 1, 1), 1:(ndims(m.PSF) - 1)
+    )
     plan = plan_rfft(similar(m.PSF), 1:(ndims(m.PSF) - 1))
-    dummy_for_inv = similar(m.PSF, complex(eltype(m.PSF)), trunc.(Int, size(m.PSF)[1:(ndims(m.PSF)-1)] .÷ [2, ones(ndims(m.PSF)-2)...] .+ [1, zeros(ndims(m.PSF)-2)...])..., nrPSFs, 1)
-    inv_plan = plan_irfft(dummy_for_inv,size(m.PSF, 1), 1:(ndims(dummy_for_inv)-2))
+    dummy_for_inv = similar(
+        m.PSF,
+        complex(eltype(m.PSF)),
+        trunc.(
+            Int,
+            size(m.PSF)[1:(ndims(m.PSF) - 1)] .÷ [2, ones(ndims(m.PSF) - 2)...] .+
+            [1, zeros(ndims(m.PSF) - 2)...],
+        )...,
+        nrPSFs,
+        1,
+    )
+    inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
     return MultiWienerWithPlan(m.PSF, m.lambda, plan, inv_plan, plan_x)
 end
 

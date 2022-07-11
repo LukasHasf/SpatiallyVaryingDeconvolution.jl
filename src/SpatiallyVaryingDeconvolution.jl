@@ -64,7 +64,9 @@ function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,
     return convolved
 end
 
-function SSIM_loss(ŷ::AbstractArray{T, N}, y::AbstractArray{T, N}; kernel=nothing) where {T, N}
+function SSIM_loss(
+    ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}; kernel=nothing
+) where {T,N}
     c1 = T(0.01)^2
     c2 = T(0.03)^2
     mu1 = nn_convolve(y; kernel=kernel)
@@ -195,7 +197,7 @@ function train_model(
     saveevery=1,
     checkpointdirectory="checkpoints/",
     optimizer=Flux.Optimise.ADAM(),
-    logfile=nothing
+    logfile=nothing,
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
@@ -242,9 +244,12 @@ function train_model(
             end
         end
         if !isnothing(logfile)
-            open(logfile,"a") do io
-                println(io, "Epoch $(epoch + epoch_offset): Train loss $(losses_train[epoch]), test loss $(losses_test[epoch])")
-             end
+            open(logfile, "a") do io
+                println(
+                    io,
+                    "Epoch $(epoch + epoch_offset): Train loss $(losses_train[epoch]), test loss $(losses_test[epoch])",
+                )
+            end
         end
         print("\n")
     end
@@ -264,11 +269,20 @@ function start_training(options_path; T=Float32)
     # Load and process the data
     psfs = readPSFs(options2["psfs path"], options2["psfs key"])
     if options2["center psfs"]
-        options2["psf ref index"] = options2["psf ref index"] == -1 ? size(psfs)[end] ÷ 2 + 1 : options2["psf ref index"]
-        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), options2["psf ref index"])))
+        options2["psf ref index"] = if options2["psf ref index"] == -1
+            size(psfs)[end] ÷ 2 + 1
+        else
+            options2["psf ref index"]
+        end
+        psfs, _ = registerPSFs(
+            psfs, collect(selectdim(psfs, ndims(psfs), options2["psf ref index"]))
+        )
     end
     x_data, y_data = load_data(
-        options2["nrsamples"], options2["truth dir"], options2["sim dir"]; newsize=options2["newsize"]
+        options2["nrsamples"],
+        options2["truth dir"],
+        options2["sim dir"];
+        newsize=options2["newsize"],
     )
     x_data = applynoise(x_data)
     train_x, test_x = train_test_split(x_data)
@@ -286,7 +300,12 @@ function start_training(options_path; T=Float32)
             )
         end
         model = my_gpu(
-            makemodel(resized_psfs; depth=options2["depth"], attention=options2["attention"], dropout=options2["dropout"])
+            makemodel(
+                resized_psfs;
+                depth=options2["depth"],
+                attention=options2["attention"],
+                dropout=options2["dropout"],
+            ),
         )
     else
         model, optimizer = my_gpu(loadmodel(options2["loadpath"]))

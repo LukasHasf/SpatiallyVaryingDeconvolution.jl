@@ -77,7 +77,7 @@ function read_yaml(path)
     loadpath = nothing
     epoch_offset = 0
     output["load checkpoints"] = options["training"]["checkpoints"]["load_checkpoints"]
-    if output["load checkpoints"] 
+    if output["load checkpoints"]
         loadpath = options["training"]["checkpoints"]["checkpoint_path"]
         epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
         output["checkpoint path"] = loadpath
@@ -90,10 +90,10 @@ function read_yaml(path)
     output["nrsamples"] = options["training"]["nrsamples"]
     output["epochs"] = options["training"]["epochs"]
     output["plot interval"] = options["training"]["plot_interval"]
-    output["plot dir"] =  options["training"]["plot_path"]
+    output["plot dir"] = options["training"]["plot_path"]
     _ensure_existence(output["plot dir"])
     output["log losses"] = options["training"]["log_losses"]
-    logfile =  output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
+    logfile = output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
     if output["log losses"]
         output["logfile"] = logfile
     end
