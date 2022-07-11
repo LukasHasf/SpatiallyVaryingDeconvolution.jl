@@ -39,6 +39,7 @@ end
 function makemodel(psfs; attention=true, dropout=true, depth=3)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
+    psfs = my_gpu(psfs)
     modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs) #|> my_gpu
     modelUNet = UNet.Unet(
         nrPSFs,
