@@ -68,13 +68,11 @@ function (m::MultiWiener)(x)
     return iffted_output
 end
 Flux.@functor MultiWiener
-Flux.trainable(m::MultiWiener) = (m.PSF, m.lambda)
 
 function (m::MultiWienerWithPlan)(x)
     dims = 1:(ndims(m.PSF) - 1)
     H = m.plan * m.PSF
     x̂ = m.plan_x * (fftshift(x, dims))
-    #x̂ = rfft(fftshift(x, dims), dims)
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = m.inv_plan.scale .* (m.inv_plan.p * output)
     return iffted_output
