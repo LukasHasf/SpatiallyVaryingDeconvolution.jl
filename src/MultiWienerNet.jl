@@ -20,9 +20,9 @@ struct MultiWienerWithPlan{T,N}
 end
 
 function MultiWiener(PSFs::AbstractArray)
-    return MultiWiener{eltype(PSFs),ndims(PSFs)}(
-        PSFs, rand(eltype(PSFs), (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end]))
-    )
+    lambda = similar(PSFs, (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end]))
+    fill!(lambda, rand(Float32))
+    return MultiWiener{eltype(PSFs),ndims(PSFs)}(PSFs, lambda)
 end
 
 function toMultiWiener(m)
