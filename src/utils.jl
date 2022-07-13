@@ -88,6 +88,7 @@ function read_yaml(path)
     output["depth"] = options["model"]["depth"]
     output["attention"] = options["model"]["attention"]
     output["dropout"] = options["model"]["dropout"]
+    output["separable"] = options["model"]["separable"]
     output["nrsamples"] = options["training"]["nrsamples"]
     output["epochs"] = options["training"]["epochs"]
     output["plot interval"] = options["training"]["plot_interval"]

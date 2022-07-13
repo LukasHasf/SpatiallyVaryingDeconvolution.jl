@@ -17,6 +17,31 @@ function uUpsampleNearest(x)
     return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
 
+struct SeparableConv
+    conv_chain::Chain
+end
+
+function SeparableConv(filter::NTuple{N, Integer}, ch::Pair, σ=identity; stride=1, pad=0, dilation=1, groups=1, init=Flux.glorot_uniform) where {N}
+    convs = []
+    for i in 1:N
+        filter_dims = Tuple(ones(Int, N))
+        filter_ch = i==1 ? ch : ch[2] => ch[2]
+        filter_dims = tuple([n==i ? filter[n] : 1 for n in 1:N]...)
+        current_stride = tuple([n==i ? stride : 1 for n in 1:N]...)
+        current_pad = tuple([n==i ? pad : 0 for n in 1:N]...)
+        current_dilation = tuple([n==i ? dilation : 1 for n in 1:N]...)
+        conv = Conv(filter_dims, filter_ch, σ; stride=current_stride, pad=current_pad, dilation=current_dilation, groups=groups, init=init)
+        push!(convs, conv)
+    end
+    return SeparableConv(Chain(convs...))
+end
+
+function (sc::SeparableConv)(x)
+    return sc.conv_chain(x)
+end
+
+Flux.@functor SeparableConv
+
 struct AttentionBlock
     W_gate::Any
     W_x::Any
@@ -73,13 +98,19 @@ function ConvBlock(
     transpose=false,
     residual=true,
     norm="batch",
+    separable=false
 )
     if transpose
         conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
         conv2 = ConvTranspose(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
     else
-        conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-        conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        if separable
+            conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv2 = SeparableConv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        else
+            conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        end
     end
 
     if norm == "batch"
@@ -153,6 +184,7 @@ function Unet(
     attention=false,
     depth=4,
     dropout=false,
+    separable=false
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
@@ -178,6 +210,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         ),
     ]
     for i in 1:depth
@@ -190,6 +223,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         )
         push!(conv_blocks, c)
     end
@@ -203,6 +237,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         )
         push!(conv_blocks, c)
     end
@@ -218,6 +253,7 @@ function Unet(
                 activation=activation,
                 norm=norm,
                 dropout=dropout,
+                separable=separable,
             ),
         )
     end
