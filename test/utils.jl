@@ -159,6 +159,26 @@ end
     end
 end
 
+@testset "Logging" begin
+    epoch = 10
+    loss_train = 0.5
+    loss_test = 0.56
+    logdir = mktempdir()
+    
+    # isnothing(logfile) should result in no action
+    write_to_logfile(nothing, epoch, loss_train, loss_test)
+    @test isempty(readdir(logdir))
+
+    epoch = 11
+    loss_train = 0.4
+    loss_test = 0.45
+    logdir = mktempdir()
+    logfile = joinpath(logdir, "losses.log")
+    write_to_logfile(logfile, epoch, loss_train, loss_test)
+    @test isfile(logfile)
+    @test read(logfile, String) == "epoch, train loss, test loss\n11, 0.4, 0.45\n"
+end
+
 @testset "Test plotting" begin
     # Plot prediction
     # 2D

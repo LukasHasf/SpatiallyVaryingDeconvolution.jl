@@ -7,6 +7,7 @@ export my_gpu, my_cu
 export train_real_gradient!
 export read_yaml
 export _get_default_kernel
+export write_to_logfile
 
 using MAT
 using HDF5
@@ -262,6 +263,32 @@ function _get_default_kernel(dims)
         kernel = mygaussian .* mygaussian'
     end
     return kernel
+end
+
+function _init_logfile(logfile)
+    if !isnothing(logfile)
+        open(logfile, "w") do io
+            println(
+                io,
+                "epoch, train loss, test loss",
+            )
+        end
+    end
+end
+
+function write_to_logfile(logfile, epoch, train_loss, test_loss)
+    if isnothing(logfile)
+        return nothing
+    end
+    if !isfile(logfile)
+        _init_logfile(logfile)
+    end
+    open(logfile, "a") do io
+        println(
+            io,
+            "$(epoch), $(train_loss), $(test_loss)",
+        )
+    end
 end
 
 """    train_real_gradient!(loss, ps, data, opt)

@@ -234,14 +234,7 @@ function train_model(
                 plot_losses(losses_train, losses_test, epoch, plotdirectory)
             end
         end
-        if !isnothing(logfile)
-            open(logfile, "a") do io
-                println(
-                    io,
-                    "Epoch $(epoch + epoch_offset): Train loss $(losses_train[epoch]), test loss $(losses_test[epoch])",
-                )
-            end
-        end
+        write_to_logfile(logfile, epoch + epoch_offset, losses_train[epoch], losses_test[epoch])
         print("\n")
     end
     # At the end of training, save a checkpoint
@@ -312,17 +305,6 @@ function start_training(options_path; T=Float32)
             return L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     end
-
-    #= Test so far
-    selection_x = copy(selectdim(train_x, ndims(train_x), 1))
-    selection_y = copy(selectdim(train_x, ndims(train_x), 1))
-    reshaped_size = size(train_x)[1:(end - 1)]
-    display(
-        loss_fn(
-            reshape(selection_x, reshaped_size..., 1),
-            reshape(selection_y, reshaped_size..., 1),
-        ),
-    ) # =#
 
     # Training
     return train_model(
