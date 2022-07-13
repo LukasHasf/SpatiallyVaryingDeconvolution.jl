@@ -30,7 +30,7 @@ function loadmodel(path; load_optimizer=true)
     end
 end
 
-function makemodel(psfs; attention=true, dropout=true, depth=3)
+function makemodel(psfs; attention=true, dropout=true, depth=3, separable=false)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
@@ -45,6 +45,7 @@ function makemodel(psfs; attention=true, dropout=true, depth=3)
         attention=attention,
         depth=depth,
         dropout=dropout,
+        separable=separable,
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
@@ -295,6 +296,7 @@ function start_training(options_path; T=Float32)
                 depth=options["depth"],
                 attention=options["attention"],
                 dropout=options["dropout"],
+                separable=options["separable"],
             ),
         )
     else

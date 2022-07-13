@@ -98,13 +98,19 @@ function ConvBlock(
     transpose=false,
     residual=true,
     norm="batch",
+    separable=false
 )
     if transpose
         conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
         conv2 = ConvTranspose(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
     else
-        conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-        conv2 = SeparableConv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        if separable
+            conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv2 = SeparableConv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        else
+            conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        end
     end
 
     if norm == "batch"
@@ -178,6 +184,7 @@ function Unet(
     attention=false,
     depth=4,
     dropout=false,
+    separable=false
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
@@ -203,6 +210,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         ),
     ]
     for i in 1:depth
@@ -215,6 +223,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         )
         push!(conv_blocks, c)
     end
@@ -228,6 +237,7 @@ function Unet(
             activation=activation,
             norm=norm,
             dropout=dropout,
+            separable=separable,
         )
         push!(conv_blocks, c)
     end
@@ -243,6 +253,7 @@ function Unet(
                 activation=activation,
                 norm=norm,
                 dropout=dropout,
+                separable=separable,
             ),
         )
     end
