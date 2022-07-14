@@ -239,39 +239,27 @@ function Unet(
     @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
     conv_kernel = kernel_base .* 3
+    conv_config = (residual=residual, norm=norm, dropout=dropout, separable=separable, kernel=conv_kernel, activation=activation)
     if down == "conv"
         kernel = kernel_base .* 2
         encoder_blocks = []
         for i in 1:depth
             second_exponent = i == depth ? i : i + 1
-            c = ConvDown(16 * 2^i, 16 * 2^second_exponent; kernel=kernel, conv_kernel=conv_kernel, residual=residual, conv_activation=activation, norm=norm, dropout=dropout, separable=separable) # 32, 64, 128, 256, ... input channels
+            c = ConvDown(
+                16 * 2^i,
+                16 * 2^second_exponent;
+                down_kernel=kernel,
+                conv_config...
+            ) # 32, 64, 128, 256, ... input channels
             push!(encoder_blocks, c)
         end
     end
 
-    initial_block = ConvBlock(
-            channels,
-            32;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        )
+    initial_block = ConvBlock(channels, 32; conv_config...)
 
     residual_block = nothing
     if residual
-        residual_block = ConvBlock(
-                channels,
-                labels;
-                kernel=conv_kernel,
-                residual=residual,
-                activation=activation,
-                norm=norm,
-                dropout=dropout,
-                separable=separable,
-            )
+        residual_block = ConvBlock(channels, labels; conv_config...)
     end
 
     # Only 2D for now
@@ -297,16 +285,11 @@ function Unet(
             )
         end
         second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
-        u = UNetUpBlock(upsample_function, attention_blocks[i], ConvBlock(
-            2^(5 + depth - (i - 1)),
-            second_index;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        ))
+        u = UNetUpBlock(
+            upsample_function,
+            attention_blocks[i],
+            ConvBlock(2^(5 + depth - (i - 1)), second_index; conv_config...),
+        )
         push!(up_blocks, u)
     end
 
