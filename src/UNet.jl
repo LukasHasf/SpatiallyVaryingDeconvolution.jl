@@ -160,8 +160,12 @@ function (c::ConvBlock)(x)
     return x1
 end
 
-function ConvDown(chs::Int; kernel=(2, 2), activation=identity)
-    return Conv(kernel, chs => chs, activation; stride=2, groups=chs)
+function ConvDown(in_chs::Int, out_chs::Int; kernel=(2, 2), conv_kernel=(3,3), activation=identity, residual=false, conv_activation="relu", separable=false, dropout=false, norm="batch")
+    downsample_op = Conv(kernel, in_chs => in_chs, activation; stride=2, groups=in_chs)
+    conv_op = ConvBlock(in_chs, out_chs; kernel=conv_kernel, dropout=dropout, activation=conv_activation, residual=residual, separable=separable, norm=norm)
+    downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
+    downsample_op.bias .*= 0.01
+    return Chain(downsample_op, conv_op)
 end
 
 
@@ -193,18 +197,17 @@ function Unet(
     valid_upsampling_methods = ["nearest", "tconv"]
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
+    conv_kernel = kernel_base .* 3
     if down == "conv"
         kernel = kernel_base .* 2
-        conv_down_blocks = []
+        encoder_blocks = []
         for i in 1:depth
-            c = ConvDown(16 * 2^i; kernel=kernel) # 32, 64, 128, 256, ... input channels
-            c.weight .= 0.01 .* c.weight .+ 0.25
-            c.bias .*= 0.01
-            push!(conv_down_blocks, c)
+            second_exponent = i == depth ? i : i + 1
+            c = ConvDown(16 * 2^i, 16 * 2^second_exponent; kernel=kernel, conv_kernel=conv_kernel, residual=residual, conv_activation=activation, norm=norm, dropout=dropout, separable=separable) # 32, 64, 128, 256, ... input channels
+            push!(encoder_blocks, c)
         end
     end
 
-    conv_kernel = kernel_base .* 3
     conv_blocks = [
         ConvBlock(
             channels,
@@ -217,20 +220,7 @@ function Unet(
             separable=separable,
         ),
     ]
-    for i in 1:depth
-        second_exponent = i == depth ? i : i + 1
-        c = ConvBlock(
-            16 * 2^i,
-            16 * 2^second_exponent;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        )
-        push!(conv_blocks, c)
-    end
+
     for i in 1:depth
         second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
         c = ConvBlock(
@@ -282,13 +272,12 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        u = UNetUpBlock(upsample_function, attention_blocks[i], conv_blocks[depth+1+i])
+        u = UNetUpBlock(upsample_function, attention_blocks[i], conv_blocks[1+i])
         push!(up_blocks, u)
     end
 
     decoder = ntuple(i->up_blocks[i], depth)
-    encoder = Chain(conv_blocks[1],
-                    [Chain(conv_down_blocks[i], conv_blocks[i+1]) for i in 1:depth]...)
+    encoder = Chain(conv_blocks[1], encoder_blocks...)
 
     return Unet(residual_block, residual, encoder, decoder)
 end
