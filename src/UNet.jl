@@ -60,10 +60,10 @@ end
 
 Flux.@functor SeparableConv
 
-struct AttentionBlock
-    W_gate::Any
-    W_x::Any
-    ψ::Any
+struct AttentionBlock{X, Y, Z}
+    W_gate::X
+    W_x::Y
+    ψ::Z
 end
 
 Flux.@functor AttentionBlock
@@ -84,10 +84,10 @@ function (a::AttentionBlock)(gate, skip)
     return out
 end
 
-struct UNetUpBlock{C}
-    upsample::Any
-    a::Any
-    conv_op::C
+struct UNetUpBlock{X, Y, Z}
+    upsample::X
+    a::Y
+    conv_op::Z
 end
 
 Flux.@functor UNetUpBlock
@@ -100,9 +100,9 @@ function (u::UNetUpBlock)(x, bridge)
     return u.conv_op(cat(x, bridge; dims=ndims(x) - 1))
 end
 
-struct ConvBlock
+struct ConvBlock{F}
     chain::Chain
-    actfun::Any
+    actfun::F
     residual::Bool
 end
 Flux.trainable(c::ConvBlock) = (c.chain,)
@@ -120,19 +120,17 @@ function ConvBlock(
     separable=false,
 )
     if transpose
-        conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-        conv2 = ConvTranspose(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        conv_layer = ConvTranspose
     else
         if separable
-            conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-            conv2 = SeparableConv(
-                kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal
-            )
+            conv_layer = SeparableConv
         else
-            conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-            conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv_layer = Conv
         end
     end
+
+    conv1 = conv_layer(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+    conv2 = conv_layer(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
 
     if norm == "batch"
         norm1 = BatchNorm(out_chs)
@@ -167,9 +165,8 @@ function (c::ConvBlock)(x)
         filldimension = [size(x)[1:(end - 2)]..., abs(cx1 - cx), size(x)[end]]
         selected_x = selectdim(x, ndims(x) - 1, selection)
         if cx1 > cx
-            x1 =
-                x1 .+
-                cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
+            x1 = x1 .+
+                 cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
         else
             x1 = x1 .+ selected_x
         end
