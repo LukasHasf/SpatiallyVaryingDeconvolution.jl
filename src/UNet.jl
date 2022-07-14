@@ -195,7 +195,9 @@ function Unet(
     separable=false
 )
     valid_upsampling_methods = ["nearest", "tconv"]
+    valid_downsampling_methods = ["conv"]
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
+    @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
     conv_kernel = kernel_base .* 3
     if down == "conv"
