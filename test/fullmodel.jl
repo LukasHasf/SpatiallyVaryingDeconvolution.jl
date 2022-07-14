@@ -23,7 +23,7 @@
     # Check that model is differentiable
     loss(x, y) =
         let model = model
-            kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
+            kernel = Float32.(_get_default_kernel(2))
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
@@ -86,7 +86,7 @@ end
 
     loss(x, y) =
         let model = model
-            kernel = gaussian(11, 1.5) .* gaussian(11, 1.5)'
+            kernel = Float32.(_get_default_kernel(2))
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrch, batchsize)
