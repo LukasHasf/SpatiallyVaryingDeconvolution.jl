@@ -210,13 +210,12 @@ end
 
 struct Unet{T,F,R}
     residual_block::R
-    residual::Bool
     encoder::T
     decoder::F
 end
 
 function Flux.trainable(u::Unet)
-    return u.residual ? (u.encoder, u.decoder, u.residual_block) : (u.encoder, u.decoder)
+    return !isnothing(u.residual_block) ? (u.encoder, u.decoder, u.residual_block) : (u.encoder, u.decoder)
 end
 
 Flux.@functor Unet
@@ -302,7 +301,7 @@ function Unet(
     decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
 
-    return Unet(residual_block, residual, encoder, decoder)
+    return Unet(residual_block, encoder, decoder)
 end
 
 function decode(ops::Tuple, ft::Tuple)
@@ -319,7 +318,7 @@ end
 function (u::Unet)(x)
     cs = Flux.activations(u.encoder, x)
     up = decode(u.decoder, cs)
-    if u.residual
+    if !isnothing(u.residual_block)
         up = up .+ u.residual_block(x)
     end
     return up
