@@ -234,7 +234,9 @@ function train_model(
                 plot_losses(losses_train, losses_test, epoch, plotdirectory)
             end
         end
-        write_to_logfile(logfile, epoch + epoch_offset, losses_train[epoch], losses_test[epoch])
+        write_to_logfile(
+            logfile, epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
+        )
         print("\n")
     end
     # At the end of training, save a checkpoint

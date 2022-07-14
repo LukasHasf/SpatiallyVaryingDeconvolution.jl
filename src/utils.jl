@@ -268,10 +268,7 @@ end
 function _init_logfile(logfile)
     if !isnothing(logfile)
         open(logfile, "w") do io
-            println(
-                io,
-                "epoch, train loss, test loss",
-            )
+            println(io, "epoch, train loss, test loss")
         end
     end
 end
@@ -284,10 +281,7 @@ function write_to_logfile(logfile, epoch, train_loss, test_loss)
         _init_logfile(logfile)
     end
     open(logfile, "a") do io
-        println(
-            io,
-            "$(epoch), $(train_loss), $(test_loss)",
-        )
+        println(io, "$(epoch), $(train_loss), $(test_loss)")
     end
 end
 

@@ -164,7 +164,7 @@ end
     loss_train = 0.5
     loss_test = 0.56
     logdir = mktempdir()
-    
+
     # isnothing(logfile) should result in no action
     write_to_logfile(nothing, epoch, loss_train, loss_test)
     @test isempty(readdir(logdir))
