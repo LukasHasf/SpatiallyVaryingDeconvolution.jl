@@ -300,7 +300,7 @@ function start_training(options_path; T=Float32)
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
-    kernel = _get_default_kernel(dims)
+    kernel = T.(_get_default_kernel(dims))
 
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)
