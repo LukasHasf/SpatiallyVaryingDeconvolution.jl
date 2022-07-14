@@ -160,13 +160,13 @@ end
 
 function (c::ConvBlock)(x)
     x1 = c.chain(x)
+    cx1 = channelsize(x1)
+    cx = channelsize(x)
     if c.residual
-        selection = 1:min(channelsize(x1), channelsize(x))
-        filldimension = [
-            size(x)[1:(end - 2)]..., abs(channelsize(x1) - channelsize(x)), size(x)[end]
-        ]
+        selection = 1:min(cx1, cx)
+        filldimension = [size(x)[1:(end - 2)]..., abs(cx1 - cx), size(x)[end]]
         selected_x = selectdim(x, ndims(x) - 1, selection)
-        if channelsize(x1) > channelsize(x)
+        if cx1 > cx
             x1 =
                 x1 .+
                 cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
