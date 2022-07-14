@@ -210,8 +210,7 @@ function Unet(
         end
     end
 
-    conv_blocks = [
-        ConvBlock(
+    initial_block = ConvBlock(
             channels,
             32;
             kernel=conv_kernel,
@@ -220,23 +219,7 @@ function Unet(
             norm=norm,
             dropout=dropout,
             separable=separable,
-        ),
-    ]
-
-    for i in 1:depth
-        second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
-        c = ConvBlock(
-            2^(5 + depth - (i - 1)),
-            second_index;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
         )
-        push!(conv_blocks, c)
-    end
 
     residual_block = nothing
     if residual
@@ -274,12 +257,22 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        u = UNetUpBlock(upsample_function, attention_blocks[i], conv_blocks[1+i])
+        second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
+        u = UNetUpBlock(upsample_function, attention_blocks[i], ConvBlock(
+            2^(5 + depth - (i - 1)),
+            second_index;
+            kernel=conv_kernel,
+            residual=residual,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            separable=separable,
+        ))
         push!(up_blocks, u)
     end
 
     decoder = ntuple(i->up_blocks[i], depth)
-    encoder = Chain(conv_blocks[1], encoder_blocks...)
+    encoder = Chain(initial_block, encoder_blocks...)
 
     return Unet(residual_block, residual, encoder, decoder)
 end
