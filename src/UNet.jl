@@ -159,8 +159,6 @@ function ConvBlock(
 end
 
 function (c::ConvBlock)(x)
-    println(size(x))
-    println(c.chain[1])
     x1 = c.chain(x)
     if c.residual
         selection = 1:min(channelsize(x1), channelsize(x))
