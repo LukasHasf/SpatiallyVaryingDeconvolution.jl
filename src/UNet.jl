@@ -178,9 +178,29 @@ function (c::ConvBlock)(x)
     return x1
 end
 
-function ConvDown(in_chs::Int, out_chs::Int; kernel=(2, 2), conv_kernel=(3,3), activation=identity, residual=false, conv_activation="relu", separable=false, dropout=false, norm="batch")
-    downsample_op = Conv(kernel, in_chs => in_chs, activation; stride=2, groups=in_chs)
-    conv_op = ConvBlock(in_chs, out_chs; kernel=conv_kernel, dropout=dropout, activation=conv_activation, residual=residual, separable=separable, norm=norm)
+function ConvDown(
+    in_chs::Int,
+    out_chs::Int;
+    down_kernel=(2, 2),
+    kernel=(3, 3),
+    down_activation=identity,
+    residual=false,
+    activation="relu",
+    separable=false,
+    dropout=false,
+    norm="batch",
+)
+    downsample_op = Conv(down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs)
+    conv_op = ConvBlock(
+        in_chs,
+        out_chs;
+        kernel=kernel,
+        dropout=dropout,
+        activation=activation,
+        residual=residual,
+        separable=separable,
+        norm=norm,
+    )
     downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
     downsample_op.bias .*= 0.01
     return Chain(downsample_op, conv_op)
