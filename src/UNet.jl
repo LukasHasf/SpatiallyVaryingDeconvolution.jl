@@ -190,7 +190,9 @@ function ConvDown(
     dropout=false,
     norm="batch",
 )
-    downsample_op = Conv(down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs)
+    downsample_op = Conv(
+        down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs
+    )
     conv_op = ConvBlock(
         in_chs,
         out_chs;
@@ -239,17 +241,21 @@ function Unet(
     @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
     conv_kernel = kernel_base .* 3
-    conv_config = (residual=residual, norm=norm, dropout=dropout, separable=separable, kernel=conv_kernel, activation=activation)
+    conv_config = (
+        residual=residual,
+        norm=norm,
+        dropout=dropout,
+        separable=separable,
+        kernel=conv_kernel,
+        activation=activation,
+    )
     if down == "conv"
         kernel = kernel_base .* 2
         encoder_blocks = []
         for i in 1:depth
             second_exponent = i == depth ? i : i + 1
             c = ConvDown(
-                16 * 2^i,
-                16 * 2^second_exponent;
-                down_kernel=kernel,
-                conv_config...
+                16 * 2^i, 16 * 2^second_exponent; down_kernel=kernel, conv_config...
             ) # 32, 64, 128, 256, ... input channels
             push!(encoder_blocks, c)
         end
