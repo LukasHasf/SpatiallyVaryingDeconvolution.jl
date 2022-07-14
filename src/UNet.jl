@@ -206,7 +206,6 @@ function ConvDown(
     return Chain(downsample_op, conv_op)
 end
 
-
 struct Unet{T,F,R}
     residual_block::R
     residual::Bool
@@ -214,7 +213,9 @@ struct Unet{T,F,R}
     decoder::F
 end
 
-Flux.trainable(u::Unet) = u.residual ? (u.encoder, u.decoder, u.residual_block) : (u.encoder, u.decoder)
+function Flux.trainable(u::Unet)
+    return u.residual ? (u.encoder, u.decoder, u.residual_block) : (u.encoder, u.decoder)
+end
 
 Flux.@functor Unet
 
@@ -230,7 +231,7 @@ function Unet(
     attention=false,
     depth=4,
     dropout=false,
-    separable=false
+    separable=false,
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     valid_downsampling_methods = ["conv"]
@@ -309,20 +310,20 @@ function Unet(
         push!(up_blocks, u)
     end
 
-    decoder = ntuple(i->up_blocks[i], depth)
+    decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
 
     return Unet(residual_block, residual, encoder, decoder)
 end
 
 function decode(ops::Tuple, ft::Tuple)
-    up = first(ops)(ft[end], ft[end-1])
+    up = first(ops)(ft[end], ft[end - 1])
     #= The next line looks a bit backwards, but the next `up` is calculated
        from the last two elements in ft, not the first =#
-    return decode(Base.tail(ops), (ft[1:(end-2)]..., up)) 
+    return decode(Base.tail(ops), (ft[1:(end - 2)]..., up))
 end
 
-function decode(::Tuple{}, ft::NTuple{1, T}) where T
+function decode(::Tuple{}, ft::NTuple{1,T}) where {T}
     return first(ft)
 end
 
