@@ -1,8 +1,8 @@
 data:
     # Path to blurred data
-    x_path : ../../training_data/Data/Ground_truth_downsampled/
+    x_path : ../../training_data/Data/JuliaForwardModel/
     # Path to ground truth
-    y_path : ../../training_data/Data/JuliaForwardModel/
+    y_path : ../../training_data/Data/Ground_truth_downsampled/
     # Data needs to be resized to be a power of two along each axis
     resize_to : [64, 64]
     # Should the data be centered?
