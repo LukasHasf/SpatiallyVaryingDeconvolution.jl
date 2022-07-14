@@ -117,7 +117,7 @@ function ConvBlock(
     transpose=false,
     residual=true,
     norm="batch",
-    separable=false
+    separable=false,
 )
     if transpose
         conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
@@ -125,7 +125,9 @@ function ConvBlock(
     else
         if separable
             conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-            conv2 = SeparableConv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv2 = SeparableConv(
+                kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal
+            )
         else
             conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
             conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
