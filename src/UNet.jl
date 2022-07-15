@@ -61,10 +61,10 @@ end
 
 Flux.@functor SeparableConv
 
-struct AttentionBlock{X, Y, Z}
-    W_gate::X
-    W_x::Y
-    ψ::Z
+struct AttentionBlock
+    W_gate::Conv
+    W_x::Conv
+    ψ::Conv
 end
 
 Flux.@functor AttentionBlock
@@ -83,6 +83,10 @@ function (a::AttentionBlock)(gate, skip)
     α = a.ψ(relu.(g1 .+ x1))
     out = skip .* α
     return out
+end
+
+function (a::AttentionBlock)(x)
+    return a(x, x)
 end
 
 struct UNetUpBlock{X, Y, Z}
@@ -223,9 +227,12 @@ end
 
 Flux.@functor SpatialAttentionModule
 
+struct Unet{T,F,R,X,Y}
     residual_block::R
     encoder::T
     decoder::F
+    attention_module::X
+    upsampler::Y
 end
 
 function Flux.trainable(u::Unet)
@@ -303,7 +310,8 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
+        #second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
+        second_index = 2^(5 + depth - (i + 1))
         u = UNetUpBlock(
             upsample_function,
             attention_blocks[i],
@@ -314,28 +322,41 @@ function Unet(
 
     decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
+    in_channels = sum([2^(3+i) for i in 1:(depth+1)])
+    println(in_channels)
+    attention_module = Chain(AttentionBlock(in_channels, in_channels, in_channels), Conv((1,1), in_channels=>1; pad=SamePad()))
+    #attention_module = Chain(AttentionBlock(16, 16, 16), Conv((1,1), 16=>1; pad=SamePad()))
+    upsampler = dims==4 ? upsample_bilinear : upsample_trilinear
 
-    return Unet(residual_block, encoder, decoder)
+    return Unet(residual_block, encoder, decoder, attention_module, upsampler)
 end
 
 function decode(ops::Tuple, ft::Tuple)
     up = first(ops)(ft[end], ft[end - 1])
     #= The next line looks a bit backwards, but the next `up` is calculated
        from the last two elements in ft, not the first =#
-    return decode(Base.tail(ops), (ft[1:(end - 2)]..., up))
+    return decode(Base.tail(ops), (ft[1:(end - 2)]..., up))..., up
 end
 
 function decode(::Tuple{}, ft::NTuple{1,T}) where {T}
-    return first(ft)
+    return tuple(first(ft))
 end
 
 function (u::Unet)(x)
     cs = Flux.activations(u.encoder, x)
-    up = decode(u.decoder, cs)
+    ups = decode(u.decoder, cs)
+    up = first(ups)
+    ups = (Base.tail(ups)..., cs[end])
     if !isnothing(u.residual_block)
         up = up .+ u.residual_block(x)
     end
-    return up
+    final_block = ups[1]
+    final_size = size(final_block)[1:(end-2)]
+    for activation in ups[2:end]
+        final_block = cat(final_block, u.upsampler(activation; size=final_size); dims=ndims(final_block)-1)
+    end
+    #return u.attention_module(up)
+    return u.attention_module(final_block)
 end
 
 end # module
