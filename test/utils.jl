@@ -308,8 +308,8 @@ end
 
 @testset "read_yaml" begin
     options = read_yaml("../examples/options.yaml")
-    @test options["sim dir"] == "../../training_data/Data/Ground_truth_downsampled/"
-    @test options["truth dir"] == "../../training_data/Data/JuliaForwardModel/"
+    @test options["sim dir"] == "../../training_data/Data/JuliaForwardModel/"
+    @test options["truth dir"] == "../../training_data/Data/Ground_truth_downsampled/"
     @test options["newsize"] == (64, 64)
     @test options["center psfs"] == true
     @test options["psf ref index"] == -1
