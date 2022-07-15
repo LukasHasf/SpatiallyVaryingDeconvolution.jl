@@ -96,8 +96,7 @@ function read_yaml(path)
     output["plot dir"] = options["training"]["plot_path"]
     _ensure_existence(output["plot dir"])
     output["log losses"] = options["training"]["log_losses"]
-    logfile = output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
-    output["logfile"] = logfile
+    output["logfile"] = output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
     output["psfs path"] = options["training"]["psfs_path"]
     output["psfs key"] = options["training"]["psfs_key"]
     output["center psfs"] = options["data"]["center_psfs"]
