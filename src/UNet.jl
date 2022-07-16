@@ -323,7 +323,6 @@ function Unet(
     decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
     in_channels = sum([2^(3+i) for i in 1:(depth+1)])
-    println(in_channels)
     attention_module = Chain(AttentionBlock(in_channels, in_channels, in_channels), Conv((1,1), in_channels=>1; pad=SamePad()))
     #attention_module = Chain(AttentionBlock(16, 16, 16), Conv((1,1), 16=>1; pad=SamePad()))
     upsampler = dims==4 ? upsample_bilinear : upsample_trilinear
