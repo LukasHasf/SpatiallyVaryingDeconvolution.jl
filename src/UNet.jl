@@ -50,11 +50,12 @@ end
 
 Flux.@functor AttentionBlock
 
-function AttentionBlock(F_g::Integer, F_l::Integer, n_coef::Integer)
+function AttentionBlock(F_g::Integer, F_l::Integer, n_coef::Integer; dims=4)
     # This skips batchnorms, but batchsize is currently 1 
-    W_gate = Conv((1, 1), F_g => n_coef)
-    W_x = Conv((1, 1), F_l => n_coef)
-    ψ = Conv((1, 1), n_coef => 1, σ)
+    kernel = tuple(ones(Int, dims - 2)...)
+    W_gate = Conv(kernel, F_g => n_coef)
+    W_x = Conv(kernel, F_l => n_coef)
+    ψ = Conv(kernel, n_coef => 1, σ)
     return AttentionBlock(W_gate, W_x, ψ)
 end
 
@@ -258,12 +259,11 @@ function Unet(
         )
     end
 
-    # Only 2D for now
-    if attention && dims == 4
+    if attention
         attention_blocks = []
         for i in 1:depth
             nrch = 16 * 2^(depth - (i - 1))
-            a = AttentionBlock(nrch, nrch, nrch)
+            a = AttentionBlock(nrch, nrch, nrch; dims=dims)
             push!(attention_blocks, a)
         end
     else
