@@ -317,6 +317,7 @@ end
     @test options["attention"] == true
     @test options["dropout"] == true
     @test options["separable"] == true
+    @test options["final attention"] == true
     @test options["psfs path"] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
     @test options["psfs key"] == "psfs"
     @test options["nrsamples"] == 700

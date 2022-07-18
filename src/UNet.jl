@@ -90,7 +90,7 @@ function (a::AttentionBlock)(x)
     return a(x, x)
 end
 
-struct UNetUpBlock{X, Y, Z}
+struct UNetUpBlock{X,Y,Z}
     upsample::X
     a::Y
     conv_op::Z
@@ -171,8 +171,9 @@ function (c::ConvBlock)(x)
         filldimension = [size(x)[1:(end - 2)]..., abs(cx1 - cx), size(x)[end]]
         selected_x = selectdim(x, ndims(x) - 1, selection)
         if cx1 > cx
-            x1 = x1 .+
-                 cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
+            x1 =
+                x1 .+
+                cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
         else
             x1 = x1 .+ selected_x
         end
@@ -217,12 +218,12 @@ end
 
 function SpatialAttentionModule(; dims=4)
     kernel = tuple(ones(Int, dims - 2)...)
-    conv1 = Conv(kernel, 2=>1, σ; pad=SamePad())
+    conv1 = Conv(kernel, 2 => 1, σ; pad=SamePad())
     return SpatialAttentionModule(conv1)
 end
 
 function (sam::SpatialAttentionModule)(x)
-    x1 = cat(maximum(x, dims=ndims(x)-1), mean(x, dims=ndims(x)-1); dims=ndims(x)-1)
+    x1 = cat(maximum(x; dims=ndims(x) - 1), mean(x; dims=ndims(x) - 1); dims=ndims(x) - 1)
     return sam.conv1(x1)
 end
 
@@ -237,7 +238,11 @@ struct Unet{T,F,R,X,Y}
 end
 
 function Flux.trainable(u::Unet)
-    return !isnothing(u.residual_block) ? (u.encoder, u.decoder, u.residual_block) : (u.encoder, u.decoder)
+    return if !isnothing(u.residual_block)
+        (u.encoder, u.decoder, u.residual_block)
+    else
+        (u.encoder, u.decoder)
+    end
 end
 
 Flux.@functor Unet
@@ -255,6 +260,7 @@ function Unet(
     depth=4,
     dropout=false,
     separable=false,
+    final_attention=true,
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     valid_downsampling_methods = ["conv"]
@@ -310,8 +316,7 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        #second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
-        second_index = 2^(5 + depth - (i + 1))
+        second_index = (!final_attention && (i == depth)) ? labels : 2^(5 + depth - (i + 1))
         u = UNetUpBlock(
             upsample_function,
             attention_blocks[i],
@@ -322,10 +327,16 @@ function Unet(
 
     decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
-    in_channels = sum([2^(3+i) for i in 1:(depth+1)])
-    attention_module = Chain(AttentionBlock(in_channels, in_channels, in_channels), Conv((1,1), in_channels=>1; pad=SamePad()))
-    #attention_module = Chain(AttentionBlock(16, 16, 16), Conv((1,1), 16=>1; pad=SamePad()))
-    upsampler = dims==4 ? upsample_bilinear : upsample_trilinear
+    in_channels = sum([2^(3 + i) for i in 1:(depth + 1)])
+    attention_module = if final_attention
+        Chain(
+            AttentionBlock(in_channels, in_channels, in_channels; dims=dims),
+            Conv(kernel_base, in_channels => 1; pad=SamePad()),
+        )
+    else
+        identity
+    end
+    upsampler = dims == 4 ? upsample_bilinear : upsample_trilinear
 
     return Unet(residual_block, encoder, decoder, attention_module, upsampler)
 end
@@ -349,12 +360,19 @@ function (u::Unet)(x)
     if !isnothing(u.residual_block)
         up = up .+ u.residual_block(x)
     end
-    final_block = ups[1]
-    final_size = size(final_block)[1:(end-2)]
-    for activation in ups[2:end]
-        final_block = cat(final_block, u.upsampler(activation; size=final_size); dims=ndims(final_block)-1)
+    if !(u.attention_module == identity)
+        final_block = ups[1]
+        final_size = size(final_block)[1:(end - 2)]
+        for activation in ups[2:end]
+            final_block = cat(
+                final_block,
+                u.upsampler(activation; size=final_size);
+                dims=ndims(final_block) - 1,
+            )
+        end
+    else
+        final_block = up
     end
-    #return u.attention_module(up)
     return u.attention_module(final_block)
 end
 

@@ -76,6 +76,7 @@ end
         dropout=false,
         norm="batch",
         separable=true,
+        final_attention=false,
     )
     img = rand(Float32, Ny, Nx, nrch, batchsize)
 

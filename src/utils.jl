@@ -90,13 +90,15 @@ function read_yaml(path)
     output["attention"] = options["model"]["attention"]
     output["dropout"] = options["model"]["dropout"]
     output["separable"] = options["model"]["separable"]
+    output["final attention"] = options["model"]["final_attention"]
     output["nrsamples"] = options["training"]["nrsamples"]
     output["epochs"] = options["training"]["epochs"]
     output["plot interval"] = options["training"]["plot_interval"]
     output["plot dir"] = options["training"]["plot_path"]
     _ensure_existence(output["plot dir"])
     output["log losses"] = options["training"]["log_losses"]
-    output["logfile"] = output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
+    output["logfile"] =
+        output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
     output["psfs path"] = options["training"]["psfs_path"]
     output["psfs key"] = options["training"]["psfs_key"]
     output["center psfs"] = options["data"]["center_psfs"]
