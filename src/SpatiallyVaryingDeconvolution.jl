@@ -1,6 +1,6 @@
 module SpatiallyVaryingDeconvolution
 
-export start_training
+export start_training, loadmodel
 
 using YAML
 using Images, Colors
