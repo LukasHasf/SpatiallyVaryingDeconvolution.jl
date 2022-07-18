@@ -212,23 +212,6 @@ function ConvDown(
     return Chain(downsample_op, conv_op)
 end
 
-struct SpatialAttentionModule{A}
-    conv1::A
-end
-
-function SpatialAttentionModule(; dims=4)
-    kernel = tuple(ones(Int, dims - 2)...)
-    conv1 = Conv(kernel, 2 => 1, σ; pad=SamePad())
-    return SpatialAttentionModule(conv1)
-end
-
-function (sam::SpatialAttentionModule)(x)
-    x1 = cat(maximum(x; dims=ndims(x) - 1), mean(x; dims=ndims(x) - 1); dims=ndims(x) - 1)
-    return sam.conv1(x1)
-end
-
-Flux.@functor SpatialAttentionModule
-
 struct Unet{T,F,R,X,Y}
     residual_block::R
     encoder::T
