@@ -59,10 +59,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 After training, you will have a fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function:
 ```julia
 using SpatiallyVaryingDeconvolution
-using Flux
-using FFTW
-using BSON: @load
-@load checkpoint_path model
+model = loadmodel(checkpoint_path; load_optimizer=false)
 # Apply model to new blurry data
 deblurred = model(blurry)
 ```

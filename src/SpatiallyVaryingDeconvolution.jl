@@ -1,6 +1,6 @@
 module SpatiallyVaryingDeconvolution
 
-export start_training
+export start_training, loadmodel
 
 using YAML
 using Images, Colors
@@ -21,11 +21,17 @@ function loadmodel(path; load_optimizer=true)
     Core.eval(Main, :(using Flux: Flux))
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
+    Core.eval(Main, :(using FFTW: FFTW))
+    Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
+        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
         return model, opt
     else
         @load path model
+        if model isa Flux.Chain
+            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
+        end
         return model
     end
 end
@@ -35,7 +41,8 @@ function makemodel(
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWiener(psfs) #|> my_gpu
+    psfs = psfs
+    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs)
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -159,6 +166,9 @@ function saveModel(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
     model = cpu(model)
+    if model isa Flux.Chain
+        model = Chain(MultiWienerNet.toMultiWiener(model[1]), model[2])
+    end
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *
@@ -288,6 +298,7 @@ function start_training(options_path; T=Float32)
                 collect(selectdim(psfs, dims + 1, i)), options["newsize"]
             )
         end
+        resized_psfs = my_gpu(resized_psfs)
         model = my_gpu(
             makemodel(
                 resized_psfs;
