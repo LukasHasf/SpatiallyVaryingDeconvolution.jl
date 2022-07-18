@@ -67,7 +67,16 @@ end
     nrch = 1
     batchsize = 2
     model = UNet.Unet(
-        nrch, 1, 4; residual=false, up="tconv", depth=4, dropout=false, norm="batch", separable=true
+        nrch,
+        1,
+        4;
+        residual=false,
+        up="tconv",
+        depth=4,
+        dropout=false,
+        norm="batch",
+        separable=true,
+        final_attention=false,
     )
     img = rand(Float32, Ny, Nx, nrch, batchsize)
 

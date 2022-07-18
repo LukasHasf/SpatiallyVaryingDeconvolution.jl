@@ -17,6 +17,7 @@ model:
     attention: true
     dropout: true
     separable: true
+    final_attention: true
 
 training:
     # Path to the PSF file

@@ -1,5 +1,6 @@
 module UNet
 using Flux
+using Statistics
 
 """    channelsize(x)
 
@@ -21,16 +22,34 @@ struct SeparableConv
     conv_chain::Chain
 end
 
-function SeparableConv(filter::NTuple{N, Integer}, ch::Pair, σ=identity; stride=1, pad=0, dilation=1, groups=1, init=Flux.glorot_uniform) where {N}
+function SeparableConv(
+    filter::NTuple{N,Integer},
+    ch::Pair,
+    σ=identity;
+    stride=1,
+    pad=0,
+    dilation=1,
+    groups=1,
+    init=Flux.glorot_uniform,
+) where {N}
     convs = []
     for i in 1:N
         filter_dims = Tuple(ones(Int, N))
-        filter_ch = i==1 ? ch : ch[2] => ch[2]
-        filter_dims = tuple([n==i ? filter[n] : 1 for n in 1:N]...)
-        current_stride = tuple([n==i ? stride : 1 for n in 1:N]...)
-        current_pad = tuple([n==i ? pad : 0 for n in 1:N]...)
-        current_dilation = tuple([n==i ? dilation : 1 for n in 1:N]...)
-        conv = Conv(filter_dims, filter_ch, σ; stride=current_stride, pad=current_pad, dilation=current_dilation, groups=groups, init=init)
+        filter_ch = i == 1 ? ch : ch[2] => ch[2]
+        filter_dims = tuple([n == i ? filter[n] : 1 for n in 1:N]...)
+        current_stride = tuple([n == i ? stride : 1 for n in 1:N]...)
+        current_pad = tuple([n == i ? pad : 0 for n in 1:N]...)
+        current_dilation = tuple([n == i ? dilation : 1 for n in 1:N]...)
+        conv = Conv(
+            filter_dims,
+            filter_ch,
+            σ;
+            stride=current_stride,
+            pad=current_pad,
+            dilation=current_dilation,
+            groups=groups,
+            init=init,
+        )
         push!(convs, conv)
     end
     return SeparableConv(Chain(convs...))
@@ -43,9 +62,9 @@ end
 Flux.@functor SeparableConv
 
 struct AttentionBlock
-    W_gate::Any
-    W_x::Any
-    ψ::Any
+    W_gate::Conv
+    W_x::Conv
+    ψ::Conv
 end
 
 Flux.@functor AttentionBlock
@@ -67,9 +86,14 @@ function (a::AttentionBlock)(gate, skip)
     return out
 end
 
-struct UNetUpBlock
-    upsample::Any
-    a::Any
+function (a::AttentionBlock)(x)
+    return a(x, x)
+end
+
+struct UNetUpBlock{X,Y,Z}
+    upsample::X
+    a::Y
+    conv_op::Z
 end
 
 Flux.@functor UNetUpBlock
@@ -79,12 +103,12 @@ function (u::UNetUpBlock)(x, bridge)
     if u.a != false
         bridge = u.a(x, bridge)
     end
-    return cat(x, bridge; dims=ndims(x) - 1)
+    return u.conv_op(cat(x, bridge; dims=ndims(x) - 1))
 end
 
-struct ConvBlock
+struct ConvBlock{F}
     chain::Chain
-    actfun::Any
+    actfun::F
     residual::Bool
 end
 Flux.trainable(c::ConvBlock) = (c.chain,)
@@ -99,20 +123,20 @@ function ConvBlock(
     transpose=false,
     residual=true,
     norm="batch",
-    separable=false
+    separable=false,
 )
     if transpose
-        conv1 = ConvTranspose(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-        conv2 = ConvTranspose(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+        conv_layer = ConvTranspose
     else
         if separable
-            conv1 = SeparableConv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-            conv2 = SeparableConv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv_layer = SeparableConv
         else
-            conv1 = Conv(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-            conv2 = Conv(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+            conv_layer = Conv
         end
     end
+
+    conv1 = conv_layer(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
+    conv2 = conv_layer(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
 
     if norm == "batch"
         norm1 = BatchNorm(out_chs)
@@ -140,13 +164,13 @@ end
 
 function (c::ConvBlock)(x)
     x1 = c.chain(x)
+    cx1 = channelsize(x1)
+    cx = channelsize(x)
     if c.residual
-        selection = 1:min(channelsize(x1), channelsize(x))
-        filldimension = [
-            size(x)[1:(end - 2)]..., abs(channelsize(x1) - channelsize(x)), size(x)[end]
-        ]
+        selection = 1:min(cx1, cx)
+        filldimension = [size(x)[1:(end - 2)]..., abs(cx1 - cx), size(x)[end]]
         selected_x = selectdim(x, ndims(x) - 1, selection)
-        if channelsize(x1) > channelsize(x)
+        if cx1 > cx
             x1 =
                 x1 .+
                 cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
@@ -158,18 +182,51 @@ function (c::ConvBlock)(x)
     return x1
 end
 
-function ConvDown(chs::Int; kernel=(2, 2), activation=identity)
-    return Conv(kernel, chs => chs, activation; stride=2, groups=chs)
+function ConvDown(
+    in_chs::Int,
+    out_chs::Int;
+    down_kernel=(2, 2),
+    kernel=(3, 3),
+    down_activation=identity,
+    residual=false,
+    activation="relu",
+    separable=false,
+    dropout=false,
+    norm="batch",
+)
+    downsample_op = Conv(
+        down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs
+    )
+    conv_op = ConvBlock(
+        in_chs,
+        out_chs;
+        kernel=kernel,
+        dropout=dropout,
+        activation=activation,
+        residual=residual,
+        separable=separable,
+        norm=norm,
+    )
+    downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
+    downsample_op.bias .*= 0.01
+    return Chain(downsample_op, conv_op)
 end
 
-struct Unet
-    conv_down_blocks::Any
-    conv_blocks::Any
-    up_blocks::Any
-    residual::Bool
+struct Unet{T,F,R,X,Y}
+    residual_block::R
+    encoder::T
+    decoder::F
+    attention_module::X
+    upsampler::Y
 end
 
-Flux.trainable(u::Unet) = (u.conv_down_blocks, u.conv_blocks, u.up_blocks)
+function Flux.trainable(u::Unet)
+    return if !isnothing(u.residual_block)
+        (u.encoder, u.decoder, u.residual_block)
+    else
+        (u.encoder, u.decoder)
+    end
+end
 
 Flux.@functor Unet
 
@@ -185,78 +242,40 @@ function Unet(
     attention=false,
     depth=4,
     dropout=false,
-    separable=false
+    separable=false,
+    final_attention=true,
 )
     valid_upsampling_methods = ["nearest", "tconv"]
+    valid_downsampling_methods = ["conv"]
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
+    @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
+    conv_kernel = kernel_base .* 3
+    conv_config = (
+        residual=residual,
+        norm=norm,
+        dropout=dropout,
+        separable=separable,
+        kernel=conv_kernel,
+        activation=activation,
+    )
     if down == "conv"
         kernel = kernel_base .* 2
-        conv_down_blocks = []
+        encoder_blocks = []
         for i in 1:depth
-            c = ConvDown(16 * 2^i; kernel=kernel) # 32, 64, 128, 256, ... input channels
-            c.weight .= 0.01 .* c.weight .+ 0.25
-            c.bias .*= 0.01
-            push!(conv_down_blocks, c)
+            second_exponent = i == depth ? i : i + 1
+            c = ConvDown(
+                16 * 2^i, 16 * 2^second_exponent; down_kernel=kernel, conv_config...
+            ) # 32, 64, 128, 256, ... input channels
+            push!(encoder_blocks, c)
         end
     end
 
-    conv_kernel = kernel_base .* 3
-    conv_blocks = [
-        ConvBlock(
-            channels,
-            32;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        ),
-    ]
-    for i in 1:depth
-        second_exponent = i == depth ? i : i + 1
-        c = ConvBlock(
-            16 * 2^i,
-            16 * 2^second_exponent;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        )
-        push!(conv_blocks, c)
-    end
-    for i in 1:depth
-        second_index = i == depth ? labels : 2^(5 + depth - (i + 1))
-        c = ConvBlock(
-            2^(5 + depth - (i - 1)),
-            second_index;
-            kernel=conv_kernel,
-            residual=residual,
-            activation=activation,
-            norm=norm,
-            dropout=dropout,
-            separable=separable,
-        )
-        push!(conv_blocks, c)
-    end
+    initial_block = ConvBlock(channels, 32; conv_config...)
 
+    residual_block = nothing
     if residual
-        push!(
-            conv_blocks,
-            ConvBlock(
-                channels,
-                labels;
-                kernel=conv_kernel,
-                residual=residual,
-                activation=activation,
-                norm=norm,
-                dropout=dropout,
-                separable=separable,
-            ),
-        )
+        residual_block = ConvBlock(channels, labels; conv_config...)
     end
 
     if attention
@@ -280,44 +299,64 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        u = UNetUpBlock(upsample_function, attention_blocks[i])
+        second_index = (!final_attention && (i == depth)) ? labels : 2^(5 + depth - (i + 1))
+        u = UNetUpBlock(
+            upsample_function,
+            attention_blocks[i],
+            ConvBlock(2^(5 + depth - (i - 1)), second_index; conv_config...),
+        )
         push!(up_blocks, u)
     end
-    return Unet(conv_down_blocks, conv_blocks, up_blocks, residual)
+
+    decoder = ntuple(i -> up_blocks[i], depth)
+    encoder = Chain(initial_block, encoder_blocks...)
+    in_channels = sum([2^(3 + i) for i in 1:(depth + 1)])
+    attention_module = if final_attention
+        Chain(
+            AttentionBlock(in_channels, in_channels, in_channels; dims=dims),
+            Conv(kernel_base, in_channels => 1; pad=SamePad()),
+        )
+    else
+        identity
+    end
+    upsampler = dims == 4 ? upsample_bilinear : upsample_trilinear
+
+    return Unet(residual_block, encoder, decoder, attention_module, upsampler)
 end
 
-function (u::Unet)(x::AbstractArray)
-    depth = length(u.conv_down_blocks)
-    c0 = x
-    c1 = u.conv_blocks[1](c0)
-    c2 = u.conv_blocks[2](u.conv_down_blocks[1](c1))
-    c3 = u.conv_blocks[3](u.conv_down_blocks[2](c2))
-    c4 = u.conv_blocks[4](u.conv_down_blocks[3](c3))
-    if depth == 4
-        c5 = u.conv_blocks[5](u.conv_down_blocks[4](c4))
-    end
-    #for i in 1:depth
-    #    cs[i + 1] = u.conv_blocks[i + 1](u.conv_down_blocks[i](cs[i]))
-    #    println("cs is $(typeof(cs))")
-    #end
-    if depth == 4
-        up1 = u.conv_blocks[6](u.up_blocks[1](c5, c4))
-        up2 = u.conv_blocks[7](u.up_blocks[2](up1, c3))
-        up3 = u.conv_blocks[8](u.up_blocks[3](up2, c2))
-        up4 = u.conv_blocks[9](u.up_blocks[4](up3, c1))
-    elseif depth == 3
-        up1 = u.conv_blocks[5](u.up_blocks[1](c4, c3))
-        up2 = u.conv_blocks[6](u.up_blocks[2](up1, c2))
-        up4 = u.conv_blocks[7](u.up_blocks[3](up2, c1))
-    end
+function decode(ops::Tuple, ft::Tuple)
+    up = first(ops)(ft[end], ft[end - 1])
+    #= The next line looks a bit backwards, but the next `up` is calculated
+       from the last two elements in ft, not the first =#
+    return decode(Base.tail(ops), (ft[1:(end - 2)]..., up))..., up
+end
 
-    #for i in 2:depth
-    #    up = u.conv_blocks[depth + i + 1](u.up_blocks[i](up, cs[depth - i + 1]))
-    #end
-    if u.residual
-        up4 = up4 .+ u.conv_blocks[2 * depth + 2](c0)
+function decode(::Tuple{}, ft::NTuple{1,T}) where {T}
+    return tuple(first(ft))
+end
+
+function (u::Unet)(x)
+    cs = Flux.activations(u.encoder, x)
+    ups = decode(u.decoder, cs)
+    up = first(ups)
+    ups = (Base.tail(ups)..., cs[end])
+    if !isnothing(u.residual_block)
+        up = up .+ u.residual_block(x)
     end
-    return up4
+    if !(u.attention_module == identity)
+        final_block = ups[1]
+        final_size = size(final_block)[1:(end - 2)]
+        for activation in ups[2:end]
+            final_block = cat(
+                final_block,
+                u.upsampler(activation; size=final_size);
+                dims=ndims(final_block) - 1,
+            )
+        end
+    else
+        final_block = up
+    end
+    return u.attention_module(final_block)
 end
 
 end # module
