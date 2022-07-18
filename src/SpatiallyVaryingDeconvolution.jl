@@ -36,7 +36,9 @@ function loadmodel(path; load_optimizer=true)
     end
 end
 
-function makemodel(psfs; attention=true, dropout=true, depth=3)
+function makemodel(
+    psfs; attention=true, dropout=true, depth=3, separable=false, final_attention=true
+)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     psfs = psfs
@@ -52,6 +54,8 @@ function makemodel(psfs; attention=true, dropout=true, depth=3)
         attention=attention,
         depth=depth,
         dropout=dropout,
+        separable=separable,
+        final_attention=final_attention,
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
@@ -243,14 +247,9 @@ function train_model(
                 plot_losses(losses_train, losses_test, epoch, plotdirectory)
             end
         end
-        if !isnothing(logfile)
-            open(logfile, "a") do io
-                println(
-                    io,
-                    "Epoch $(epoch + epoch_offset): Train loss $(losses_train[epoch]), test loss $(losses_test[epoch])",
-                )
-            end
-        end
+        write_to_logfile(
+            logfile, epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
+        )
         print("\n")
     end
     # At the end of training, save a checkpoint
@@ -306,6 +305,8 @@ function start_training(options_path; T=Float32)
                 depth=options["depth"],
                 attention=options["attention"],
                 dropout=options["dropout"],
+                separable=options["separable"],
+                final_attention=options["final attention",],
             ),
         )
     else
@@ -314,24 +315,13 @@ function start_training(options_path; T=Float32)
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
-    kernel = _get_default_kernel(dims)
+    kernel = T.(_get_default_kernel(dims))
 
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)
             return L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     end
-
-    #= Test so far
-    selection_x = copy(selectdim(train_x, ndims(train_x), 1))
-    selection_y = copy(selectdim(train_x, ndims(train_x), 1))
-    reshaped_size = size(train_x)[1:(end - 1)]
-    display(
-        loss_fn(
-            reshape(selection_x, reshaped_size..., 1),
-            reshape(selection_y, reshaped_size..., 1),
-        ),
-    ) # =#
 
     # Training
     return train_model(

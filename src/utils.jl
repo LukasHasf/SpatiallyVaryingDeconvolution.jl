@@ -7,6 +7,7 @@ export my_gpu, my_cu
 export train_real_gradient!
 export read_yaml
 export _get_default_kernel
+export write_to_logfile
 
 using MAT
 using HDF5
@@ -88,16 +89,16 @@ function read_yaml(path)
     output["depth"] = options["model"]["depth"]
     output["attention"] = options["model"]["attention"]
     output["dropout"] = options["model"]["dropout"]
+    output["separable"] = options["model"]["separable"]
+    output["final attention"] = options["model"]["final_attention"]
     output["nrsamples"] = options["training"]["nrsamples"]
     output["epochs"] = options["training"]["epochs"]
     output["plot interval"] = options["training"]["plot_interval"]
     output["plot dir"] = options["training"]["plot_path"]
     _ensure_existence(output["plot dir"])
     output["log losses"] = options["training"]["log_losses"]
-    logfile = output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
-    if output["log losses"]
-        output["logfile"] = logfile
-    end
+    output["logfile"] =
+        output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
     output["psfs path"] = options["training"]["psfs_path"]
     output["psfs key"] = options["training"]["psfs_key"]
     output["center psfs"] = options["data"]["center_psfs"]
@@ -261,6 +262,26 @@ function _get_default_kernel(dims)
         kernel = mygaussian .* mygaussian'
     end
     return kernel
+end
+
+function _init_logfile(logfile)
+    if !isnothing(logfile)
+        open(logfile, "w") do io
+            println(io, "epoch, train loss, test loss")
+        end
+    end
+end
+
+function write_to_logfile(logfile, epoch, train_loss, test_loss)
+    if isnothing(logfile)
+        return nothing
+    end
+    if !isfile(logfile)
+        _init_logfile(logfile)
+    end
+    open(logfile, "a") do io
+        println(io, "$(epoch), $(train_loss), $(test_loss)")
+    end
 end
 
 """    train_real_gradient!(loss, ps, data, opt)
