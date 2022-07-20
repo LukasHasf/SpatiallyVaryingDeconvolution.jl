@@ -54,11 +54,15 @@
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
+    # Saving / loading with optimizer
+    opt = ADAM(0.1)
     testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
-        testsave_path; load_optimizer=false
+    loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.loadmodel(
+        testsave_path; load_optimizer=true
     )
     @test loaded_model(img) == prediction
+    @test opt_loaded isa typeof(opt)
+    @test getfield(opt_loaded, :eta) == getfield(opt, :eta)
 end
 
 @testset "Test other UNet parameters" begin
@@ -86,7 +90,7 @@ end
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
-    # Saving / loading
+    # Saving / loading without optimizer
     testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
     loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
         testsave_path; load_optimizer=false
