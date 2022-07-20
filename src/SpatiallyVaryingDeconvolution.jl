@@ -63,7 +63,7 @@ function start_training(options_path; T=Float32)
                 attention=options["attention"],
                 dropout=options["dropout"],
                 separable=options["separable"],
-                final_attention=options["final attention",],
+                final_attention=options["final attention"],
             ),
         )
     else
