@@ -245,9 +245,7 @@ end
 If directory `dir` does not exist, create it (including intermediate directories).
 """
 function _ensure_existence(dir)
-    if !isdir(dir)
-        mkpath(dir)
-    end
+    return isdir(dir) || mkpath(dir)
 end
 
 """    _get_default_kernel(dims)
