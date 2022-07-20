@@ -56,7 +56,7 @@
 
     # Saving / loading with optimizer
     opt = ADAM(0.1)
-    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
+    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0; opt=opt)
     loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.loadmodel(
         testsave_path; load_optimizer=true
     )
