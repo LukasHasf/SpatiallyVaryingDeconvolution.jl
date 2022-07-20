@@ -115,3 +115,33 @@ end
     end
     @test gradient_without_error
 end
+
+@testset "train_model" begin
+    Ny = 16
+    Nx = 16
+    nrchannels = 1
+    nrPSFs = 3
+    batchsize = 1
+    psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
+    model = my_gpu(SpatiallyVaryingDeconvolution.makemodel(psfs))
+    train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    train_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    test_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    test_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    kernel = _get_default_kernel(2; T=Float32)
+    loss_fn = let model = model, kernel = kernel
+        function loss_fn(x, y)
+            return L1_SSIM_loss(model(x), y; kernel=kernel)
+        end
+    end
+    plotdir = mktempdir()
+    chkptdir = mktempdir()
+    logfile = joinpath(mktempdir(), "logfile.log")
+    SpatiallyVaryingDeconvolution.train_model(model, train_x, train_y, test_x, test_y, loss_fn; 
+    epochs=1, epoch_offset=0, plotloss=true, plotevery=1, plotdirectory=plotdir, saveevery=1, checkpointdirectory=chkptdir,
+    logfile=logfile)
+    @test isfile(logfile)
+    @test length(readdir(chkptdir)) == 2
+    @test all([endswith(name, ".bson") for name in readdir(chkptdir)])
+    @test !isempty(readdir(plotdir))
+end
