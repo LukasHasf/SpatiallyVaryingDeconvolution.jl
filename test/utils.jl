@@ -335,6 +335,7 @@ end
 @testset "_get_default_kernel" begin
     kernel2D = _get_default_kernel(2)
     @test size(kernel2D) == (11, 11)
+    @test eltype(kernel2D) == Float32
     mykernel = similar(kernel2D)
     mygaussian = gaussian(11, 1.5)
     for j in 1:size(kernel2D, 2)
@@ -346,6 +347,7 @@ end
 
     kernel3D = _get_default_kernel(3)
     @test size(kernel3D) == (11, 11, 11)
+    @test eltype(kernel3D) == Float32
     mykernel = similar(kernel3D)
     for k in 1:size(kernel3D, 3)
         for j in 1:size(kernel3D, 2)
