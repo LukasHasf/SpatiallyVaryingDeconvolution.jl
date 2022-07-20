@@ -118,13 +118,13 @@ function train_model(
             string(losses_test[epoch]),
         )
 
-        if saveevery > 0 && epoch % saveevery == 0
+        if epoch % saveevery == 0
             saveModel(
                 model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer
             )
         end
 
-        if plotevery > 0 && epoch % plotevery == 0
+        if epoch % plotevery == 0
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
             plot_prediction(pred_to_plot, psf_to_plot, epoch, epoch_offset, plotdirectory)

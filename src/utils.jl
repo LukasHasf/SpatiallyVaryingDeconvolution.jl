@@ -108,6 +108,18 @@ function read_yaml(path)
     output["checkpoint dir"] = options["training"]["checkpoints"]["checkpoint_dir"]
     _ensure_existence(output["checkpoint dir"])
     output["save interval"] = options["training"]["checkpoints"]["save_interval"]
+
+    # Check that boolean fields have right datatype
+    for field in ["load checkpoints", "attention", "dropout", "separable", "final attention", "log losses", "center psfs"]
+        temp = output[field]
+        @assert temp isa Bool "$field should be a boolean, but $temp is a $(typeof(temp))."
+    end
+    # Int fields should be ≥ 0
+    for field in ["epoch offset", "depth", "nrsamples", "epochs", "plot interval", "save interval"]
+        temp = output[field]
+        @assert temp isa Int "$field should be a integer, but $temp is a $(typeof(temp))."
+        @assert temp ≥ zero(Int) "$field needs to be ≥ 0, but is $temp."
+    end
     return output
 end
 
