@@ -41,6 +41,8 @@ function start_training(options_path; T=Float32)
         newsize=options["newsize"],
     )
     x_data = applynoise(x_data)
+    x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
+    y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
     train_x, test_x = train_test_split(x_data)
     train_y, test_y = train_test_split(y_data)
 
