@@ -61,6 +61,11 @@ end
     @test UNet.uRelu(x) == relu.(x)
 end
 
+@testset "uTanh" begin
+    x = -10:0.1:10
+    @test UNet.tanh(x) == tanh.(x)
+end
+
 @testset "train_real_gradient!" begin
     # Create two identical models with predetermined weights
     model = Chain(Dense(1, 5), Dense(5, 1))

@@ -14,6 +14,10 @@ function uRelu(x)
     return relu.(x)
 end
 
+function uTanh(x)
+    return tanh.(x)
+end
+
 function uUpsampleNearest(x)
     return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
@@ -148,6 +152,8 @@ function ConvBlock(
     actfun = identity
     if activation == "relu"
         actfun = uRelu
+    elseif activation == "tanh"
+        actfun = uTanh
     end
 
     if dropout
