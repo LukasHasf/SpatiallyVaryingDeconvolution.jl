@@ -63,7 +63,7 @@ end
 
 @testset "uTanh" begin
     x = -10:0.1:10
-    @test UNet.tanh(x) == tanh.(x)
+    @test UNet.uTanh(x) == tanh.(x)
 end
 
 @testset "train_real_gradient!" begin
