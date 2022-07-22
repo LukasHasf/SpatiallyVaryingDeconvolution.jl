@@ -92,6 +92,7 @@ function train_model(
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
+    plot_prediction(example_data_y, model[1].PSF, -1, 0, plotdirectory)
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
         (train_x, train_y); batchsize=1, shuffle=false
