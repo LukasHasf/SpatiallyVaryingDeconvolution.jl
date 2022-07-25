@@ -13,7 +13,7 @@ julia> ] add https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl
 
 ## Quickstart
 Training the model is as simple as calling `train_model` on your configuration file:
-```
+```julia
 using SpatiallyVaryingDeconvolution
 start_training("myOptions.yaml")
 ```
