@@ -71,51 +71,51 @@ function read_yaml(path)
     options = YAML.load_file(path)
     optimizer_kw = options["training"]["optimizer"]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
-    output = Dict()
-    output["optimizer"] = optimizer_dict[optimizer_kw]()
-    output["sim dir"] = options["data"]["x_path"]
-    output["truth dir"] = options["data"]["y_path"]
-    output["newsize"] = tuple(options["data"]["resize_to"]...)
+    output = Dict{Symbol, Any}()
+    output[:optimizer] = optimizer_dict[optimizer_kw]()
+    output[:sim_dir] = options["data"]["x_path"]
+    output[:truth_dir] = options["data"]["y_path"]
+    output[:newsize] = tuple(options["data"]["resize_to"]...)
     loadpath = nothing
     epoch_offset = 0
-    output["load checkpoints"] = options["training"]["checkpoints"]["load_checkpoints"]
-    if output["load checkpoints"]
+    output[:load_checkpoints] = options["training"]["checkpoints"]["load_checkpoints"]
+    if output[:load_checkpoints]
         loadpath = options["training"]["checkpoints"]["checkpoint_path"]
         epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
-        output["checkpoint path"] = loadpath
+        output[:checkpoint_path] = loadpath
     end
-    output["epoch offset"] = epoch_offset
+    output[:epoch_offset] = epoch_offset
     # Model parameters
-    output["depth"] = options["model"]["depth"]
-    output["attention"] = options["model"]["attention"]
-    output["dropout"] = options["model"]["dropout"]
-    output["separable"] = options["model"]["separable"]
-    output["final attention"] = options["model"]["final_attention"]
-    output["nrsamples"] = options["training"]["nrsamples"]
-    output["epochs"] = options["training"]["epochs"]
-    output["plot interval"] = options["training"]["plot_interval"]
-    output["plot dir"] = options["training"]["plot_path"]
-    _ensure_existence(output["plot dir"])
-    output["log losses"] = options["training"]["log_losses"]
-    output["logfile"] =
-        output["log losses"] ? joinpath(dirname(path), "losses.log") : nothing
-    output["psfs path"] = options["training"]["psfs_path"]
-    output["psfs key"] = options["training"]["psfs_key"]
-    output["center psfs"] = options["data"]["center_psfs"]
-    if output["center psfs"]
-        output["psf ref index"] = options["data"]["reference_index"]
+    output[:depth] = options["model"]["depth"]
+    output[:attention] = options["model"]["attention"]
+    output[:dropout] = options["model"]["dropout"]
+    output[:separable] = options["model"]["separable"]
+    output[:final_attention] = options["model"]["final_attention"]
+    output[:nrsamples] = options["training"]["nrsamples"]
+    output[:epochs] = options["training"]["epochs"]
+    output[:plot_interval] = options["training"]["plot_interval"]
+    output[:plot_dir] = options["training"]["plot_path"]
+    _ensure_existence(output[:plot_dir])
+    output[:log_losses] = options["training"]["log_losses"]
+    output[:logfile] =
+        output[:log_losses] ? joinpath(dirname(path), "losses.log") : nothing
+    output[:psfs_path] = options["training"]["psfs_path"]
+    output[:psfs_key] = options["training"]["psfs_key"]
+    output[:center_psfs] = options["data"]["center_psfs"]
+    if output[:center_psfs]
+        output[:psf_ref_index] = options["data"]["reference_index"]
     end
-    output["checkpoint dir"] = options["training"]["checkpoints"]["checkpoint_dir"]
-    _ensure_existence(output["checkpoint dir"])
-    output["save interval"] = options["training"]["checkpoints"]["save_interval"]
+    output[:checkpoint_dir] = options["training"]["checkpoints"]["checkpoint_dir"]
+    _ensure_existence(output[:checkpoint_dir])
+    output[:save_interval] = options["training"]["checkpoints"]["save_interval"]
 
     # Check that boolean fields have right datatype
-    for field in ["load checkpoints", "attention", "dropout", "separable", "final attention", "log losses", "center psfs"]
+    for field in [:load_checkpoints, :attention, :dropout, :separable, :final_attention, :log_losses, :center_psfs]
         temp = output[field]
         @assert temp isa Bool "$field should be a boolean, but $temp is a $(typeof(temp))."
     end
     # Int fields should be ≥ 0
-    for field in ["epoch offset", "depth", "nrsamples", "epochs", "plot interval", "save interval"]
+    for field in [:epoch_offset, :depth, :nrsamples, :epochs, :plot_interval, :save_interval]
         temp = output[field]
         @assert temp isa Int "$field should be a integer, but $temp is a $(typeof(temp))."
         @assert temp ≥ zero(Int) "$field needs to be ≥ 0, but is $temp."
@@ -224,7 +224,7 @@ end
 
 const CUDA_functional =
     CUDA.functional() &&
-    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0)) && false
 
 function my_cu(x)
     global CUDA_functional
