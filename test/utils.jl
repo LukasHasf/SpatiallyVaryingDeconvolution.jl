@@ -313,28 +313,28 @@ end
 
 @testset "read_yaml" begin
     options = read_yaml("../examples/options.yaml")
-    @test options["sim dir"] == "../../training_data/Data/JuliaForwardModel/"
-    @test options["truth dir"] == "../../training_data/Data/Ground_truth_downsampled/"
-    @test options["newsize"] == (64, 64)
-    @test options["center psfs"] == true
-    @test options["psf ref index"] == -1
-    @test options["depth"] == 3
-    @test options["attention"] == true
-    @test options["dropout"] == true
-    @test options["separable"] == true
-    @test options["final attention"] == true
-    @test options["psfs path"] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
-    @test options["psfs key"] == "psfs"
-    @test options["nrsamples"] == 700
-    @test options["epochs"] == 20
-    @test options["optimizer"] isa ADADelta
-    @test options["plot interval"] == 1
-    @test options["plot dir"] == "examples/training_progress/"
-    @test options["load checkpoints"] == false
-    @test !("checkpoint path" in keys(options))
-    @test options["checkpoint dir"] == "examples/checkpoints/"
-    @test options["save interval"] == 1
-    @test options["log losses"] == false
+    @test options[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
+    @test options[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
+    @test options[:newsize] == (64, 64)
+    @test options[:center_psfs] == true
+    @test options[:psf_ref_index] == -1
+    @test options[:depth] == 3
+    @test options[:attention] == true
+    @test options[:dropout] == true
+    @test options[:separable] == true
+    @test options[:final_attention] == true
+    @test options[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
+    @test options[:psfs_key] == "psfs"
+    @test options[:nrsamples] == 700
+    @test options[:epochs] == 20
+    @test options[:optimizer] isa ADADelta
+    @test options[:plot_interval] == 1
+    @test options[:plot_dir] == "examples/training_progress/"
+    @test options[:load_checkpoints] == false
+    @test !(:checkpoint_path in keys(options))
+    @test options[:checkpoint_dir] == "examples/checkpoints/"
+    @test options[:save_interval] == 1
+    @test options[:log_losses] == false
 end
 
 @testset "_get_default_kernel" begin
