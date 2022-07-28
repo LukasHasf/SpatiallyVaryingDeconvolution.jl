@@ -27,12 +27,22 @@ function loadmodel(path; load_optimizer=true)
     end
 end
 
+"""    makemodel(psfs; kwargs)
+
+Create a MultiWiener model and initialize the Wiener deconvolution with `psfs`.
+Keyword arguments are:
+- `attention::Bool` : use attention gates in skip connection
+- `dropout::Bool` : use dropout layers
+- `depth::Int` : depth of the UNet
+- `separable::Bool` : use separable convolutions in UNet
+- `final_attention::Bool` : `cat` all activations in the decoder path of the UNet
+ and pass them through an attention gate and a convolution before outputting
+"""
 function makemodel(
     psfs; attention=true, dropout=true, depth=3, separable=false, final_attention=true
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    psfs = psfs
     modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs)
     modelUNet = UNet.Unet(
         nrPSFs,
