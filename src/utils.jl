@@ -71,7 +71,7 @@ function read_yaml(path)
     options = YAML.load_file(path)
     optimizer_kw = options["training"]["optimizer"]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
-    output = Dict{Symbol, Any}()
+    output = Dict{Symbol,Any}()
     output[:optimizer] = optimizer_dict[optimizer_kw]()
     output[:sim_dir] = options["data"]["x_path"]
     output[:truth_dir] = options["data"]["y_path"]
@@ -97,8 +97,7 @@ function read_yaml(path)
     output[:plot_dir] = options["training"]["plot_path"]
     _ensure_existence(output[:plot_dir])
     output[:log_losses] = options["training"]["log_losses"]
-    output[:logfile] =
-        output[:log_losses] ? joinpath(dirname(path), "losses.log") : nothing
+    output[:logfile] = output[:log_losses] ? joinpath(dirname(path), "losses.log") : nothing
     output[:psfs_path] = options["training"]["psfs_path"]
     output[:psfs_key] = options["training"]["psfs_key"]
     output[:center_psfs] = options["data"]["center_psfs"]
@@ -110,12 +109,21 @@ function read_yaml(path)
     output[:save_interval] = options["training"]["checkpoints"]["save_interval"]
 
     # Check that boolean fields have right datatype
-    for field in [:load_checkpoints, :attention, :dropout, :separable, :final_attention, :log_losses, :center_psfs]
+    for field in [
+        :load_checkpoints,
+        :attention,
+        :dropout,
+        :separable,
+        :final_attention,
+        :log_losses,
+        :center_psfs,
+    ]
         temp = output[field]
         @assert temp isa Bool "$field should be a boolean, but $temp is a $(typeof(temp))."
     end
     # Int fields should be ≥ 0
-    for field in [:epoch_offset, :depth, :nrsamples, :epochs, :plot_interval, :save_interval]
+    for field in
+        [:epoch_offset, :depth, :nrsamples, :epochs, :plot_interval, :save_interval]
         temp = output[field]
         @assert temp isa Int "$field should be a integer, but $temp is a $(typeof(temp))."
         @assert temp ≥ zero(Int) "$field needs to be ≥ 0, but is $temp."
@@ -164,7 +172,9 @@ function loadimages(
         filepath_simulated = joinpath(simulated_directory, filename)
         # TODO: Flip images along first axis?
         images_y[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_truth), newsize))
-        images_x[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_simulated), newsize))
+        images_x[:, :, 1, i] .= _map_to_zero_one(
+            imresize(load(filepath_simulated), newsize)
+        )
     end
     return images_x, images_y
 end
@@ -183,8 +193,12 @@ function loadvolumes(
     for (i, filename) in enumerate(complete_files)
         filepath_truth = joinpath(truth_directory, filename)
         filepath_simulated = joinpath(simulated_directory, filename)
-        volumes_y[:, :, :, 1, i] .= _map_to_zero_one(imresize(readPSFs(filepath_truth, truth_key), newsize))
-        volumes_x[:, :, :, 1, i] .= _map_to_zero_one(imresize(readPSFs(filepath_simulated, sim_key), newsize))
+        volumes_y[:, :, :, 1, i] .= _map_to_zero_one(
+            imresize(readPSFs(filepath_truth, truth_key), newsize)
+        )
+        volumes_x[:, :, :, 1, i] .= _map_to_zero_one(
+            imresize(readPSFs(filepath_simulated, sim_key), newsize)
+        )
     end
     return volumes_x, volumes_y
 end
@@ -352,12 +366,19 @@ function padND(x, n)
     return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
-function linshift!(dest::AbstractArray{T,N}, src::AbstractArray{T,N}, shifts::AbstractArray{F, 1}; filler=zero(T)) where {T,F,N}
-    myshifts = ntuple(i ->shifts[i], length(shifts))
+function linshift!(
+    dest::AbstractArray{T,N},
+    src::AbstractArray{T,N},
+    shifts::AbstractArray{F,1};
+    filler=zero(T),
+) where {T,F,N}
+    myshifts = ntuple(i -> shifts[i], length(shifts))
     for ind in CartesianIndices(dest)
         shifted_ind = ind.I .- myshifts
         value = filler
-        if !(any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src)))
+        if !(
+            any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src))
+        )
             value = src[shifted_ind...]
         end
         dest[ind.I...] = value
@@ -427,7 +448,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         good_count += 1
     end
 
-    if N==4 && maximum(abs.(si[3, :])) > zero(eltype(si))
+    if N == 4 && maximum(abs.(si[3, :])) > zero(eltype(si))
         for ind in good_indices
             selected_stack = selectdim(stack, ND, ind)
             linshift!(im_reg, selected_stack, si[:, ind])

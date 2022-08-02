@@ -56,7 +56,9 @@
 
     # Saving / loading with optimizer
     opt = ADAM(0.1)
-    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0; opt=opt)
+    testsave_path = SpatiallyVaryingDeconvolution.saveModel(
+        model, mktempdir(), [0.0], 1, 0; opt=opt
+    )
     loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.loadmodel(
         testsave_path; load_optimizer=true
     )
@@ -137,9 +139,22 @@ end
     plotdir = mktempdir()
     chkptdir = mktempdir()
     logfile = joinpath(mktempdir(), "logfile.log")
-    SpatiallyVaryingDeconvolution.train_model(model, train_x, train_y, test_x, test_y, loss_fn; 
-    epochs=1, epoch_offset=0, plotloss=true, plotevery=1, plotdirectory=plotdir, saveevery=1, checkpointdirectory=chkptdir,
-    logfile=logfile)
+    SpatiallyVaryingDeconvolution.train_model(
+        model,
+        train_x,
+        train_y,
+        test_x,
+        test_y,
+        loss_fn;
+        epochs=1,
+        epoch_offset=0,
+        plotloss=true,
+        plotevery=1,
+        plotdirectory=plotdir,
+        saveevery=1,
+        checkpointdirectory=chkptdir,
+        logfile=logfile,
+    )
     @test isfile(logfile)
     @test length(readdir(chkptdir)) == 2
     @test all([endswith(name, ".bson") for name in readdir(chkptdir)])
