@@ -344,26 +344,38 @@ function padND(x, n)
     return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
+function linshift!(dest::AbstractArray{T,N}, src::AbstractArray{T,N}, shifts::AbstractArray{F, 1}; filler=zero(T)) where {T,F,N}
+    myshifts = ntuple(i ->shifts[i], length(shifts))
+    for ind in CartesianIndices(dest)
+        shifted_ind = ind.I .- myshifts
+        value = filler
+        if !(any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src)))
+            value = src[shifted_ind...]
+        end
+        dest[ind.I...] = value
+    end
+end
+
 """
     registerPSFs(stack, ref_im)
-
 Find the shift between each PSF in `stack` and the reference PSF in `ref_im`
 and return the aligned PSFs and their shifts.
  
 If `ref_im` has size `(Ny, Nx)`/`(Ny, Nx, Nz)`, `stack` should have size
  `(Ny, Nx, nrPSFs)`/`(Ny, Nx, Nz, nrPSFs)`.
 """
-function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
+function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     @assert N in [3, 4] "stack needs to be a 3d/4d array but was $(N)d"
     ND = ndims(stack)
-    Ns = Array{Int,1}(undef, ND - 1)
-    Ns .= size(stack)[1:(end - 1)]
+    Ns = size(stack)[1:(end - 1)]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
     pad_function = x -> padND(x, ND - 1)
 
     function crossCorr(
-        x::Array{ComplexF64}, y::Array{ComplexF64}, iplan::AbstractFFTs.ScaledPlan
+        x::AbstractArray{Complex{T}},
+        y::AbstractArray{Complex{T}},
+        iplan::AbstractFFTs.ScaledPlan,
     )
         return fftshift(iplan * (x .* y))
     end
@@ -372,7 +384,7 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
         return sqrt(sum(abs2.(x)))
     end
 
-    yi_reg = Array{Float64,N}(undef, size(stack))
+    yi_reg = similar(stack, size(stack)...)
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
@@ -382,18 +394,16 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
     stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = zeros(Int, (ND - 1, M))
+    si = similar(ref_im, Int, ND - 1, M)
+    good_indices = []
     # Do FFT registration
     good_count = 1
-    dummy_for_plan = Array{eltype(stack_dct),ND - 1}(undef, (2 .* Ns)...)
+    dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
     plan = plan_rfft(dummy_for_plan; flags=FFTW.MEASURE)
-    dummy_for_iplan = Array{ComplexF64,ND - 1}(
-        undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...
-    )
-    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1]; flags=FFTW.MEASURE)
+    iplan = inv(plan)
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = Array{Float64,ND - 1}(undef, Ns...)
-    ft_stack = Array{ComplexF64,ND - 1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    im_reg = similar(stack_dct, Ns...)
+    ft_stack = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
     for m in 1:M
         mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
@@ -405,9 +415,23 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
         end
 
         si[:, good_count] .= 1 .+ ps .- max_location.I
-        circshift!(im_reg, selectdim(stack, ND, m), si[:, good_count])
-        selectdim(yi_reg, ND, good_count) .= im_reg
+        push!(good_indices, m)
         good_count += 1
     end
+
+    if N==4 && maximum(abs.(si[3, :])) > zero(eltype(si))
+        for ind in good_indices
+            selected_stack = selectdim(stack, ND, ind)
+            linshift!(im_reg, selected_stack, si[:, ind])
+            selectdim(yi_reg, ND, ind) .= im_reg
+        end
+    end
+
+    # Populate yi_reg
+    for ind in good_indices
+        circshift!(im_reg, selectdim(stack, ND, ind), si[:, ind])
+        selectdim(yi_reg, ND, ind) .= im_reg
+    end
+
     return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
 end
