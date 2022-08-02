@@ -3,14 +3,12 @@ export plot_prediction, plot_losses
 function sliced_plot(arr)
     l = @layout [a b; c d]
     clim = extrema(arr)
-    p_yx = heatmap(
-        arr[:, :, end ÷ 2 + 1]; clim=clim, colorbar=false, ylabel="y", ticks=false
+    p_yx = heatmap(maximum(arr; dims=3)[:,:,1]; clim=clim, colorbar=false, ylabel="y", ticks=false
     )
-    p_yz = heatmap(
-        arr[:, end ÷ 2 + 1, :]; clim=clim, colorbar=false, xlabel="z", ticks=false
+    p_yz = heatmap(maximum(arr; dims=2)[:,1,:] ; clim=clim, colorbar=false, xlabel="z", ticks=false
     )
     p_xz = heatmap(
-        arr[end ÷ 2 + 1, :, :]';
+        maximum(arr; dims=1)[1,:,:]';
         clim=clim,
         colorbar=false,
         ylabel="z",
