@@ -146,6 +146,14 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
     end
 end
 
+function _map_to_zero_one(x; T=Float32)
+    min_x, max_x = T.(extrema(x))
+    out_x = similar(x, T)
+    out_x .= x .- min_x
+    out_x .*= inv(max_x - min_x)
+    return out_x
+end
+
 function loadimages(
     complete_files, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
 )
@@ -155,8 +163,8 @@ function loadimages(
         filepath_truth = joinpath(truth_directory, filename)
         filepath_simulated = joinpath(simulated_directory, filename)
         # TODO: Flip images along first axis?
-        images_y[:, :, 1, i] .= imresize(load(filepath_truth), newsize)
-        images_x[:, :, 1, i] .= imresize(load(filepath_simulated), newsize)
+        images_y[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_truth), newsize))
+        images_x[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_simulated), newsize))
     end
     return images_x, images_y
 end
@@ -175,8 +183,8 @@ function loadvolumes(
     for (i, filename) in enumerate(complete_files)
         filepath_truth = joinpath(truth_directory, filename)
         filepath_simulated = joinpath(simulated_directory, filename)
-        volumes_y[:, :, :, 1, i] .= imresize(readPSFs(filepath_truth, truth_key), newsize)
-        volumes_x[:, :, :, 1, i] .= imresize(readPSFs(filepath_simulated, sim_key), newsize)
+        volumes_y[:, :, :, 1, i] .= _map_to_zero_one(imresize(readPSFs(filepath_truth, truth_key), newsize))
+        volumes_x[:, :, :, 1, i] .= _map_to_zero_one(imresize(readPSFs(filepath_simulated, sim_key), newsize))
     end
     return volumes_x, volumes_y
 end

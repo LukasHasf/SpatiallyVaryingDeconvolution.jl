@@ -223,6 +223,22 @@ end
     @test "testlossplot.png" in produced_files
 end
 
+@testset "_map_to_zero_one" begin
+    img = Float32.(rand(Int, 10, 10))
+    img_normalized = _map_to_zero_one(img)
+    @test size(img) == size(img_normalized)
+    @test eltype(img) == eltype(img_normalized)
+    min_i, max_i = extrema(img_normalized)
+    @test zero(eltype(img_normalized)) <= min_i <= max_i <= one(eltype(img_normalized))
+
+    img = Float32.(rand(Int, 10, 10, 10))
+    img_normalized = _map_to_zero_one(img)
+    @test size(img) == size(img_normalized)
+    @test eltype(img) == eltype(img_normalized)
+    min_i, max_i = extrema(img_normalized)
+    @test zero(eltype(img_normalized)) <= min_i <= max_i <= one(eltype(img_normalized))
+end
+
 @testset "Test load data" begin
     # First, save some temporary pictures
     imgs = rand(32, 32, 6)
