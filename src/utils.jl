@@ -224,7 +224,7 @@ end
 
 const CUDA_functional =
     CUDA.functional() &&
-    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0)) && false
+    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
 
 function my_cu(x)
     global CUDA_functional
