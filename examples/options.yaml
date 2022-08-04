@@ -1,8 +1,8 @@
 data:
     # Path to blurred data
-    x_path : ../../training_data/Data/JuliaForwardModel/
+    x_path : ../training_data/Data/JuliaForwardModel/
     # Path to ground truth
-    y_path : ../../training_data/Data/Ground_truth_downsampled/
+    y_path : ../training_data/Data/Ground_truth_downsampled/
     # Data needs to be resized to be a power of two along each axis
     resize_to : [64, 64]
     # Should the data be centered?
@@ -21,11 +21,11 @@ model:
 
 training:
     # Path to the PSF file
-    psfs_path: ../../SpatiallyVaryingConvolution/comaPSF.mat
+    psfs_path: ../SpatiallyVaryingConvolution/comaPSF.mat
     # Key under which the PSFs are stored
     psfs_key: psfs
     # How many training+testing samples to load from x_path and y_path
-    nrsamples: 700
+    nrsamples: 70
     # How many epochs to train
     epochs: 20
     # The employed optimizer
