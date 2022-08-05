@@ -69,7 +69,7 @@ function start_training(; T=Float32, kwargs...)
             ),
         )
     else
-        model, optimizer = my_gpu(loadmodel(options[:loadpath]))
+        model, optimizer = my_gpu(loadmodel(options[:checkpoint_path]))
     end
     pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")

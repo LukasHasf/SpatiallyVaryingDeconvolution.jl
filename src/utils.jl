@@ -79,10 +79,44 @@ function read_yaml(path)
     loadpath = nothing
     epoch_offset = 0
     output[:load_checkpoints] = options["training"]["checkpoints"]["load_checkpoints"]
-    if output[:load_checkpoints]
+    output[:checkpoint_dir] = options["training"]["checkpoints"]["checkpoint_dir"]
+    _ensure_existence(output[:checkpoint_dir])
+    if output[:load_checkpoints] isa Bool && output[:load_checkpoints]
         loadpath = options["training"]["checkpoints"]["checkpoint_path"]
         epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
         output[:checkpoint_path] = loadpath
+    elseif output[:load_checkpoints] == "latest"
+        # Find the most recent checkpoint in dir `checkpoint_dir`.
+        # This is where the previous run should've saved checkpoints
+        loadpath = output[:checkpoint_dir]
+        most_recent = nothing
+        most_recent_chkp = nothing
+        for file in readdir(loadpath)
+            if !endswith(file, ".bson")
+                continue
+            end
+            # Separate the date in the name and format it such that it can be parsed into a `DateTime` by `tryparse`
+            datestring = replace(split(file, "_loss")[1], "_" => ":")
+            date = tryparse(DateTime, datestring)
+            if isnothing(date)
+                continue
+            end
+            if isnothing(most_recent) || date > most_recent
+                most_recent = date
+                most_recent_chkp = file
+            end
+        end
+        if isnothing(most_recent_chkp)
+            @info "No checkpoints found. Starting training from scratch"
+            output[:load_checkpoints] = false
+        else
+            epoch_offset = parse(
+                Int, split(match(r"epoch[-][^.]*", most_recent_chkp).match, "-")[2]
+            )
+            output[:checkpoint_path] = joinpath(loadpath, most_recent_chkp)
+            output[:load_checkpoints] = true
+            @info "Resuming training from $most_recent_chkp"
+        end
     end
     output[:epoch_offset] = epoch_offset
     # Model parameters
@@ -104,8 +138,6 @@ function read_yaml(path)
     if output[:center_psfs]
         output[:psf_ref_index] = options["data"]["reference_index"]
     end
-    output[:checkpoint_dir] = options["training"]["checkpoints"]["checkpoint_dir"]
-    _ensure_existence(output[:checkpoint_dir])
     output[:save_interval] = options["training"]["checkpoints"]["save_interval"]
 
     # Check that boolean fields have right datatype
