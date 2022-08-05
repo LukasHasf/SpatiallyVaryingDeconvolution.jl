@@ -37,7 +37,7 @@ training:
     log_losses: false
     checkpoints:
         # Should a previously trained model be loaded?
-        load_checkpoints: latest
+        load_checkpoints: false
         # If load_checkpoints, what is the path to the checkpoint?
         checkpoint_path: nothing
         # Directory where new checkpoints will be saved
