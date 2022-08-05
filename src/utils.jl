@@ -95,7 +95,8 @@ function read_yaml(path)
             if !endswith(file, ".bson")
                 continue
             end
-            datestring = replace(split(file, "_loss")[1], "_"=>":")
+            # Separate the date in the name and format it such that it can be parsed into a `DateTime` by `tryparse`
+            datestring = replace(split(file, "_loss")[1], "_" => ":")
             date = tryparse(DateTime, datestring)
             if isnothing(date)
                 continue
@@ -109,8 +110,11 @@ function read_yaml(path)
             @info "No checkpoints found. Starting training from scratch"
             output[:load_checkpoints] = false
         else
-            epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", most_recent_chkp).match, "-")[2])
-            output[:checkpoint_path] = most_recent_chkp
+            epoch_offset = parse(
+                Int, split(match(r"epoch[-][^.]*", most_recent_chkp).match, "-")[2]
+            )
+            output[:checkpoint_path] = joinpath(loadpath, most_recent_chkp)
+            output[:load_checkpoints] = true
             @info "Resuming training from $most_recent_chkp"
         end
     end
