@@ -106,7 +106,7 @@ function read_yaml(path)
             end
         end
         if isnothing(most_recent_chkp)
-            @info "No checkpoints found. Starting training from scracth"
+            @info "No checkpoints found. Starting training from scratch"
             output[:load_checkpoints] = false
         else
             epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", most_recent_chkp).match, "-")[2])
