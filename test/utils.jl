@@ -328,7 +328,7 @@ end
 end
 
 @testset "read_yaml" begin
-    options = read_yaml("../examples/options.yaml")
+    options = read_yaml("options.yaml")
     @test options[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
     @test options[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
     @test options[:newsize] == (64, 64)
@@ -351,6 +351,9 @@ end
     @test options[:checkpoint_dir] == "examples/checkpoints/"
     @test options[:save_interval] == 1
     @test options[:log_losses] == false
+
+    options = read_yaml("options_latest.yaml")
+    @test options[:load_checkpoints] == false
 end
 
 @testset "_get_default_kernel" begin
