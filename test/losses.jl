@@ -26,8 +26,8 @@ end
 
 @testset "SSIM loss 2D" begin
     N = 60
-    img1 = rand(N, N, 1, 1)
-    img2 = rand(N, N, 1, 1)
+    img1 = rand(Float32, N, N, 1, 1)
+    img2 = rand(Float32, N, N, 1, 1)
     kernel = _get_default_kernel(2)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
@@ -42,8 +42,8 @@ end
 
 @testset "SSIM loss 3D" begin
     N = 60
-    img1 = rand(N, N, N, 1, 1)
-    img2 = rand(N, N, N, 1, 1)
+    img1 = rand(Float32, N, N, N, 1, 1)
+    img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
@@ -59,8 +59,8 @@ end
 
 @testset "L1_SSIM loss" begin
     N = 60
-    img1 = rand(N, N, N, 1, 1)
-    img2 = rand(N, N, N, 1, 1)
+    img1 = rand(Float32, N, N, N, 1, 1)
+    img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
     @test SpatiallyVaryingDeconvolution.L1_SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
