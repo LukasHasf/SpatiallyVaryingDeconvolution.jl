@@ -25,7 +25,7 @@ end
 end
 
 @testset "SSIM loss 2D" begin
-    N = 60
+    N = 30
     img1 = rand(Float32, N, N, 1, 1)
     img2 = rand(Float32, N, N, 1, 1)
     kernel = _get_default_kernel(2)
@@ -42,7 +42,7 @@ end
 end
 
 @testset "SSIM loss 3D" begin
-    N = 60
+    N = 30
     img1 = rand(Float32, N, N, N, 1, 1)
     img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
@@ -60,7 +60,7 @@ end
 end
 
 @testset "L1_SSIM loss" begin
-    N = 60
+    N = 30
     img1 = rand(Float32, N, N, N, 1, 1)
     img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
