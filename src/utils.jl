@@ -296,14 +296,20 @@ function my_gpu(x)
     return x
 end
 
-function _help_evaluate_loss(arr_x, arr_y, index::Union{Int,UnitRange}, loss_fn)
-    tmp_x = copy(selectdim(arr_x, ndims(arr_x), index))
-    tmp_y = copy(selectdim(arr_y, ndims(arr_y), index))
-    if index isa Int
-        tmp_x = reshape(tmp_x, size(tmp_x)..., 1)
-        tmp_y = reshape(tmp_y, size(tmp_y)..., 1)
-    end
-    return loss_fn(my_gpu(tmp_x), my_gpu(tmp_y))
+function _help_evaluate_loss(arr_x, arr_y, loss_fn)
+    reshape_size = tuple(size(arr_x)[1:(end-1)]..., 1)
+    slice_dim = ndims(arr_x)
+    slice_iterator = x -> reshape.(eachslice(x; dims=slice_dim), reshape_size...)
+    losses = loss_fn.(slice_iterator(arr_x),
+                    slice_iterator(arr_y))
+    #tmp_x = copy(selectdim(arr_x, ndims(arr_x), index))
+    #tmp_y = copy(selectdim(arr_y, ndims(arr_y), index))
+    #if index isa Int
+    #    tmp_x = reshape(tmp_x, size(tmp_x)..., 1)
+    #    tmp_y = reshape(tmp_y, size(tmp_y)..., 1)
+    #end
+    #return loss_fn(my_gpu(tmp_x), my_gpu(tmp_y))
+    return first.(losses)
 end
 
 """    _ensure_existence(dir)
