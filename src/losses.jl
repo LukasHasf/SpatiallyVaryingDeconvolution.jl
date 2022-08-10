@@ -1,9 +1,7 @@
 export L1_SSIM_loss
 
-function nn_convolve(img::AbstractArray{T,N}; kernel=AbstractArray{T}) where {T,N}
-    @assert ndims(img) == ndims(kernel) + 2
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
-    convolved = conv(my_gpu(img), kernel;)
+function nn_convolve(img::AbstractArray{T,N}; kernel::AbstractArray{T, N}) where {T,N}
+    convolved = conv(img, kernel;)
     return convolved
 end
 

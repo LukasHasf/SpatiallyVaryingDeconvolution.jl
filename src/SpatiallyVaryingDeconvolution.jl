@@ -75,6 +75,7 @@ function start_training(; T=Float32, kwargs...)
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     kernel = _get_default_kernel(dims; T=T)
+    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
 
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)

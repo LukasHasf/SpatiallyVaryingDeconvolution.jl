@@ -24,6 +24,7 @@
     loss(x, y) =
         let model = model
             kernel = Float32.(_get_default_kernel(2))
+            kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
@@ -102,6 +103,7 @@ end
     loss(x, y) =
         let model = model
             kernel = Float32.(_get_default_kernel(2))
+            kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrch, batchsize)
@@ -131,6 +133,7 @@ end
     test_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     test_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     kernel = _get_default_kernel(2; T=Float32)
+    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)
             return L1_SSIM_loss(model(x), y; kernel=kernel)
