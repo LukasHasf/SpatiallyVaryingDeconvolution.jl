@@ -24,16 +24,7 @@ function start_training(; T=Float32, kwargs...)
     options = Dict(kwargs)
     # Load and process the data
     psfs = readPSFs(options[:psfs_path], options[:psfs_key])
-    if options[:center_psfs]
-        options[:psf_ref_index] = if options[:psf_ref_index] == -1
-            size(psfs)[end] ÷ 2 + 1
-        else
-            options[:psf_ref_index]
-        end
-        psfs, _ = registerPSFs(
-            psfs, collect(selectdim(psfs, ndims(psfs), options[:psf_ref_index]))
-        )
-    end
+    psfs = _center_psfs(psfs, optins[:center_psfs], options[:psf_ref_index])
     x_data, y_data = load_data(
         options[:nrsamples],
         options[:truth_dir],
@@ -71,7 +62,6 @@ function start_training(; T=Float32, kwargs...)
     else
         model, optimizer = my_gpu(loadmodel(options[:checkpoint_path]))
     end
-    pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     kernel = _get_default_kernel(dims; T=T)

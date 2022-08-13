@@ -1,3 +1,19 @@
+@testset "pretty_summarysize" begin
+    @test pretty_summarysize(Int32(1)) == "4 bytes"
+    @test pretty_summarysize(Int64(1)) == "8 bytes"
+    @test pretty_summarysize(Float32(1)) == "4 bytes"
+    @test pretty_summarysize(zeros(Float32, 1000)) == "3.945 KiB"
+end
+
+@testset "_center_psfs" begin
+    psfs = rand(Float32, 10, 10 ,10)
+    @test psfs == _center_psfs(psfs, false, -1)
+    psfs2, _ = registerPSFs(psfs, psfs[:, :, 6])
+    @test psfs2 == _center_psfs(psfs, true, -1)
+    psfs3, _ = registerPSFs(psfs, psfs[:, :, 2])
+    @test psfs3 == _center_psfs(psfs, true, 2)
+end
+
 @testset "train_test_split" begin
     x = rand(10)
     a, b = train_test_split(x)

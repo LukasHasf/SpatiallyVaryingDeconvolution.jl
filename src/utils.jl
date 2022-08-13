@@ -8,6 +8,7 @@ export train_real_gradient!
 export read_yaml
 export _get_default_kernel
 export write_to_logfile
+export _center_psfs
 
 using MAT
 using HDF5
@@ -372,6 +373,23 @@ function train_real_gradient!(loss, ps, data, opt)
         end
     end
 end
+
+function _center_psfs(psfs, center, ref_index)
+    if !center
+        return psfs
+    end
+    ref_index = if ref_index == -1
+        size(psfs)[end] ÷ 2 + 1
+    else
+        ref_index
+    end
+    psfs, _ = registerPSFs(
+        psfs, collect(selectdim(psfs, ndims(psfs), ref_index))
+    )
+    return psfs
+end
+
+pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
