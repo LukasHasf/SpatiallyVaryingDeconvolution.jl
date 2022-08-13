@@ -6,7 +6,7 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, nrPSFs)
-    model = SpatiallyVaryingDeconvolution.makemodel(psfs)
+    model = SpatiallyVaryingDeconvolution.make_model(psfs)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
     # Test that inference is working
@@ -14,8 +14,8 @@
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
-    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(model, mktempdir(), [0.0], 1, 0)
+    loaded_model = SpatiallyVaryingDeconvolution.load_model(
         testsave_path; load_optimizer=false
     )
     @test loaded_model(img) == prediction
@@ -48,7 +48,7 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, Nz, nrPSFs)
-    model = SpatiallyVaryingDeconvolution.makemodel(psfs)
+    model = SpatiallyVaryingDeconvolution.make_model(psfs)
     img = rand(Float32, Ny, Nx, Nz, nrchannels, batchsize)
     prediction = model(img)
     @test ndims(prediction) == ndims(img)
@@ -57,10 +57,10 @@
 
     # Saving / loading with optimizer
     opt = ADAM(0.1)
-    testsave_path = SpatiallyVaryingDeconvolution.saveModel(
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
         model, mktempdir(), [0.0], 1, 0; opt=opt
     )
-    loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.loadmodel(
+    loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.load_model(
         testsave_path; load_optimizer=true
     )
     @test loaded_model(img) == prediction
@@ -94,8 +94,8 @@ end
     @test eltype(prediction) == eltype(img)
 
     # Saving / loading without optimizer
-    testsave_path = SpatiallyVaryingDeconvolution.saveModel(model, mktempdir(), [0.0], 1, 0)
-    loaded_model = SpatiallyVaryingDeconvolution.loadmodel(
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(model, mktempdir(), [0.0], 1, 0)
+    loaded_model = SpatiallyVaryingDeconvolution.load_model(
         testsave_path; load_optimizer=false
     )
     @test loaded_model(img) == prediction
@@ -127,7 +127,7 @@ end
     nrPSFs = 3
     batchsize = 1
     psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
-    model = my_gpu(SpatiallyVaryingDeconvolution.makemodel(psfs))
+    model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     train_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     test_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))

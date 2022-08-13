@@ -1,6 +1,6 @@
 module SpatiallyVaryingDeconvolution
 
-export start_training, loadmodel
+export start_training, load_model
 
 using YAML
 using Images, Colors
@@ -31,7 +31,7 @@ function start_training(; T=Float32, kwargs...)
         options[:sim_dir];
         newsize=options[:newsize],
     )
-    x_data = applynoise(x_data)
+    x_data = apply_noise(x_data)
     x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
     y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
     train_x, test_x = train_test_split(x_data)
@@ -50,7 +50,7 @@ function start_training(; T=Float32, kwargs...)
         end
         resized_psfs = my_gpu(resized_psfs)
         model = my_gpu(
-            makemodel(
+            make_model(
                 resized_psfs;
                 depth=options[:depth],
                 attention=options[:attention],
@@ -60,7 +60,7 @@ function start_training(; T=Float32, kwargs...)
             ),
         )
     else
-        model, optimizer = my_gpu(loadmodel(options[:checkpoint_path]))
+        model, optimizer = my_gpu(load_model(options[:checkpoint_path]))
     end
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function

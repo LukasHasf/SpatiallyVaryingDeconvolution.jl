@@ -72,14 +72,14 @@ end
     @test UNet.channelsize(vol2) == 8
 end
 
-@testset "uRelu" begin
+@testset "u_relu" begin
     x = -10:0.1:10
-    @test UNet.uRelu(x) == relu.(x)
+    @test UNet.u_relu(x) == relu.(x)
 end
 
-@testset "uTanh" begin
+@testset "u_tanh" begin
     x = -10:0.1:10
-    @test UNet.uTanh(x) == tanh.(x)
+    @test UNet.u_tanh(x) == tanh.(x)
 end
 
 @testset "train_real_gradient!" begin
@@ -128,7 +128,7 @@ end
 @testset "addnoise" begin
     # Test addnoise for images
     img = ones(Float64, 200, 300, 1, 1)
-    nimg = addnoise(img)
+    nimg = add_noise(img)
     # Since img is just ones, dominating noise is Gaussian with std 1 * (rand(Float64) * 0.02 + 0.005)and mean zero => 0 to 0.025
     # But there is still Poisson noise of 1/sqrt(x) where x is 500 ... 5000
     @test size(img) == size(nimg)
@@ -136,19 +136,19 @@ end
     @test mean(nimg) ≈ 1.0 atol = 0.01
 
     img = ones(Float64, 200, 200, 1, 1) .* 1000
-    nimg = addnoise(img)
+    nimg = add_noise(img)
     @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
     @test mean(nimg) ≈ 1000.0 atol = 10
 
     # Test addnoise for volumes
     img = ones(Float32, 100, 200, 300, 1, 1)
-    nimg = addnoise(img)
+    nimg = add_noise(img)
     @test size(img) == size(nimg)
     @test zero(eltype(nimg)) < std(nimg) < 0.025 + inv(sqrt(500))
     @test mean(nimg) ≈ 1.0 atol = 0.01
 
     img = ones(Float32, 100, 200, 300, 1, 1) .* 1000
-    nimg = addnoise(img)
+    nimg = add_noise(img)
     @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
     @test mean(nimg) ≈ 1000.0 atol = 10
 end
@@ -157,7 +157,7 @@ end
     # Testing applynoise for images
     scales = [1.0, 20.0, 300.0, 4000.0]
     img_batch = ones(Float32, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, :)
-    noisy_batch = applynoise(img_batch)
+    noisy_batch = apply_noise(img_batch)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
         s = scales[i]
@@ -170,7 +170,7 @@ end
     scales = [1.0, 20.0, 300.0, 4000.0]
     img_batch =
         ones(Float32, 100, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, 1, :)
-    noisy_batch = applynoise(img_batch)
+    noisy_batch = apply_noise(img_batch)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
         s = scales[i]

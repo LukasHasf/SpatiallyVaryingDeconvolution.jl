@@ -1,5 +1,5 @@
 export readPSFs, registerPSFs
-export load_data, applynoise
+export load_data, apply_noise
 export train_test_split
 export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
@@ -29,14 +29,14 @@ function load_dataset(
     if nd == 2
         loader =
             x -> my_gpu(
-                addnoise(
-                    loadimages(x, truth_directory, simulated_directory; newsize=newsize)
+                add_noise(
+                    load_images(x, truth_directory, simulated_directory; newsize=newsize)
                 ),
             )
     elseif nd == 3
         loader =
             x -> my_gpu(
-                addnoise(
+                add_noise(
                     loadvolumes(x, truth_directory, simulated_directory; newsize=newsize),
                 ),
             )
@@ -44,7 +44,7 @@ function load_dataset(
     return mappedarray(loader, files)
 end
 
-function addnoise(img)
+function add_noise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
     peak = rand(eltype(img)) * 4500 + 500
     img = poisson(img, peak)
@@ -52,10 +52,10 @@ function addnoise(img)
     return img
 end
 
-function applynoise(imgs)
+function apply_noise(imgs)
     N = ndims(imgs)
     for i in 1:size(imgs, N)
-        selectdim(imgs, N, i) .= addnoise(collect(selectdim(imgs, N, i)))
+        selectdim(imgs, N, i) .= add_noise(collect(selectdim(imgs, N, i)))
     end
     return imgs
 end
@@ -195,7 +195,7 @@ function _map_to_zero_one(x; T=Float32)
     return out_x
 end
 
-function loadimages(
+function load_images(
     complete_files, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
 )
     images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
@@ -212,7 +212,7 @@ function loadimages(
     return images_x, images_y
 end
 
-function loadvolumes(
+function load_volumes(
     complete_files,
     truth_directory,
     simulated_directory;
@@ -244,14 +244,14 @@ function load_data(
     complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
     if any([endswith(complete_files[1], fileEnding) for fileEnding in imageFileEndings])
         # 2D case
-        x_data, y_data = loadimages(
+        x_data, y_data = load_images(
             complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
         )
     elseif any([
         endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings
     ])
         # 3D case
-        x_data, y_data = loadvolumes(
+        x_data, y_data = load_volumes(
             complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
         )
     end

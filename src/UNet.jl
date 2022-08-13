@@ -10,15 +10,15 @@ function channelsize(x)
     return size(x, ndims(x) - 1)
 end
 
-function uRelu(x)
+function u_relu(x)
     return relu.(x)
 end
 
-function uTanh(x)
+function u_tanh(x)
     return tanh.(x)
 end
 
-function uUpsampleNearest(x)
+function u_upsample_nearest(x)
     return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
 
@@ -151,9 +151,9 @@ function ConvBlock(
     end
     actfun = identity
     if activation == "relu"
-        actfun = uRelu
+        actfun = u_relu
     elseif activation == "tanh"
-        actfun = uTanh
+        actfun = u_tanh
     end
 
     if dropout
@@ -298,7 +298,7 @@ function Unet(
     up_blocks = []
     for i in 1:depth
         if up == "nearest"
-            upsample_function = uUpsampleNearest
+            upsample_function = u_upsample_nearest
         elseif up == "tconv"
             chs = 16 * 2^(depth - (i - 1))
             upsample_function = ConvTranspose(

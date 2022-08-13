@@ -1,14 +1,14 @@
-export makemodel
+export make_model
 export train_model
-export saveModel
-export loadmodel
+export save_model
+export load_model
 
-""" loadmodel(path; load_optimizer=true)
+""" load_model(path; load_optimizer=true)
 
 Load a `MultiWienerNet` from a checkpoint saved at `path`. Optionally load the optimizer 
 used for training with `load_optimizer`. Returns `(model [, optimizer])`
 """
-function loadmodel(path; load_optimizer=true)
+function load_model(path; load_optimizer=true)
     Core.eval(Main, :(using Flux: Flux))
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
@@ -27,7 +27,7 @@ function loadmodel(path; load_optimizer=true)
     end
 end
 
-"""    makemodel(psfs; kwargs)
+"""    make_model(psfs; kwargs)
 
 Create a MultiWiener model and initialize the Wiener deconvolution with `psfs`.
 Keyword arguments are:
@@ -38,7 +38,7 @@ Keyword arguments are:
 - `final_attention::Bool` : `cat` all activations in the decoder path of the UNet
  and pass them through an attention gate and a convolution before outputting
 """
-function makemodel(
+function make_model(
     psfs; attention=true, dropout=true, depth=3, separable=false, final_attention=true
 )
     # Define Neural Network
@@ -62,12 +62,12 @@ function makemodel(
     return model
 end
 
-function saveModel(
+function save_model(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
     model = cpu(model)
     if model isa Flux.Chain
-        model = Chain(MultiWienerNet.toMultiWiener(model[1]), model[2])
+        model = Chain(MultiWienerNet.to_multiwiener(model[1]), model[2])
     end
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
@@ -129,7 +129,7 @@ function train_model(
         )
 
         if epoch % saveevery == 0
-            saveModel(
+            save_model(
                 model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer
             )
         end
@@ -148,7 +148,7 @@ function train_model(
         print("\n")
     end
     # At the end of training, save a checkpoint
-    return saveModel(
+    return save_model(
         model,
         checkpointdirectory,
         losses_train,

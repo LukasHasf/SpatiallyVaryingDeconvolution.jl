@@ -25,7 +25,7 @@ function MultiWiener(PSFs::AbstractArray)
     return MultiWiener{eltype(PSFs),ndims(PSFs)}(PSFs, lambda)
 end
 
-function toMultiWiener(m)
+function to_multiwiener(m)
     return MultiWiener(m.PSF, m.lambda)
 end
 
