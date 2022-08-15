@@ -24,7 +24,7 @@ function start_training(; T=Float32, kwargs...)
     options = Dict(kwargs)
     # Load and process the data
     psfs = readPSFs(options[:psfs_path], options[:psfs_key])
-    psfs = _center_psfs(psfs, optins[:center_psfs], options[:psf_ref_index])
+    psfs = _center_psfs(psfs, options[:center_psfs], options[:psf_ref_index])
     x_data, y_data = load_data(
         options[:nrsamples],
         options[:truth_dir],
