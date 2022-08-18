@@ -100,7 +100,7 @@ function train_model(
     plotdirectory="training_progress/",
     saveevery=1,
     checkpointdirectory="checkpoints/",
-    optimizer=Flux.Optimise.ADAM(),
+    optimizer=Adam(),
     logfile=nothing,
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))

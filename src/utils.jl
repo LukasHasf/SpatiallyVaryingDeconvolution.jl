@@ -63,11 +63,11 @@ end
 function read_yaml(path)
     # Define dictionaries
     optimizer_dict = Dict(
-        "ADAM" => Flux.Optimise.ADAM,
-        "Descent" => Flux.Optimise.Descent,
-        "ADAMW" => Flux.Optimise.ADAMW,
-        "ADAGrad" => Flux.Optimise.ADAGrad,
-        "ADADelta" => Flux.Optimise.ADADelta,
+        "ADAM" => Adam,
+        "Descent" => Descent,
+        "ADAMW" => AdamW,
+        "ADAGrad" => AdaGrad,
+        "ADADelta" => AdaDelta,
     )
     options = YAML.load_file(path)
     optimizer_kw = options["training"]["optimizer"]

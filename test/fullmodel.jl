@@ -56,7 +56,7 @@
     @test eltype(prediction) == eltype(img)
 
     # Saving / loading with optimizer
-    opt = ADAM(0.1)
+    opt = Adam(0.1)
     testsave_path = SpatiallyVaryingDeconvolution.save_model(
         model, mktempdir(), [0.0], 1, 0; opt=opt
     )

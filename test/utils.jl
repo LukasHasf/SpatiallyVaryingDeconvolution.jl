@@ -257,7 +257,7 @@ end
 
 @testset "Test load data" begin
     # First, save some temporary pictures
-    imgs = rand(32, 32, 6)
+    imgs = rand(Float32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -277,7 +277,7 @@ end
     @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol = 1e-1
 
     # Similarly for 3D volumes
-    imgs = rand(32, 32, 32, 6)
+    imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -298,7 +298,7 @@ end
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
 
     # Similarly for 3D volumes in MAT format
-    imgs = rand(32, 32, 32, 6)
+    imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -355,7 +355,7 @@ end
     @test options[:psfs_key] == "psfs"
     @test options[:nrsamples] == 700
     @test options[:epochs] == 20
-    @test options[:optimizer] isa ADADelta
+    @test options[:optimizer] isa AdaDelta
     @test options[:plot_interval] == 1
     @test options[:plot_dir] == "examples/training_progress/"
     @test options[:load_checkpoints] == false
