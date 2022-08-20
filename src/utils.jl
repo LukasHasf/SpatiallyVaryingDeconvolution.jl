@@ -306,7 +306,7 @@ end
 
 """    _get_default_kernel(dims; T=Float32)
 
-Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5.
+Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5 with `eltype` `T`.
 """
 function _get_default_kernel(dims; T=Float32)
     mygaussian = gaussian(11, 1.5; T=T)
