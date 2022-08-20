@@ -170,21 +170,11 @@ Return the filenames of the first `nrsamples` files that are both in `truth_dire
 and `simulated_directory`.
 """
 function find_complete(nrsamples, truth_directory, simulated_directory)
-    complete_files = Array{String,1}(undef, nrsamples)
-    counter = 0
     simulated_files = readdir(simulated_directory)
-    for filename in readdir(truth_directory)
-        if filename in simulated_files
-            complete_files[counter + 1] = filename
-            counter += 1
-        end
-        if counter == nrsamples
-            return complete_files
-        end
-    end
-    if counter < nrsamples
-        return view(complete_files, 1:counter)
-    end
+    truth_files = readdir(truth_directory)
+    complete_files = simulated_files ∩ truth_files
+    upper_index = min(length(complete_files), nrsamples)
+    return view(complete_files, 1:upper_index)
 end
 
 function _map_to_zero_one(x; T=Float32)
