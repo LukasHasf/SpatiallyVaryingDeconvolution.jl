@@ -372,9 +372,12 @@ end
     # Create 2 empty checkpoints
     path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson" 
     path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    path3 = "examples/checkpoints/not_a_bson_file.txt"
     io = open(path1, "w")
     close(io)
     io = open(path2, "w")
+    close(io)
+    io = open(path3, "w")
     close(io)
     options = read_yaml("options_latest.yaml")
     @test options[:load_checkpoints] == true
@@ -383,6 +386,7 @@ end
     # Clean up
     rm(path1)
     rm(path2)
+    rm(path3)
 
     options = read_yaml("options2.yaml")
     @test options[:load_checkpoints] == true
