@@ -20,8 +20,10 @@ using Noise
 using MappedArrays
 using FileIO
 using CUDA
+using Dates
 using ProgressMeter
 
+#=
 function load_dataset(
     nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128, 128)
 )
@@ -43,6 +45,7 @@ function load_dataset(
     end
     return mappedarray(loader, files)
 end
+=#
 
 function add_noise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
