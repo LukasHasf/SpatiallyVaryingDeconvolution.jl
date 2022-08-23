@@ -364,8 +364,30 @@ end
     @test options[:save_interval] == 1
     @test options[:log_losses] == false
 
+    # Latest with no checkpoint found
     options = read_yaml("options_latest.yaml")
     @test options[:load_checkpoints] == false
+
+    # Latest with fake checkpoints
+    # Create 2 empty checkpoints
+    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson" 
+    path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    io = open(path1, "w")
+    close(io)
+    io = open(path2, "w")
+    close(io)
+    options = read_yaml("options_latest.yaml")
+    @test options[:load_checkpoints] == true
+    @test options[:checkpoint_path] == path2
+
+    # Clean up
+    rm(path1)
+    rm(path2)
+
+    options = read_yaml("options2.yaml")
+    @test options[:load_checkpoints] == true
+    @test options[:checkpoint_path] == "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    @test options[:epoch_offset] == 8
 end
 
 @testset "_get_default_kernel" begin
