@@ -261,7 +261,7 @@ function train_test_split(x; ratio=0.7, dim=ndims(x))
     return train, test
 end
 
-function gaussian(window_size, sigma; T=Float32)
+function gaussian(window_size=11, sigma=1.5; T=Float32)
     x = 1:window_size
     gauss = @. exp(-(x - ((window_size ÷ 2) + 1))^2 / (2 * sigma^2))
     return T.(gauss / sum(gauss))
@@ -309,7 +309,7 @@ end
 Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5 with `eltype` `T`.
 """
 function _get_default_kernel(dims; T=Float32)
-    mygaussian = gaussian(11, 1.5; T=T)
+    mygaussian = gaussian(; T=T)
     if dims == 3
         @tullio kernel[x, y, z] := mygaussian[x] * mygaussian[y] * mygaussian[z]
     elseif dims == 2
