@@ -296,12 +296,13 @@ function my_gpu(x)
     return x
 end
 
-function _help_evaluate_loss(arr_x, arr_y, loss_fn)
-    reshape_size = tuple(size(arr_x)[1:(end-1)]..., 1)
-    slice_dim = ndims(arr_x)
-    slice_iterator = x -> reshape.(eachslice(x; dims=slice_dim), reshape_size...)
-    losses = loss_fn.(slice_iterator(arr_x),
-                    slice_iterator(arr_y))
+function _help_evaluate_loss(data, loss)
+    losses = zeros(length(data))
+    @showprogress "Evaluation prgress:" for (i, d) in enumerate(data)
+        d = my_cu(d)
+        losses[i] = loss(Flux.Optimise.batchmemaybe(d)...)
+        d = nothing
+    end
     return first.(losses)
 end
 
