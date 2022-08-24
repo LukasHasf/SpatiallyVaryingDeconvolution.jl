@@ -274,10 +274,13 @@ const CUDA_functional =
     CUDA.functional() &&
     any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
 
-if CUDA_functional
-    @info "Running on GPU"
-else
-    @info "Running on CPU"
+function show_cuda_capability()
+    global CUDA_functional
+    if CUDA_functional
+        @info "Running on GPU"
+    else
+        @info "Running on CPU"
+    end
 end
 
 function my_cu(x)
