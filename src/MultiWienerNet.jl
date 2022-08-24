@@ -1,6 +1,9 @@
 module MultiWienerNet
 using Flux
 using FFTW
+using Tullio
+
+include("utils.jl")
 
 """    MultiWiener{T,N}
 
@@ -35,24 +38,27 @@ function MultiWienerWithPlan(PSFs)
 end
 
 function toMultiWienerWithPlan(m::MultiWiener)
-    nrPSFs = size(m.PSF, ndims(m.PSF))
+    sim_psf = my_gpu(similar(m.PSF))
+    nd = ndims(sim_psf)
+    sz = size(sim_psf)
+    nrPSFs = size(m.PSF, nd)
     plan_x = plan_rfft(
-        similar(m.PSF, size(m.PSF)[1:(ndims(m.PSF) - 1)]..., 1, 1), 1:(ndims(m.PSF) - 1)
+        similar(sim_psf, sz[1:(nd - 1)]..., 1, 1), 1:(nd - 1)
     )
-    plan = plan_rfft(similar(m.PSF), 1:(ndims(m.PSF) - 1))
-    dummy_for_inv = similar(
-        m.PSF,
-        complex(eltype(m.PSF)),
+    plan = plan_rfft(sim_psf, 1:(nd - 1))
+    dummy_for_inv = my_gpu(similar(
+        sim_psf,
+        complex(eltype(sim_psf)),
         trunc.(
             Int,
-            size(m.PSF)[1:(ndims(m.PSF) - 1)] .÷ [2, ones(ndims(m.PSF) - 2)...] .+
-            [1, zeros(ndims(m.PSF) - 2)...],
+            sz[1:(nd - 1)] .÷ [2, ones(nd - 2)...] .+
+            [1, zeros(nd - 2)...],
         )...,
         nrPSFs,
         1,
-    )
+    ))
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
-    return MultiWienerWithPlan(m.PSF, m.lambda, plan, inv_plan, plan_x)
+    return MultiWienerWithPlan(my_gpu(m.PSF), my_gpu(m.lambda), plan, inv_plan, plan_x)
 end
 
 """    (m::MultiWiener)(x)
