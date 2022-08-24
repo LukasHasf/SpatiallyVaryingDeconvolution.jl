@@ -20,8 +20,10 @@ using Noise
 using MappedArrays
 using FileIO
 using CUDA
+using Dates
 using ProgressMeter
 
+#=
 function load_dataset(
     nrsamples, truth_directory, simulated_directory, nd=2; newsize=(128, 128)
 )
@@ -43,6 +45,7 @@ function load_dataset(
     end
     return mappedarray(loader, files)
 end
+=#
 
 function add_noise(img)
     g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
@@ -63,11 +66,11 @@ end
 function read_yaml(path)
     # Define dictionaries
     optimizer_dict = Dict(
-        "ADAM" => Flux.Optimise.ADAM,
-        "Descent" => Flux.Optimise.Descent,
-        "ADAMW" => Flux.Optimise.ADAMW,
-        "ADAGrad" => Flux.Optimise.ADAGrad,
-        "ADADelta" => Flux.Optimise.ADADelta,
+        "ADAM" => Adam,
+        "Descent" => Descent,
+        "ADAMW" => AdamW,
+        "ADAGrad" => AdaGrad,
+        "ADADelta" => AdaDelta,
     )
     options = YAML.load_file(path)
     optimizer_kw = options["training"]["optimizer"]
@@ -170,21 +173,11 @@ Return the filenames of the first `nrsamples` files that are both in `truth_dire
 and `simulated_directory`.
 """
 function find_complete(nrsamples, truth_directory, simulated_directory)
-    complete_files = Array{String,1}(undef, nrsamples)
-    counter = 0
     simulated_files = readdir(simulated_directory)
-    for filename in readdir(truth_directory)
-        if filename in simulated_files
-            complete_files[counter + 1] = filename
-            counter += 1
-        end
-        if counter == nrsamples
-            return complete_files
-        end
-    end
-    if counter < nrsamples
-        return view(complete_files, 1:counter)
-    end
+    truth_files = readdir(truth_directory)
+    complete_files = simulated_files ∩ truth_files
+    upper_index = min(length(complete_files), nrsamples)
+    return view(complete_files, 1:upper_index)
 end
 
 function _map_to_zero_one(x; T=Float32)
@@ -271,7 +264,7 @@ function train_test_split(x; ratio=0.7, dim=ndims(x))
     return train, test
 end
 
-function gaussian(window_size, sigma; T=Float32)
+function gaussian(window_size=11, sigma=1.5; T=Float32)
     x = 1:window_size
     gauss = @. exp(-(x - ((window_size ÷ 2) + 1))^2 / (2 * sigma^2))
     return T.(gauss / sum(gauss))
@@ -322,10 +315,10 @@ end
 
 """    _get_default_kernel(dims; T=Float32)
 
-Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5.
+Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5 with `eltype` `T`.
 """
 function _get_default_kernel(dims; T=Float32)
-    mygaussian = gaussian(11, 1.5; T=T)
+    mygaussian = gaussian(; T=T)
     if dims == 3
         @tullio kernel[x, y, z] := mygaussian[x] * mygaussian[y] * mygaussian[z]
     elseif dims == 2

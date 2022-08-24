@@ -7,6 +7,7 @@ using Flux
 using BSON: @save
 using Statistics
 using YAML
+using Random
 include("../src/MultiWienerNet.jl")
 include("../src/utils.jl")
 include("../src/UNet.jl")

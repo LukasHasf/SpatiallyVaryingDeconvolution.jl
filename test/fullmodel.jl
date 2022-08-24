@@ -21,10 +21,10 @@
     @test loaded_model(img) == prediction
 
     # Check that model is differentiable
+    kernel = Float32.(_get_default_kernel(2))
+    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
     loss(x, y) =
-        let model = model
-            kernel = Float32.(_get_default_kernel(2))
-            kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+        let model = model, kernel=kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
@@ -56,7 +56,7 @@
     @test eltype(prediction) == eltype(img)
 
     # Saving / loading with optimizer
-    opt = ADAM(0.1)
+    opt = Adam(0.1)
     testsave_path = SpatiallyVaryingDeconvolution.save_model(
         model, mktempdir(), [0.0], 1, 0; opt=opt
     )
@@ -100,10 +100,10 @@ end
     )
     @test loaded_model(img) == prediction
 
+    kernel = Float32.(_get_default_kernel(2))
+    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
     loss(x, y) =
-        let model = model
-            kernel = Float32.(_get_default_kernel(2))
-            kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+        let model = model, kernel=kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrch, batchsize)

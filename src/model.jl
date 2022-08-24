@@ -13,6 +13,7 @@ function load_model(path; load_optimizer=true)
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
     Core.eval(Main, :(using FFTW: FFTW))
+    Core.eval(Main, :(import Pkg; Pkg.add("AbstractFFTs")))
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
@@ -100,7 +101,7 @@ function train_model(
     plotdirectory="training_progress/",
     saveevery=1,
     checkpointdirectory="checkpoints/",
-    optimizer=Flux.Optimise.ADAM(),
+    optimizer=Adam(),
     logfile=nothing,
 )
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))

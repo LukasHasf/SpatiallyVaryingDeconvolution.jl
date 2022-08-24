@@ -257,7 +257,7 @@ end
 
 @testset "Test load data" begin
     # First, save some temporary pictures
-    imgs = rand(32, 32, 6)
+    imgs = rand(Float32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -277,7 +277,7 @@ end
     @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol = 1e-1
 
     # Similarly for 3D volumes
-    imgs = rand(32, 32, 32, 6)
+    imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -298,7 +298,7 @@ end
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
 
     # Similarly for 3D volumes in MAT format
-    imgs = rand(32, 32, 32, 6)
+    imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
@@ -355,7 +355,7 @@ end
     @test options[:psfs_key] == "psfs"
     @test options[:nrsamples] == 700
     @test options[:epochs] == 20
-    @test options[:optimizer] isa ADADelta
+    @test options[:optimizer] isa AdaDelta
     @test options[:plot_interval] == 1
     @test options[:plot_dir] == "examples/training_progress/"
     @test options[:load_checkpoints] == false
@@ -364,8 +364,34 @@ end
     @test options[:save_interval] == 1
     @test options[:log_losses] == false
 
+    # Latest with no checkpoint found
     options = read_yaml("options_latest.yaml")
     @test options[:load_checkpoints] == false
+
+    # Latest with fake checkpoints
+    # Create 2 empty checkpoints
+    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson" 
+    path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    path3 = "examples/checkpoints/not_a_bson_file.txt"
+    io = open(path1, "w")
+    close(io)
+    io = open(path2, "w")
+    close(io)
+    io = open(path3, "w")
+    close(io)
+    options = read_yaml("options_latest.yaml")
+    @test options[:load_checkpoints] == true
+    @test options[:checkpoint_path] == path2
+
+    # Clean up
+    rm(path1)
+    rm(path2)
+    rm(path3)
+
+    options = read_yaml("options2.yaml")
+    @test options[:load_checkpoints] == true
+    @test options[:checkpoint_path] == "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    @test options[:epoch_offset] == 8
 end
 
 @testset "_get_default_kernel" begin

@@ -227,11 +227,10 @@ struct Unet{T,F,R,X,Y}
 end
 
 function Flux.trainable(u::Unet)
-    return if !isnothing(u.residual_block)
-        (u.encoder, u.decoder, u.residual_block)
-    else
-        (u.encoder, u.decoder)
-    end
+    attention = !(u.attention_module === identity)
+    residual = !isnothing(u.residual_block)
+    trainables = tuple(u.encoder, u.decoder, [m for (m,b) in zip([u.residual_block, u.attention_module], [residual, attention]) if b]...)
+    return trainables
 end
 
 Flux.@functor Unet
@@ -345,11 +344,11 @@ function (u::Unet)(x)
     cs = Flux.activations(u.encoder, x)
     ups = decode(u.decoder, cs)
     up = first(ups)
-    ups = (Base.tail(ups)..., cs[end])
     if !isnothing(u.residual_block)
         up = up .+ u.residual_block(x)
     end
     if !(u.attention_module == identity)
+        ups = (Base.tail(ups)..., cs[end])
         final_block = ups[1]
         final_size = size(final_block)[1:(end - 2)]
         for activation in ups[2:end]
