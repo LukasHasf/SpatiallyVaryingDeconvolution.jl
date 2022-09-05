@@ -13,7 +13,6 @@ function load_model(path; load_optimizer=true)
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
     Core.eval(Main, :(using FFTW: FFTW))
-    Core.eval(Main, :(import Pkg; Pkg.add("AbstractFFTs")))
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
@@ -120,8 +119,8 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, optimizer)
         trainmode!(model, false)
-        losses_train[epoch] = mean(_help_evaluate_loss(train_x, train_y, loss))
-        losses_test[epoch] = mean(_help_evaluate_loss(test_x, test_y, loss))
+        losses_train[epoch] = mean(_help_evaluate_loss(Flux.DataLoader((train_x, train_y); batchsize=1), loss))
+        losses_test[epoch] = mean(_help_evaluate_loss(Flux.DataLoader((test_x, test_y);batchsize=1), loss))
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *

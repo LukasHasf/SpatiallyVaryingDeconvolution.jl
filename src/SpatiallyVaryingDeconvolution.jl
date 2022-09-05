@@ -12,13 +12,15 @@ using Statistics
 using Dates
 using Plots
 using ProgressMeter
+include("utils.jl")
 include("UNet.jl")
 include("MultiWienerNet.jl")
-include("utils.jl")
 include("losses.jl")
 include("plotting.jl")
 include("model.jl")
 include("main.jl")
+
+show_cuda_capability()
 
 export start_training
 

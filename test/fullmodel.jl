@@ -22,7 +22,7 @@
 
     # Check that model is differentiable
     kernel = Float32.(_get_default_kernel(2))
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
     loss(x, y) =
         let model = model, kernel=kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
@@ -101,7 +101,7 @@ end
     @test loaded_model(img) == prediction
 
     kernel = Float32.(_get_default_kernel(2))
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
     loss(x, y) =
         let model = model, kernel=kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)

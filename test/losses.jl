@@ -29,7 +29,7 @@ end
     img1 = rand(Float32, N, N, 1, 1)
     img2 = rand(Float32, N, N, 1, 1)
     kernel = _get_default_kernel(2)
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 
@@ -46,7 +46,7 @@ end
     img1 = rand(Float32, N, N, N, 1, 1)
     img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
     @test SpatiallyVaryingDeconvolution.SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 
@@ -64,7 +64,7 @@ end
     img1 = rand(Float32, N, N, N, 1, 1)
     img2 = rand(Float32, N, N, N, 1, 1)
     kernel = _get_default_kernel(3)
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
     @test SpatiallyVaryingDeconvolution.L1_SSIM_loss(img1, img1; kernel=kernel) ==
         zero(eltype(img1))
 
