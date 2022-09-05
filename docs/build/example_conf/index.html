@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example configuration file · SpatiallyVaryingDeconvolution.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">SpatiallyVaryingDeconvolution.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">SpatiallyVaryingDeconvolution.jl</a></li><li class="is-active"><a class="tocitem" href>Example configuration file</a><ul class="internal"><li><a class="tocitem" href="#The-options-in-detail"><span>The options in detail</span></a></li></ul></li><li><a class="tocitem" href="../function_reference/">Function reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Example configuration file</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example configuration file</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/LukasHasf/SpatiallyVaryingDeconvolution.jl/blob/master/docs/src/example_conf.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-configuration-file"><a class="docs-heading-anchor" href="#Example-configuration-file">Example configuration file</a><a id="Example-configuration-file-1"></a><a class="docs-heading-anchor-permalink" href="#Example-configuration-file" title="Permalink"></a></h1><p>This module expects all the configuration to be in a single YAML file, which should look like this:</p><pre><code class="language-yaml hljs">data:
+    # Path to blurred data
+    x_path : ../training_data/Data/Simulated_Miniscope_2D_Training_data/
+    # Path to ground truth
+    y_path : ../training_data/Data/Ground_truth_downsampled/
+    # Data needs to be resized to be a power of two along each axis
+    resize_to : [64, 64]
+    # Should the data be centered?
+    center_psfs: true
+    # If center_psfs, which index corresponds to the central PSF? -1 means length \div 2 + 1
+    reference_index: -1
+
+model:
+    # Depth of UNet
+    depth: 3
+    # Use attention gates when combining activations of encoding and decoding branch
+    attention: true
+    # Use dropout layers in convolution blocks
+    dropout: true
+    # Use separable convolution in convolution blocks
+    separable: true
+    # Concatenate all UNet activations and concolve them as a final step
+    final_attention: true
+
+training:
+    # Path to the PSF file
+    psfs_path: ../SpatiallyVaryingConvolution/comaPSF.mat
+    # Key under which the PSFs are stored
+    psfs_key: psfs
+    # How many training+testing samples to load from x_path and y_path
+    nrsamples: 1000
+    # How many epochs to train
+    epochs: 50
+    # The employed optimizer
+    optimizer: ADADelta
+    # How often should a plot of the evaluation of the model on the first test data be plotted? 0 for never
+    plot_interval: 1
+    # Where should that plot be saved?
+    plot_path: examples/training_progress/
+    # Should the losses be written to a log file?
+    log_losses: false
+    checkpoints:
+        # Should a previously trained model be loaded? [true, false, latest]
+        load_checkpoints: latest
+        # If load_checkpoints, what is the path to the checkpoint?
+        checkpoint_path: nothing
+        # Directory where new checkpoints will be saved
+        checkpoint_dir: examples/checkpoints/
+        # How often should a checkpoint be saved? 0 for never except for at the end of training
+        save_interval: 1</code></pre><h2 id="The-options-in-detail"><a class="docs-heading-anchor" href="#The-options-in-detail">The options in detail</a><a id="The-options-in-detail-1"></a><a class="docs-heading-anchor-permalink" href="#The-options-in-detail" title="Permalink"></a></h2><p>Here&#39;s a list of what each field in the configuration field does:</p><ul><li><code>x_path</code>, <code>y_path</code> : The paths to the ground_truth and training dat directories. See <a href="../#preparing-the-training-data">Preparing the training data</a></li><li><code>resize_to</code> : The UNet implementation requires samples to be powers of 2 in size along each spatial dimension. Each sample is resized to the dimension specified by this.</li><li><code>center_psfs</code>, <code>reference_index</code> : If your PSFs are not already centered, set <code>center_psfs</code> to <code>true</code> and set the <code>reference_index</code> to the PSF closest to the center.</li><li><code>depth</code> : The number of downsampling / upsampling steps in the UNet.</li><li><code>attention</code> : Boolean to indicate if the UNet should use attention gates.</li><li><code>dropout</code> : Boolean to indicate if the UNet should employ dopout-layers during training.</li><li><code>separable</code> : Whether to use separable or regular convolutions in the UNet convolution layers.</li><li><code>final_attention</code> : Whether to add a convolution layer which processes all intermediate (upsampled) activations in the decoder path followed by an attention gate.</li><li><code>psfs_path</code>, <code>psfs_key</code> : Path to file containing the PSFs. <code>mat</code> files have <code>dict</code>-like structure, so you also need to provide the key with which one can access the PSFs array.</li><li><code>nrsamples</code> : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.</li><li><code>epochs</code> : The number of epochs the model will be trained.</li><li><code>log_losses</code> : Boolean to indicate if the train and test loss after each epoch should be saved into a file.</li><li><code>plot_interval</code>, <code>plot_path</code> : Plot the result of using the model on the first testing sample every <code>plot_interval</code>-th epoch and save the result in the directory <code>plot_path</code>. Set <code>plot_interval</code> to <code>0</code> to deactivate.</li><li><code>load_checkpoints</code>, <code>checkpoint_path</code> : You can continue training from a previously saved checkpoint. If you want to do so, set <code>load_checkpoints</code> to <code>true</code> and provide the path to the checkpoint you want to load. Alternatively, set <code>load_checkpoints</code> to <code>latest</code> to load the most recent checkpoint in <code>checkpoint_dir</code>. In that case, <code>checkpoint_path</code> is ignored.</li><li><code>checkpoint_dir</code>, <code>save_interval</code> : During training, every <code>save_interval</code>-th epoch, a checkpoint will be saved into the directory <code>checkpoint_dir</code>. Set <code>save_interval</code> to <code>0</code> to disable this. At the end of training, a checkpoint will be saved regardless.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« SpatiallyVaryingDeconvolution.jl</a><a class="docs-footer-nextpage" href="../function_reference/">Function reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Monday 5 September 2022 16:28">Monday 5 September 2022</span>. Using Julia version 1.8.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
