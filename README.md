@@ -18,7 +18,7 @@ using SpatiallyVaryingDeconvolution
 start_training("myOptions.yaml")
 ```
 
-`myOptions.yaml` should define all the fields the [`options.yaml`](examples/options.yaml) in [examples](examples) defines.
+`myOptions.yaml` should use all the fields the [`options.yaml`](examples/options.yaml) in [examples](examples) defines.
 
 ## Preparing the training data
 
@@ -51,7 +51,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
 - `epochs` : The number of epochs the model will be trained.
 - `log_losses` : Boolean to indicate if the train and test loss after each epoch should be saved into a file.
-- `plot_interval`, `plot_path` : Plot the result of using the model on the first testing sample every `plot_interval`-th epoch and save the result in the directory `plot_path`. Set `plot_interval` to `0` to deactivate. Currently works only for 2D deconvolution.
+- `plot_interval`, `plot_path` : Plot the result of using the model on the first testing sample every `plot_interval`-th epoch and save the result in the directory `plot_path`. Set `plot_interval` to `0` to deactivate.
 - `load_checkpoints`, `checkpoint_path` : You can continue training from a previously saved checkpoint. If you want to do so, set `load_checkpoints` to `true` and provide the path to the checkpoint you want to load. Alternatively, set `load_checkpoints` to `latest` to load the most recent checkpoint in `checkpoint_dir`.
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this. At the end of training, a checkpoint will be saved regardless.
 
@@ -59,7 +59,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 After training, you will have a fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function:
 ```julia
 using SpatiallyVaryingDeconvolution
-model = loadmodel(checkpoint_path; load_optimizer=false)
+model = load_model(checkpoint_path; load_optimizer=false)
 # Apply model to new blurry data
 deblurred = model(blurry)
 ```
