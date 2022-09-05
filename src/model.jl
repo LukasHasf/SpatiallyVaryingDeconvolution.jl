@@ -3,7 +3,7 @@ export train_model
 export save_model
 export load_model
 
-""" load_model(path; load_optimizer=true)
+"""    load_model(path; load_optimizer=true)
 
 Load a `MultiWienerNet` from a checkpoint saved at `path`. Optionally load the optimizer 
 used for training with `load_optimizer`. Returns `(model [, optimizer])`
