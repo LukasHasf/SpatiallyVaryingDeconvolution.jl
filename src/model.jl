@@ -49,9 +49,9 @@ function make_model(
         1,
         ndims(psfs) + 1;
         up="nearest",
-        activation="relu",
+        activation="elu",
         residual=true,
-        norm="none",
+        norm="batch",
         attention=attention,
         depth=depth,
         dropout=dropout,
