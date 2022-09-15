@@ -18,6 +18,10 @@ function u_tanh(x)
     return tanh.(x)
 end
 
+function u_elu(x)
+    return elu.(x)
+end
+
 function u_upsample_nearest(x)
     return upsample_nearest(x, tuple(2 .* ones(Int, ndims(x) - 2)...))
 end
@@ -139,8 +143,11 @@ function ConvBlock(
         end
     end
 
-    conv1 = conv_layer(kernel, in_chs => out_chs; pad=1, init=Flux.glorot_normal)
-    conv2 = conv_layer(kernel, out_chs => out_chs; pad=1, init=Flux.glorot_normal)
+    activation_functions = Dict("relu"=>u_relu, "tanh"=>u_tanh, "elu"=>u_elu)
+    actfun = activation in keys(activation_functions) ? activation_functions[activation] : identity
+
+    conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
+    conv2 = conv_layer(kernel, out_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
 
     if norm == "batch"
         norm1 = BatchNorm(out_chs)
@@ -148,12 +155,6 @@ function ConvBlock(
     else
         norm1 = identity
         norm2 = identity
-    end
-    actfun = identity
-    if activation == "relu"
-        actfun = u_relu
-    elseif activation == "tanh"
-        actfun = u_tanh
     end
 
     if dropout
@@ -164,7 +165,8 @@ function ConvBlock(
         dropout1 = identity
         dropout2 = identity
     end
-    chain = Chain(conv1, dropout1, norm1, actfun, conv2, dropout2, norm2)
+    #chain = Chain(conv1, dropout1, norm1, actfun conv2, dropout2, norm2)
+    chain = Chain(conv1, norm1, dropout1, conv2, norm2, dropout2)
     return ConvBlock(chain, actfun, residual)
 end
 
@@ -184,7 +186,7 @@ function (c::ConvBlock)(x)
             x1 = x1 .+ selected_x
         end
     end
-    x1 = c.actfun(x1)
+    #x1 = c.actfun(x1)
     return x1
 end
 
@@ -227,7 +229,7 @@ struct Unet{T,F,R,X,Y}
 end
 
 function Flux.trainable(u::Unet)
-    attention = !(u.attention_module === identity)
+    attention = !isnothing(u.attention_module)
     residual = !isnothing(u.residual_block)
     trainables = tuple(u.encoder, u.decoder, [m for (m,b) in zip([u.residual_block, u.attention_module], [residual, attention]) if b]...)
     return trainables
@@ -322,7 +324,7 @@ function Unet(
             Conv(kernel_base, in_channels => 1; pad=SamePad()),
         )
     else
-        identity
+        nothing
     end
     upsampler = dims == 4 ? upsample_bilinear : upsample_trilinear
 
@@ -347,7 +349,7 @@ function (u::Unet)(x)
     if !isnothing(u.residual_block)
         up = up .+ u.residual_block(x)
     end
-    if !(u.attention_module == identity)
+    if !isnothing(u.attention_module)
         ups = (Base.tail(ups)..., cs[end])
         final_block = ups[1]
         final_size = size(final_block)[1:(end - 2)]
@@ -358,10 +360,10 @@ function (u::Unet)(x)
                 dims=ndims(final_block) - 1,
             )
         end
+        return u.attention_module(final_block)
     else
-        final_block = up
+        return up
     end
-    return u.attention_module(final_block)
 end
 
 end # module
