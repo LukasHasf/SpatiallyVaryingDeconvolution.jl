@@ -10,8 +10,6 @@ data:
     # If center_psfs, which index corresponds to the central PSF? -1 means length \div 2 + 1
     reference_index: -1
 
-
-# model params unused as of now
 model:
     depth: 3
     attention: true
