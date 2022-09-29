@@ -143,8 +143,12 @@ function ConvBlock(
         end
     end
 
-    activation_functions = Dict("relu"=>u_relu, "tanh"=>u_tanh, "elu"=>u_elu)
-    actfun = activation in keys(activation_functions) ? activation_functions[activation] : identity
+    activation_functions = Dict("relu" => u_relu, "tanh" => u_tanh, "elu" => u_elu)
+    actfun = if activation in keys(activation_functions)
+        activation_functions[activation]
+    else
+        identity
+    end
 
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
     conv2 = conv_layer(kernel, out_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
@@ -231,7 +235,15 @@ end
 function Flux.trainable(u::Unet)
     attention = !isnothing(u.attention_module)
     residual = !isnothing(u.residual_block)
-    trainables = tuple(u.encoder, u.decoder, [m for (m,b) in zip([u.residual_block, u.attention_module], [residual, attention]) if b]...)
+    trainables = tuple(
+        u.encoder,
+        u.decoder,
+        [
+            m for
+            (m, b) in zip([u.residual_block, u.attention_module], [residual, attention]) if
+            b
+        ]...,
+    )
     return trainables
 end
 

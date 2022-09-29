@@ -119,8 +119,12 @@ function train_model(
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, optimizer)
         trainmode!(model, false)
-        losses_train[epoch] = mean(_help_evaluate_loss(Flux.DataLoader((train_x, train_y); batchsize=1), loss))
-        losses_test[epoch] = mean(_help_evaluate_loss(Flux.DataLoader((test_x, test_y);batchsize=1), loss))
+        losses_train[epoch] = mean(
+            _help_evaluate_loss(Flux.DataLoader((train_x, train_y); batchsize=1), loss)
+        )
+        losses_test[epoch] = mean(
+            _help_evaluate_loss(Flux.DataLoader((test_x, test_y); batchsize=1), loss)
+        )
         print(
             "\r Loss (train): " *
             string(losses_train[epoch]) *

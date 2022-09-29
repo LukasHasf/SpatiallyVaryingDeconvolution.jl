@@ -6,7 +6,7 @@
 end
 
 @testset "_center_psfs" begin
-    psfs = rand(Float32, 10, 10 ,10)
+    psfs = rand(Float32, 10, 10, 10)
     @test psfs == _center_psfs(psfs, false, -1)
     psfs2, _ = registerPSFs(psfs, psfs[:, :, 6])
     @test psfs2 == _center_psfs(psfs, true, -1)
@@ -370,7 +370,7 @@ end
 
     # Latest with fake checkpoints
     # Create 2 empty checkpoints
-    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson" 
+    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson"
     path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
     path3 = "examples/checkpoints/not_a_bson_file.txt"
     io = open(path1, "w")
@@ -390,7 +390,8 @@ end
 
     options = read_yaml("options2.yaml")
     @test options[:load_checkpoints] == true
-    @test options[:checkpoint_path] == "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    @test options[:checkpoint_path] ==
+        "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
     @test options[:epoch_offset] == 8
 end
 

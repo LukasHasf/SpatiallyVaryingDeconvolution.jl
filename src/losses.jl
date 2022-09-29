@@ -1,6 +1,6 @@
 export L1_SSIM_loss
 
-function nn_convolve(img::AbstractArray{T,N}; kernel::AbstractArray{T, N}) where {T,N}
+function nn_convolve(img::AbstractArray{T,N}; kernel::AbstractArray{T,N}) where {T,N}
     convolved = conv(img, kernel;)
     return convolved
 end

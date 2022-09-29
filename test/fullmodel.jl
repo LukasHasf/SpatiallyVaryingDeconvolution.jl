@@ -14,7 +14,9 @@
     @test size(prediction) == size(img)
     @test eltype(prediction) == eltype(img)
 
-    testsave_path = SpatiallyVaryingDeconvolution.save_model(model, mktempdir(), [0.0], 1, 0)
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0
+    )
     loaded_model = SpatiallyVaryingDeconvolution.load_model(
         testsave_path; load_optimizer=false
     )
@@ -24,7 +26,7 @@
     kernel = Float32.(_get_default_kernel(2))
     kernel = reshape(kernel, size(kernel)..., 1, 1)
     loss(x, y) =
-        let model = model, kernel=kernel
+        let model = model, kernel = kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrchannels, batchsize)
@@ -94,7 +96,9 @@ end
     @test eltype(prediction) == eltype(img)
 
     # Saving / loading without optimizer
-    testsave_path = SpatiallyVaryingDeconvolution.save_model(model, mktempdir(), [0.0], 1, 0)
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0
+    )
     loaded_model = SpatiallyVaryingDeconvolution.load_model(
         testsave_path; load_optimizer=false
     )
@@ -103,7 +107,7 @@ end
     kernel = Float32.(_get_default_kernel(2))
     kernel = reshape(kernel, size(kernel)..., 1, 1)
     loss(x, y) =
-        let model = model, kernel=kernel
+        let model = model, kernel = kernel
             SpatiallyVaryingDeconvolution.L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     img2 = rand(Float32, Ny, Nx, nrch, batchsize)

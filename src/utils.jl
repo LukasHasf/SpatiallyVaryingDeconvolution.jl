@@ -386,9 +386,7 @@ function _center_psfs(psfs, center, ref_index)
     else
         ref_index
     end
-    psfs, _ = registerPSFs(
-        psfs, collect(selectdim(psfs, ndims(psfs), ref_index))
-    )
+    psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), ref_index)))
     return psfs
 end
 

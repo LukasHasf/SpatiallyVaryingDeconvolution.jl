@@ -42,21 +42,17 @@ function toMultiWienerWithPlan(m::MultiWiener)
     nd = ndims(sim_psf)
     sz = size(sim_psf)
     nrPSFs = size(m.PSF, nd)
-    plan_x = plan_rfft(
-        similar(sim_psf, sz[1:(nd - 1)]..., 1, 1), 1:(nd - 1)
-    )
+    plan_x = plan_rfft(similar(sim_psf, sz[1:(nd - 1)]..., 1, 1), 1:(nd - 1))
     plan = plan_rfft(sim_psf, 1:(nd - 1))
-    dummy_for_inv = my_gpu(similar(
-        sim_psf,
-        complex(eltype(sim_psf)),
-        trunc.(
-            Int,
-            sz[1:(nd - 1)] .÷ [2, ones(nd - 2)...] .+
-            [1, zeros(nd - 2)...],
-        )...,
-        nrPSFs,
-        1,
-    ))
+    dummy_for_inv = my_gpu(
+        similar(
+            sim_psf,
+            complex(eltype(sim_psf)),
+            trunc.(Int, sz[1:(nd - 1)] .÷ [2, ones(nd - 2)...] .+ [1, zeros(nd - 2)...])...,
+            nrPSFs,
+            1,
+        ),
+    )
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
     return MultiWienerWithPlan(my_gpu(m.PSF), my_gpu(m.lambda), plan, inv_plan, plan_x)
 end
