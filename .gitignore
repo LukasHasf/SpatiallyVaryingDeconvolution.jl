@@ -5,3 +5,4 @@ LocalPreferences.toml
 .JuliaFormatter.toml
 debug.jl
 myoptions.yaml
+losses.log
