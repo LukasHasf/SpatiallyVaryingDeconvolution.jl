@@ -122,7 +122,7 @@ end
         Float32[-0.0054387837],
     ])
     @test cpu(ps[:]) ≈ answer[:]
-    @test ps == ps2
+    @test cpu(ps[:]) ≈ cpu(ps2[:]) atol=0.01
 end
 
 @testset "addnoise" begin
