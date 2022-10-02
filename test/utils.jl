@@ -5,6 +5,13 @@
     @test pretty_summarysize(zeros(Float32, 1000)) == "3.945 KiB"
 end
 
+@testset "show_cuda_capability" begin
+    gpu_available = CUDA.functional() &&
+    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+    teststring = gpu_available ? "Running on GPU" : "Running on CPU"
+    @test_logs (:info, teststring) show_cuda_capability()
+end
+
 @testset "_center_psfs" begin
     psfs = rand(Float32, 10, 10, 10)
     @test psfs == _center_psfs(psfs, false, -1)
@@ -369,15 +376,18 @@ end
     @test options[:load_checkpoints] == false
 
     # Latest with fake checkpoints
-    # Create 2 empty checkpoints
+    # Create 2 empty, but correctly named checkpoints, one stray file and an incorrectly named checkpoint file
     path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson"
     path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
     path3 = "examples/checkpoints/not_a_bson_file.txt"
+    path4 = "examples/checkpoints/date_missing_loss-0.601_epoch-9.bson"
     io = open(path1, "w")
     close(io)
     io = open(path2, "w")
     close(io)
     io = open(path3, "w")
+    close(io)
+    io = open(path4, "w")
     close(io)
     options = read_yaml("options_latest.yaml")
     @test options[:load_checkpoints] == true
@@ -387,6 +397,7 @@ end
     rm(path1)
     rm(path2)
     rm(path3)
+    rm(path4)
 
     options = read_yaml("options2.yaml")
     @test options[:load_checkpoints] == true
