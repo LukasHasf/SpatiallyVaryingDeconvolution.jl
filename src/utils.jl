@@ -301,7 +301,7 @@ end
 
 function _help_evaluate_loss(data, loss)
     losses = zeros(length(data))
-    @showprogress "Evaluation prgress:" for (i, d) in enumerate(data)
+    @showprogress "Evaluation progress:" for (i, d) in enumerate(data)
         d = my_cu(d)
         losses[i] = loss(Flux.Optimise.batchmemaybe(d)...)
         d = nothing
