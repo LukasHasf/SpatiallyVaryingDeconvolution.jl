@@ -361,7 +361,7 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=4)
     # use the real part of the gradient
     @showprogress "Epoch progress:" for part in Iterators.partition(data, batch_size)
         try
-            part = my_cu(part)
+            part = my_cu.(part)
             gs = Flux.gradient(ps) do
                 l = 0
                 for d in part
