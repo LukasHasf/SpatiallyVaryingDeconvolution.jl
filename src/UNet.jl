@@ -114,6 +114,30 @@ function (u::UNetUpBlock)(x, bridge)
     return u.conv_op(cat(x, bridge; dims=ndims(x) - 1))
 end
 
+struct MultiScaleConvBlock{A,B,C}
+    c1::A
+    c2::B
+    c3::C
+end
+Flux.@functor MultiScaleConvBlock
+
+function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv)
+    conv1a = conv_layer((3,3), in_chs => out_chs, actfun; pad=SamePad())
+    conv1b = conv_layer((3,3), out_chs => out_chs, actfun; pad=SamePad())
+    conv1 = Chain(conv1a, conv1b)
+    conv2a = conv_layer((7,7), in_chs => out_chs, actfun; pad=SamePad())
+    conv2b = conv_layer((7,7), out_chs => out_chs, actfun; pad=SamePad())
+    conv2 = Chain(conv2a, conv2b)
+    conv3 = conv_layer((1,1), 2*out_chs => out_chs, actfun; pad=SamePad())
+    return MultiScaleConvBlock(conv1, conv2, conv3)
+end
+
+function (mscb::MultiScaleConvBlock)(x)
+    x1 = mscb.c1(x)
+    x2 = mscb.c2(x)
+    return mscb.c3(cat(x1, x2; dims=ndims(x) - 1))
+end
+
 struct ConvBlock{F}
     chain::Chain
     actfun::F
@@ -125,6 +149,7 @@ Flux.@functor ConvBlock
 function ConvBlock(
     in_chs::Int,
     out_chs::Int;
+    multiscale=false,
     kernel=(3, 3),
     dropout=false,
     activation="relu",
@@ -133,13 +158,12 @@ function ConvBlock(
     norm="batch",
     separable=false,
 )
+    conv_layer = Conv
     if transpose
         conv_layer = ConvTranspose
     else
         if separable
             conv_layer = SeparableConv
-        else
-            conv_layer = Conv
         end
     end
 
@@ -148,6 +172,10 @@ function ConvBlock(
         activation_functions[activation]
     else
         identity
+    end
+
+    if multiscale
+        return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer)
     end
 
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
@@ -205,6 +233,7 @@ function ConvDown(
     separable=false,
     dropout=false,
     norm="batch",
+    multiscale=false,
 )
     downsample_op = Conv(
         down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs
@@ -218,6 +247,7 @@ function ConvDown(
         residual=residual,
         separable=separable,
         norm=norm,
+        multiscale=multiscale,
     )
     downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
     downsample_op.bias .*= 0.01
@@ -262,7 +292,8 @@ function Unet(
     depth=4,
     dropout=false,
     separable=false,
-    final_attention=true,
+    final_attention=false,
+    multiscale=false
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     valid_downsampling_methods = ["conv"]
@@ -277,6 +308,7 @@ function Unet(
         separable=separable,
         kernel=conv_kernel,
         activation=activation,
+        multiscale=multiscale
     )
     if down == "conv"
         kernel = kernel_base .* 2

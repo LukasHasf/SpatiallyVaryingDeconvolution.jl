@@ -50,13 +50,14 @@ function make_model(
         ndims(psfs) + 1;
         up="nearest",
         activation="relu",
-        residual=true,
+        residual=false,
         norm="none",
         attention=attention,
         depth=depth,
         dropout=dropout,
         separable=separable,
         final_attention=final_attention,
+        multiscale=true
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
