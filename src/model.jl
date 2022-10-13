@@ -50,7 +50,7 @@ function make_model(
         ndims(psfs) + 1;
         up="nearest",
         activation="relu",
-        residual=false,
+        residual=true,
         norm="none",
         attention=attention,
         depth=depth,
