@@ -355,7 +355,7 @@ end
 
 Same as `Flux.train!` but with real gradient.
 """
-function train_real_gradient!(loss, ps, data, opt; batch_size=4)
+function train_real_gradient!(loss, ps, data, opt; batch_size=2)
     # Zygote calculates a complex gradient, even though this is mapping  real -> real.
     # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
     # use the real part of the gradient
