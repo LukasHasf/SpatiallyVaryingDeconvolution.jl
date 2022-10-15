@@ -121,14 +121,17 @@ struct MultiScaleConvBlock{A,B,C}
 end
 Flux.@functor MultiScaleConvBlock
 
-function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv)
-    conv1a = conv_layer((3,3), in_chs => out_chs, actfun; pad=SamePad())
-    conv1b = conv_layer((3,3), out_chs => out_chs, actfun; pad=SamePad())
+function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv, dims=4)
+    small_kernel = tuple(ones(Int, dims - 2)...)
+    medium_kernel = 3 .* small_kernel
+    big_kernel = 7 .* small_kernel
+    conv1a = conv_layer(medium_kernel, in_chs => out_chs, actfun; pad=SamePad())
+    conv1b = conv_layer(medium_kernel, out_chs => out_chs, actfun; pad=SamePad())
     conv1 = Chain(conv1a, conv1b)
-    conv2a = conv_layer((7,7), in_chs => out_chs, actfun; pad=SamePad())
-    conv2b = conv_layer((7,7), out_chs => out_chs, actfun; pad=SamePad())
+    conv2a = conv_layer(big_kernel, in_chs => out_chs, actfun; pad=SamePad())
+    conv2b = conv_layer(big_kernel, out_chs => out_chs, actfun; pad=SamePad())
     conv2 = Chain(conv2a, conv2b)
-    conv3 = conv_layer((1,1), 2*out_chs => out_chs, actfun; pad=SamePad())
+    conv3 = conv_layer(small_kernel, 2*out_chs => out_chs, actfun; pad=SamePad())
     return MultiScaleConvBlock(conv1, conv2, conv3)
 end
 
@@ -175,7 +178,7 @@ function ConvBlock(
     end
 
     if multiscale
-        return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer)
+        return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer, dims=length(kernel)+2)
     end
 
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
