@@ -39,7 +39,7 @@ Keyword arguments are:
  and pass them through an attention gate and a convolution before outputting
 """
 function make_model(
-    psfs; attention=true, dropout=true, depth=3, separable=false, final_attention=true
+    psfs, model_settings::Dict{Symbol, Any}
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
@@ -50,14 +50,9 @@ function make_model(
         ndims(psfs) + 1;
         up="nearest",
         activation="relu",
-        residual=false,
+        residual=true,
         norm="none",
-        attention=attention,
-        depth=depth,
-        dropout=dropout,
-        separable=separable,
-        final_attention=final_attention,
-        multiscale=true
+        model_settings...
     )
     model = Flux.Chain(modelwiener, modelUNet)
     return model
@@ -118,7 +113,7 @@ function train_model(
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
-        train_real_gradient!(loss, pars, training_datapoints, optimizer)
+        train_real_gradient!(loss, pars, training_datapoints, optimizer; batch_size=1)
         trainmode!(model, false)
         losses_train[epoch] = mean(
             _help_evaluate_loss(Flux.DataLoader((train_x, train_y); batchsize=1), loss)
