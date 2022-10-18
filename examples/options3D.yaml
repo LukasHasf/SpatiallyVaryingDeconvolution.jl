@@ -32,13 +32,22 @@ training:
     plot_interval: 1
     # Where should that plot be saved?
     plot_path: examples/training_progress/
-    log_losses: false
-    checkpoints:
-        # Should a previously trained model be loaded?
-        load_checkpoints: false
-        # If load_checkpoints, what is the path to the checkpoint?
-        checkpoint_path: nothing
-        # Directory where new checkpoints will be saved
-        checkpoint_dir: examples/checkpoints/
-        # How often should a checkpoint be saved? 0 for never
-        save_interval: 1
+    log_losses: falsecheckpoints:
+    # Should a previously trained model be loaded?
+    load_checkpoints: false
+    # If load_checkpoints, what is the path to the checkpoint?
+    checkpoint_path: nothing
+    # Directory where new checkpoints will be saved
+    checkpoint_dir: examples/checkpoints/
+    # How often should a checkpoint be saved? 0 for never
+    
+
+checkpoints:
+    # Should a previously trained model be loaded?
+    load_checkpoints: false
+    # If load_checkpoints, what is the path to the checkpoint?
+    checkpoint_path: nothing
+    # Directory where new checkpoints will be saved
+    checkpoint_dir: examples/checkpoints/
+    # How often should a checkpoint be saved? 0 for never
+    save_interval: 1
