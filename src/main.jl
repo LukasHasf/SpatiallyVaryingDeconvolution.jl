@@ -57,21 +57,8 @@ function start_training(settings::Settings; T=Float32)
 
     # Define / load the model
     dims = length(settings.data[:newsize])
+    model = prepare_model!(settings)
     optimizer = settings.training[:optimizer]
-    if !settings.checkpoints[:load_checkpoints]
-        nrPSFs = size(psfs)[end]
-        resized_psfs = Array{T,dims + 1}(undef, settings.data[:newsize]..., nrPSFs)
-        for i in 1:nrPSFs
-            selectdim(resized_psfs, dims + 1, i) .= imresize(
-                collect(selectdim(psfs, dims + 1, i)), settings.data[:newsize]
-            )
-        end
-        resized_psfs = my_gpu(resized_psfs)
-        model = my_gpu(make_model(resized_psfs, settings.model))
-    else
-        model, optimizer = my_gpu(load_model(settings.checkpoints[:checkpoint_path]))
-        settings.training[:optimizer] = optimizer
-    end
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     kernel = _get_default_kernel(dims; T=T)
