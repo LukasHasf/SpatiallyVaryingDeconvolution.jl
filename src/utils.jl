@@ -163,6 +163,7 @@ function process_checkpoints_dict(my_checkpoints)
         my_checkpoints[:checkpoint_path] = checkpoint_path
     else
         my_checkpoints[:epoch_offset] = 0
+        delete!(my_checkpoints, :checkpoint_path)
     end
     return my_checkpoints
 end
