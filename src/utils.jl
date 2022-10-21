@@ -10,6 +10,7 @@ export _get_default_kernel
 export write_to_logfile
 export _center_psfs
 export Settings
+export get_load_data_settings
 
 using MAT
 using HDF5
@@ -108,6 +109,10 @@ function Settings(path)
     end
     my_checkpoints = process_checkpoints_dict(my_checkpoints)
     return Settings(my_data, my_model, my_training, my_checkpoints)
+end
+
+function get_load_data_settings(s::Settings)
+    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize];
 end
 
 function check_types(type_dict, value_dict)
