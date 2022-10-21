@@ -53,19 +53,7 @@ If this function signature is called, all of the following keywords
 """
 function start_training(settings::Settings; T=Float32)
     # Load and process the data
-    psfs = readPSFs(settings.training[:psfs_path], settings.training[:psfs_key])
-    psfs = _center_psfs(psfs, settings.data[:center_psfs], settings.data[:psf_ref_index])
-    x_data, y_data = load_data(
-        settings.training[:nrsamples],
-        settings.data[:truth_dir],
-        settings.data[:sim_dir];
-        newsize=settings.data[:newsize],
-    )
-    x_data = apply_noise(x_data)
-    x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
-    y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
-    train_x, test_x = train_test_split(x_data)
-    train_y, test_y = train_test_split(y_data)
+    train_x, train_y, test_x, test_y = prepare_data(settings; T=T)
 
     # Define / load the model
     dims = length(settings.data[:newsize])
