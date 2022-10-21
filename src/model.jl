@@ -82,34 +82,21 @@ function save_model(
     return modelpath
 end
 
-function train_model(
-    model,
-    train_x,
-    train_y,
-    test_x,
-    test_y,
-    loss;
-    epochs=1,
-    epoch_offset=0,
-    plotloss=false,
-    plotevery=10,
-    plotdirectory="training_progress/",
-    saveevery=1,
-    checkpointdirectory="checkpoints/",
-    optimizer=Adam(),
-    logfile=nothing,
-)
+function setup_training(model, train_x, train_y, test_x, test_y, settings::Settings)
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
-    plot_prediction(example_data_y, model[1].PSF, -1, 0, plotdirectory)
+    plot_prediction(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
     pars = Flux.params(model)
     training_datapoints = Flux.Data.DataLoader(
         (train_x, train_y); batchsize=1, shuffle=false
     )
+    epochs = settings.training[:epochs]
     losses_test = zeros(Float64, epochs)
     losses_train = zeros(Float64, epochs)
+    return example_data_x, pars, training_datapoints, losses_test, losses_train
+end
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
