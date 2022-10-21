@@ -97,18 +97,37 @@ function setup_training(model, train_x, train_y, test_x, test_y, settings::Setti
     losses_train = zeros(Float64, epochs)
     return example_data_x, pars, training_datapoints, losses_test, losses_train
 end
+
+function train_model(
+    model,
+    train_x,
+    train_y,
+    test_x,
+    test_y,
+    loss,
+    settings::Settings;
+    plotloss=false,
+)
+    train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1)
+    test_data_iterator = Flux.DataLoader((test_x, test_y); batchsize=1)
+    example_data_x, pars, training_datapoints, losses_test, losses_train = setup_training(model, train_x, train_y, test_x, test_y, settings)
+    epochs = settings.training[:epochs]
+    epoch_offset = settings.checkpoints[:epoch_offset]
+    plotevery = settings.training[:plot_interval]
+    optimizer = settings.training[:optimizer]
+    saveevery = settings.checkpoints[:save_interval]
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
         train_real_gradient!(loss, pars, training_datapoints, optimizer; batch_size=1)
         trainmode!(model, false)
         losses_train[epoch] = mean(
-            _help_evaluate_loss(Flux.DataLoader((train_x, train_y); batchsize=1), loss)
+            _help_evaluate_loss(train_data_iterator, loss)
         )
         losses_test[epoch] = mean(
-            _help_evaluate_loss(Flux.DataLoader((test_x, test_y); batchsize=1), loss)
+            _help_evaluate_loss(test_data_iterator, loss)
         )
-        print(
+        println(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
             ", Loss (test): " *
@@ -117,27 +136,26 @@ end
 
         if (saveevery != 0 && epoch % saveevery == 0)
             save_model(
-                model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=optimizer
+                model, settings.checkpoints[:checkpoint_dir], losses_train, epoch, epoch_offset; opt=optimizer
             )
         end
 
         if (plotevery != 0 && epoch % plotevery == 0)
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
-            plot_prediction(pred_to_plot, psf_to_plot, epoch, epoch_offset, plotdirectory)
+            plot_prediction(pred_to_plot, psf_to_plot, epoch, epoch_offset, settings.training[:plot_dir])
             if plotloss
-                plot_losses(losses_train, losses_test, epoch, plotdirectory)
+                plot_losses(losses_train, losses_test, epoch, settings.training[:plot_dir])
             end
         end
         write_to_logfile(
-            logfile, epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
+            settings.training[:logfile], epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
         )
-        print("\n")
     end
     # At the end of training, save a checkpoint
     return save_model(
         model,
-        checkpointdirectory,
+        settings.checkpoints[:checkpoint_dir],
         losses_train,
         epochs - epoch_offset,
         epoch_offset;
