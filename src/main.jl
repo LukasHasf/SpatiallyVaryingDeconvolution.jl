@@ -76,16 +76,9 @@ function start_training(settings::Settings; T=Float32)
         train_y,
         test_x,
         test_y,
-        loss_fn;
+        loss_fn,
+        settings;
         plotloss=true,
-        epochs=settings.training[:epochs],
-        epoch_offset=settings.checkpoints[:epoch_offset],
-        checkpointdirectory=settings.checkpoints[:checkpoint_dir],
-        plotevery=settings.training[:plot_interval],
-        optimizer=settings.training[:optimizer],
-        plotdirectory=settings.training[:plot_dir],
-        saveevery=settings.checkpoints[:save_interval],
-        logfile=settings.training[:logfile],
     )
 end
 
