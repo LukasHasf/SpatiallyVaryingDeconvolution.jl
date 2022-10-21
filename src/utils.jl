@@ -2,6 +2,7 @@ export prepare_psfs
 export load_data, apply_noise
 export train_test_split
 export prepare_data
+export prepare_model!
 export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
@@ -304,6 +305,25 @@ function train_test_split(x; ratio=0.7, dim=ndims(x))
     train = collect(selectdim(x, dim, 1:split_ind))
     test = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
     return train, test
+end
+
+"""    prepare_model!(settings::Settings)
+
+Either load a previously loaded model or initialize a new one.
+
+Side effect: `settings.training[:optimizer]` gets set to the loaded optimizer
+if a model is loaded from a checkpoint.
+"""
+function prepare_model!(settings::Settings)
+    if !settings.checkpoints[:load_checkpoints]
+        psfs = prepare_psfs(settings)
+        psfs = my_gpu(psfs)
+        model = my_gpu(make_model(resized_psfs, settings.model))
+    else
+        model, optimizer = my_gpu(load_model(settings.checkpoints[:checkpoint_path]))
+        settings.training[:optimizer] = optimizer
+    end
+    return model
 end
 
 function prepare_data(settings::Settings; T=Float32)
