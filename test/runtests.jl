@@ -12,8 +12,11 @@ include("../src/MultiWienerNet.jl")
 include("../src/utils.jl")
 include("../src/UNet.jl")
 
-include("fullmodel.jl")
-include("losses.jl")
+
+
 include("utils.jl")
 include("temporary.jl")
+include("losses.jl")
 include("wienernet.jl")
+include("fullmodel.jl")
+
