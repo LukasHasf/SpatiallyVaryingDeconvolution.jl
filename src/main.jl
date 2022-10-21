@@ -69,7 +69,6 @@ function start_training(settings::Settings; T=Float32)
             return L1_SSIM_loss(model(x), y; kernel=kernel)
         end
     end
-    display(settings.checkpoints)
     # Training
     return train_model(
         model,
