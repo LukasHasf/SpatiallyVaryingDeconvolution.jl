@@ -1,4 +1,4 @@
-"""    start_training(; T=Float32, kwargs...)
+"""    start_training(settings::Settings; T=Float32)
 
 Start the training of a deconvolution network.
 
