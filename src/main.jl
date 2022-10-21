@@ -58,7 +58,6 @@ function start_training(settings::Settings; T=Float32)
     # Define / load the model
     dims = length(settings.data[:newsize])
     model = prepare_model!(settings)
-    optimizer = settings.training[:optimizer]
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     kernel = _get_default_kernel(dims; T=T)
