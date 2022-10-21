@@ -1,4 +1,4 @@
-export readPSFs, registerPSFs
+export prepare_psfs
 export load_data, apply_noise
 export train_test_split
 export gaussian
@@ -431,6 +431,21 @@ function _center_psfs(psfs, center, ref_index)
 end
 
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
+
+function prepare_psfs(settings::Settings)
+    uncentered_psfs = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
+    psfs = _center_psfs(uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index])
+    dims = length(settings.data[:newsize])
+    nrPSFs = size(psfs)[end]
+    resized_psfs = Array{T,dims + 1}(undef, settings.data[:newsize]..., nrPSFs)
+    for i in 1:nrPSFs
+        selectdim(resized_psfs, dims + 1, i) .= imresize(
+            collect(selectdim(psfs, dims + 1, i)), settings.data[:newsize]
+        )
+    end
+    psfs = resized_psfs    
+    return psfs
+end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
