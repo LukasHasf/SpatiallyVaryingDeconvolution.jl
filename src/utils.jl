@@ -1,6 +1,7 @@
 export prepare_psfs
 export load_data, apply_noise
 export train_test_split
+export prepare_data
 export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
@@ -303,6 +304,16 @@ function train_test_split(x; ratio=0.7, dim=ndims(x))
     train = collect(selectdim(x, dim, 1:split_ind))
     test = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
     return train, test
+end
+
+function prepare_data(settings::Settings; T=Float32)
+    x_data, y_data = load_data(settings;T=T)
+    x_data = apply_noise(x_data)
+    x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
+    y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
+    train_x, test_x = train_test_split(x_data)
+    train_y, test_y = train_test_split(y_data)
+    return train_x, train_y, test_x, test_y
 end
 
 function gaussian(window_size=11, sigma=1.5; T=Float32)
