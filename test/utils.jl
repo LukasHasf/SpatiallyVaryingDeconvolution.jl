@@ -268,6 +268,8 @@ end
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32)),
+                        Dict(), Dict(), Dict())
     save(joinpath(train_dir, "a.png"), imgs[:, :, 1])
     save(joinpath(train_dir, "b.png"), imgs[:, :, 2])
     save(joinpath(train_dir, "exclusive_train.png"), imgs[:, :, 3])
@@ -275,7 +277,7 @@ end
     save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
     save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 1, 2)
     @test imgs_y[:, :, 1, 1] ≈ imgs[:, :, 1] atol = 1e-1
@@ -288,6 +290,8 @@ end
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
+                        Dict(), Dict(), Dict())
 
     save(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     save(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -296,7 +300,7 @@ end
     save(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
     save(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 32, 1, 2)
     @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
@@ -311,6 +315,8 @@ end
     test_dir = joinpath(img_dir, "test")
     mkdir(train_dir)
     mkdir(test_dir)
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
+                        Dict(), Dict(), Dict())
 
     matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -319,7 +325,7 @@ end
     matwrite(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
     matwrite(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 32, 1, 2)
     @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
@@ -346,34 +352,34 @@ end
     @test issetequal(["test", "test2"], dirlist)
 end
 
-@testset "read_yaml" begin
-    options = read_yaml("options.yaml")
-    @test options[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
-    @test options[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
-    @test options[:newsize] == (64, 64)
-    @test options[:center_psfs] == true
-    @test options[:psf_ref_index] == -1
-    @test options[:depth] == 3
-    @test options[:attention] == true
-    @test options[:dropout] == true
-    @test options[:separable] == true
-    @test options[:final_attention] == true
-    @test options[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
-    @test options[:psfs_key] == "psfs"
-    @test options[:nrsamples] == 700
-    @test options[:epochs] == 20
-    @test options[:optimizer] isa AdaDelta
-    @test options[:plot_interval] == 1
-    @test options[:plot_dir] == "examples/training_progress/"
-    @test options[:load_checkpoints] == false
-    @test !(:checkpoint_path in keys(options))
-    @test options[:checkpoint_dir] == "examples/checkpoints/"
-    @test options[:save_interval] == 1
-    @test options[:log_losses] == false
+@testset "Reading options file" begin
+    settings = Settings("options.yaml")
+    @test settings.data[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
+    @test settings.data[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
+    @test settings.data[:newsize] == (64, 64)
+    @test settings.data[:center_psfs] == true
+    @test settings.data[:psf_ref_index] == -1
+    @test settings.model[:depth] == 3
+    @test settings.model[:attention] == true
+    @test settings.model[:dropout] == true
+    @test settings.model[:separable] == true
+    @test settings.model[:final_attention] == true
+    @test settings.data[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
+    @test settings.data[:psfs_key] == "psfs"
+    @test settings.data[:nrsamples] == 700
+    @test settings.training[:epochs] == 20
+    @test settings.training[:optimizer] isa AdaDelta
+    @test settings.training[:plot_interval] == 1
+    @test settings.training[:plot_dir] == "examples/training_progress/"
+    @test settings.checkpoints[:load_checkpoints] == false
+    @test !(:checkpoint_path in keys(settings.checkpoints))
+    @test settings.checkpoints[:checkpoint_dir] == "examples/checkpoints/"
+    @test settings.checkpoints[:save_interval] == 1
+    @test settings.training[:log_losses] == false
 
     # Latest with no checkpoint found
-    options = read_yaml("options_latest.yaml")
-    @test options[:load_checkpoints] == false
+    settings = Settings("options_latest.yaml")
+    @test settings.checkpoints[:load_checkpoints] == false
 
     # Latest with fake checkpoints
     # Create 2 empty, but correctly named checkpoints, one stray file and an incorrectly named checkpoint file
@@ -389,9 +395,9 @@ end
     close(io)
     io = open(path4, "w")
     close(io)
-    options = read_yaml("options_latest.yaml")
-    @test options[:load_checkpoints] == true
-    @test options[:checkpoint_path] == path2
+    settings =  Settings("options_latest.yaml")
+    @test settings.checkpoints[:load_checkpoints] == true
+    @test settings.checkpoints[:checkpoint_path] == path2
 
     # Clean up
     rm(path1)
@@ -399,11 +405,11 @@ end
     rm(path3)
     rm(path4)
 
-    options = read_yaml("options2.yaml")
-    @test options[:load_checkpoints] == true
-    @test options[:checkpoint_path] ==
+    settings = Settings("options2.yaml")
+    @test settings.checkpoints[:load_checkpoints] == true
+    @test settings.checkpoints[:checkpoint_path] ==
         "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
-    @test options[:epoch_offset] == 8
+    @test settings.checkpoints[:epoch_offset] == 8
 end
 
 @testset "_get_default_kernel" begin
