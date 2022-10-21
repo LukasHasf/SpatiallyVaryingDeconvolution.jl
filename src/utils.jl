@@ -266,9 +266,8 @@ function load_volumes(
     return volumes_x, volumes_y
 end
 
-function load_data(
-    nrsamples, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
-)
+function load_data(settings::Settings; T=Float32)
+    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
     imageFileEndings = [".png", ".jpg", ".jpeg"]
     volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
     complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
