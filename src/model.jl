@@ -3,12 +3,15 @@ export train_model
 export save_model
 export load_model
 
-"""    load_model(path; load_optimizer=true)
+"""    load_model(path; load_optimizer=true, on_gpu=true)
 
-Load a `MultiWienerNet` from a checkpoint saved at `path`. Optionally load the optimizer 
-used for training with `load_optimizer`. Returns `(model [, optimizer])`
+Load a `MultiWienerNet` from a checkpoint saved at `path`. 
+
+Optionally load the optimizer used for training with `load_optimizer`. Returns `(model [, optimizer])`. 
+
+Optionally prepare the newtork for moving to the GPU if available by setting `on_gpu` (`true` by default).
 """
-function load_model(path; load_optimizer=true)
+function load_model(path; load_optimizer=true, on_gpu=true)
     Core.eval(Main, :(using Flux: Flux))
     Core.eval(Main, :(using CUDA: CUDA))
     Core.eval(Main, :(using NNlib: NNlib))
@@ -16,12 +19,12 @@ function load_model(path; load_optimizer=true)
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
-        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
+        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
         return model, opt
     else
         @load path model
         if model isa Flux.Chain
-            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]), model[2])
+            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
         end
         return model
     end
@@ -39,11 +42,11 @@ Keyword arguments are:
  and pass them through an attention gate and a convolution before outputting
 """
 function make_model(
-    psfs, model_settings::Dict{Symbol, Any}
+    psfs, model_settings::Dict{Symbol, Any}; on_gpu=true
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs)
+    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
