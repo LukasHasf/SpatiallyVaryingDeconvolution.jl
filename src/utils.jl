@@ -469,7 +469,7 @@ end
 
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
-function prepare_psfs(settings::Settings)
+function prepare_psfs(settings::Settings; T=Float32)
     uncentered_psfs = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
     psfs = _center_psfs(uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index])
     dims = length(settings.data[:newsize])
