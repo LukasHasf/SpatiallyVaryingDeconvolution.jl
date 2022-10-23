@@ -89,6 +89,11 @@ end
     @test UNet.u_tanh(x) == tanh.(x)
 end
 
+@testset "u_elu" begin
+    x = -10:0.1:10
+    @test UNet.u_elu(x) == elu.(x)
+end
+
 @testset "train_real_gradient!" begin
     # Create two identical models with predetermined weights
     model = Chain(Dense(1, 5), Dense(5, 1))
@@ -332,6 +337,57 @@ end
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+end
+
+@testset "prepare_data" begin
+    imgs = rand(Float32, 32, 32, 12)
+    img_dir = mktempdir()
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    samples_to_load = 5
+    dummy_settings = Settings(Dict(:nrsamples=>samples_to_load, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(16,17)),
+                        Dict(), Dict(), Dict())
+    for i in 1:6
+        save(joinpath(train_dir, "img_$(i).png"), imgs[:, :, i])
+        save(joinpath(test_dir, "img_$(i).png"), imgs[:, :, i])
+    end
+    train_x, train_y, test_x, test_y = prepare_data(dummy_settings; T=Float32)
+    @test all([eltype(x)==Float32 for x in [train_x, train_y, test_x, test_y]])
+    split_ind = trunc(Int, 0.7 * samples_to_load)
+    @test size(train_x) == (16, 17, 1, split_ind)
+    @test size(test_x) == (16, 17, 1, samples_to_load - split_ind)
+    @test size(train_x) == size(train_y)
+    @test size(test_x) == size(test_y)
+    @test all(-1 * one(Float32) .<= train_y .<= one(Float32))
+    @test all(-1 * one(Float32) .<= test_y .<= one(Float32))
+    # Add a bit of tolerance, since "x" data gets some additional noise after being mapped to range [0, 1]
+    @test all(-1.2 * one(Float32) .<= train_x .<= 1.2)
+    @test all(-1.2 * one(Float32) .<= test_x .<= 1.2)
+end
+
+@testset "prepare_psfs" begin
+    psfs_dir = mktempdir()
+    psfs = rand(Float64, 16, 16, 4)
+    psfs_key = "abc"
+    psfs_filename = "a.h5"
+    matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
+    dummy_settings = SpatiallyVaryingDeconvolution.Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+                        Dict(), Dict(), Dict())
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings; T=Float64)
+    @test eltype(psfs_loaded) == Float64
+    @test psfs_loaded ≈ psfs
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings; T=Float32)
+    @test eltype(psfs_loaded) == Float32
+    @test psfs_loaded ≈ Float32.(psfs)
+
+    dummy_settings.data[:center_psfs] = true
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
+    @test psfs_loaded ≈ SpatiallyVaryingDeconvolution._center_psfs(psfs, true, -1)
+
+    dummy_settings.data[:center_psfs] = false
+    dummy_settings.data[:newsize] = (8,8)
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
+    @test size(psfs_loaded) == (8, 8, 4)
 end
 
 @testset "_help_evaluate_loss" begin
