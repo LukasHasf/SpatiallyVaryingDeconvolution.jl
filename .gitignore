@@ -7,3 +7,4 @@ debug.jl
 myoptions.yaml
 losses.log
 combinations.md
+lcov.info
