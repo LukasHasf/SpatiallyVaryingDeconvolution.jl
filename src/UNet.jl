@@ -41,12 +41,13 @@ function SeparableConv(
     init=Flux.glorot_uniform,
 ) where {N}
     convs = []
+    proper_pad = Flux.calc_padding(Conv, pad, filter, dilation, groups)
     for i in 1:N
         filter_dims = Tuple(ones(Int, N))
         filter_ch = i == 1 ? ch : ch[2] => ch[2]
         filter_dims = tuple([n == i ? filter[n] : 1 for n in 1:N]...)
         current_stride = tuple([n == i ? stride : 1 for n in 1:N]...)
-        current_pad = tuple([n == i ? pad : 0 for n in 1:N]...)
+        current_pad = tuple([n == i ? proper_pad[n] : 0 for n in 1:N]...)
         current_dilation = tuple([n == i ? dilation : 1 for n in 1:N]...)
         conv = Conv(
             filter_dims,
