@@ -319,7 +319,7 @@ function prepare_model!(settings::Settings)
     if !settings.checkpoints[:load_checkpoints]
         psfs = prepare_psfs(settings)
         psfs = my_gpu(psfs)
-        model = my_gpu(make_model(resized_psfs, settings.model))
+        model = my_gpu(make_model(psfs, settings.model))
     else
         model, optimizer = my_gpu(load_model(settings.checkpoints[:checkpoint_path]))
         settings.training[:optimizer] = optimizer
