@@ -507,7 +507,7 @@ end
     close(io)
     settings =  Settings("options_latest.yaml")
     @test settings.checkpoints[:load_checkpoints] == true
-    @test settings.checkpoints[:checkpoint_path] == path2
+    @test joinpath(split(settings.checkpoints[:checkpoint_path], "/")...) == path2
 
     # Clean up
     rm(path1)
@@ -518,8 +518,7 @@ end
 
     settings = Settings("options2.yaml")
     @test settings.checkpoints[:load_checkpoints] == true
-    @test settings.checkpoints[:checkpoint_path] ==
-        "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    @test joinpath(split(settings.checkpoints[:checkpoint_path],"/")...) == joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
     @test settings.checkpoints[:epoch_offset] == 8
 end
 
