@@ -176,24 +176,26 @@ function find_most_recent_checkpoint(path)
         checkpoint_path = nothing
         load_checkpoints = false
         epoch_offset = 0
-        for file in readdir(path)
-            date = parse_date(file)
-            if isnothing(date)
-                continue
+        if isdir(path)
+            for file in readdir(path)
+                date = parse_date(file)
+                if isnothing(date)
+                    continue
+                end
+                if isnothing(most_recent) || date > most_recent
+                    most_recent = date
+                    most_recent_chkp = file
+                end
             end
-            if isnothing(most_recent) || date > most_recent
-                most_recent = date
-                most_recent_chkp = file
+            if isnothing(most_recent_chkp)
+                @info "No checkpoints found. Starting training from scratch."
+                load_checkpoints = false
+            else
+                epoch_offset = parse_epoch(most_recent_chkp)
+                checkpoint_path = joinpath(path, most_recent_chkp)
+                load_checkpoints = true
+                @info "Resuming training from $most_recent_chkp."
             end
-        end
-        if isnothing(most_recent_chkp)
-            @info "No checkpoints found. Starting training from scratch."
-            load_checkpoints = false
-        else
-            epoch_offset = parse_epoch(most_recent_chkp)
-            checkpoint_path = joinpath(path, most_recent_chkp)
-            load_checkpoints = true
-            @info "Resuming training from $most_recent_chkp."
         end
         return epoch_offset, load_checkpoints, checkpoint_path
 end
