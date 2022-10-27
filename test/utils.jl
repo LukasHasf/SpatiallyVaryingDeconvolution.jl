@@ -492,10 +492,11 @@ end
 
     # Latest with fake checkpoints
     # Create 2 empty, but correctly named checkpoints, one stray file and an incorrectly named checkpoint file
-    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson"
-    path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
-    path3 = "examples/checkpoints/not_a_bson_file.txt"
-    path4 = "examples/checkpoints/date_missing_loss-0.601_epoch-9.bson"
+    path1 = joinpath("examples", "checkpoints", "2022-08-10T14_25_35_loss-0.888_epoch-1.bson")
+    path2 = joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
+    path3 = joinpath("examples", "checkpoints", "not_a_bson_file.txt")
+    path4 = joinpath("examples", "checkpoints", "date_missing_loss-0.601_epoch-9.bson")
+    mkdirs(joinpath("examples", "checkpoints"))
     io = open(path1, "w")
     close(io)
     io = open(path2, "w")
@@ -513,6 +514,7 @@ end
     rm(path2)
     rm(path3)
     rm(path4)
+    rm(joinpath("examples", "checkpoints"))
 
     settings = Settings("options2.yaml")
     @test settings.checkpoints[:load_checkpoints] == true
