@@ -22,6 +22,8 @@ model:
     dropout: true
     separable: true
     final_attention: true
+    # In 3D, multiscale requires a lot of memory
+    multiscale: false
 
 training:
     # How many epochs to train
