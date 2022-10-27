@@ -22,6 +22,7 @@ model:
     dropout: false
     separable: false
     final_attention: true
+    multiscale: false
 
 training:
     # How many epochs to train
