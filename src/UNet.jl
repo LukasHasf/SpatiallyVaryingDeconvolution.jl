@@ -41,12 +41,13 @@ function SeparableConv(
     init=Flux.glorot_uniform,
 ) where {N}
     convs = []
+    proper_pad = Flux.calc_padding(Conv, pad, filter, dilation, groups)
     for i in 1:N
         filter_dims = Tuple(ones(Int, N))
         filter_ch = i == 1 ? ch : ch[2] => ch[2]
         filter_dims = tuple([n == i ? filter[n] : 1 for n in 1:N]...)
         current_stride = tuple([n == i ? stride : 1 for n in 1:N]...)
-        current_pad = tuple([n == i ? pad : 0 for n in 1:N]...)
+        current_pad = tuple([n == i ? proper_pad[n] : 0 for n in 1:N]...)
         current_dilation = tuple([n == i ? dilation : 1 for n in 1:N]...)
         conv = Conv(
             filter_dims,
@@ -122,9 +123,9 @@ end
 Flux.@functor MultiScaleConvBlock
 
 function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv, dims=4)
-    small_kernel = tuple(ones(Int, dims-2)...)
+    small_kernel = tuple(ones(Int, dims - 2)...)
     medium_kernel = 3 .* small_kernel
-    big_kernel = 7 .* kernel
+    big_kernel = 7 .* small_kernel
     conv1a = conv_layer(medium_kernel, in_chs => out_chs, actfun; pad=SamePad())
     conv1b = conv_layer(medium_kernel, out_chs => out_chs, actfun; pad=SamePad())
     conv1 = Chain(conv1a, conv1b)

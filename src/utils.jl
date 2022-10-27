@@ -1,6 +1,8 @@
-export readPSFs, registerPSFs
+export prepare_psfs
 export load_data, apply_noise
 export train_test_split
+export prepare_data
+export prepare_model!
 export gaussian
 export _random_normal, _help_evaluate_loss, _ensure_existence
 export my_gpu, my_cu
@@ -9,6 +11,8 @@ export read_yaml
 export _get_default_kernel
 export write_to_logfile
 export _center_psfs
+export Settings
+export get_load_data_settings
 
 using MAT
 using HDF5
@@ -22,6 +26,13 @@ using FileIO
 using CUDA
 using Dates
 using ProgressMeter
+
+# Hardcoded mappings between the config yaml fields and internally used symbols
+const data_dict = Dict(:sim_dir=>"x_path", :truth_dir=>"y_path", :nrsamples=>"nrsamples", :newsize=>"resize_to", :center_psfs=>"center_psfs", :psf_ref_index=>"reference_index", :psfs_path=>"psfs_path", :psfs_key=>"psfs_key")
+const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale")
+const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses")
+const checkpoint_dict = Dict(:load_checkpoints=>"load_checkpoints", :checkpoint_dir=>"checkpoint_dir", :checkpoint_path=>"checkpoint_path", :save_interval=>"save_interval")
+const optimizer_dict = Dict("ADAM" => Adam, "Descent" => Descent, "ADAMW" => AdamW, "ADAGrad" => AdaGrad, "ADADelta" => AdaDelta)
 
 #=
 function load_dataset(
@@ -63,108 +74,144 @@ function apply_noise(imgs)
     return imgs
 end
 
-function read_yaml(path)
-    # Define dictionaries
-    optimizer_dict = Dict(
-        "ADAM" => Adam,
-        "Descent" => Descent,
-        "ADAMW" => AdamW,
-        "ADAGrad" => AdaGrad,
-        "ADADelta" => AdaDelta,
-    )
-    options = YAML.load_file(path)
-    optimizer_kw = options["training"]["optimizer"]
-    @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not defined"
-    output = Dict{Symbol,Any}()
-    output[:optimizer] = optimizer_dict[optimizer_kw]()
-    output[:sim_dir] = options["data"]["x_path"]
-    output[:truth_dir] = options["data"]["y_path"]
-    output[:newsize] = tuple(options["data"]["resize_to"]...)
-    loadpath = nothing
-    epoch_offset = 0
-    output[:load_checkpoints] = options["training"]["checkpoints"]["load_checkpoints"]
-    output[:checkpoint_dir] = options["training"]["checkpoints"]["checkpoint_dir"]
-    _ensure_existence(output[:checkpoint_dir])
-    if output[:load_checkpoints] isa Bool && output[:load_checkpoints]
-        loadpath = options["training"]["checkpoints"]["checkpoint_path"]
-        epoch_offset = parse(Int, split(match(r"epoch[-][^.]*", loadpath).match, "-")[2])
-        output[:checkpoint_path] = loadpath
-    elseif output[:load_checkpoints] == "latest"
-        # Find the most recent checkpoint in dir `checkpoint_dir`.
+struct Settings
+    data::Dict{Symbol, Any}
+    model::Dict{Symbol, Any}
+    training::Dict{Symbol, Any}
+    checkpoints::Dict{Symbol, Any}
+end
+
+function Settings(path)
+    in = YAML.load_file(path)
+    data = in["data"]
+    my_data = Dict{Symbol, Any}()
+    for (key, value) in data_dict
+        my_data[key] = data[value]
+    end
+    my_data = process_data_dict(my_data)
+
+    model = in["model"]
+    my_model = Dict{Symbol, Any}()
+    for (key, value) in model_dict
+        my_model[key] = model[value]
+    end
+    my_model = process_model_dict(my_model)
+
+    training = in["training"]
+    my_training = Dict{Symbol, Any}()
+    for (key, value) in training_dict
+        my_training[key] = training[value]
+    end
+    my_training = process_training_dict(my_training; path=path)
+
+    checkpoint = in["checkpoints"]
+    my_checkpoints = Dict{Symbol, Any}()
+    for (key, value) in checkpoint_dict
+        my_checkpoints[key] = checkpoint[value]
+    end
+    my_checkpoints = process_checkpoints_dict(my_checkpoints)
+    return Settings(my_data, my_model, my_training, my_checkpoints)
+end
+
+function get_load_data_settings(s::Settings)
+    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize];
+end
+
+function check_types(type_dict, value_dict)
+    for (key, value) in type_dict
+        temp = value_dict[key]
+        @assert temp isa value "$key should be a $value, but $temp is a $(typeof(temp))."
+    end
+end
+
+function process_data_dict(my_data)
+    type_dict = Dict(:sim_dir=>String, :truth_dir=>String, :nrsamples=>Int, :center_psfs=>Bool, :psf_ref_index=>Int, :psfs_path=>String, :psfs_key=>String)
+    check_types(type_dict, my_data)
+    my_data[:newsize] = tuple(my_data[:newsize]...)
+    return my_data
+end
+
+function process_model_dict(my_model)
+    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool)
+    check_types(type_dict, my_model)
+    return my_model
+end
+
+function process_training_dict(my_training; kwargs...)
+    type_dict = Dict(:epochs=>Int,
+    :plot_interval=>Int, :plot_dir=>String, :log_losses=>Bool)
+    check_types(type_dict, my_training)
+    optimizer_kw = my_training[:optimizer]
+    @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not implemented"
+
+    my_training[:optimizer] = optimizer_dict[optimizer_kw]()
+    _ensure_existence(my_training[:plot_dir])
+    my_training[:logfile] = my_training[:log_losses] ? joinpath(dirname(kwargs[:path]), "losses.log") : nothing
+    return my_training
+end
+
+function process_checkpoints_dict(my_checkpoints)
+    type_dict = Dict(:checkpoint_dir=>String, :save_interval=>Int)
+    check_types(type_dict, my_checkpoints)
+    @assert my_checkpoints[:load_checkpoints] in [true, false, "latest"] "load_checkpoints needs to be one of [true, false, \"latest\"]."
+    if my_checkpoints[:load_checkpoints] isa Bool && my_checkpoints[:load_checkpoints]
+        my_checkpoints[:epoch_offset] = parse_epoch(my_checkpoints[:checkpoint_path])
+    elseif my_checkpoints[:load_checkpoints] == "latest"
+        epoch_offset, load_checkpoints, checkpoint_path = find_most_recent_checkpoint(my_checkpoints[:checkpoint_dir])
+        my_checkpoints[:epoch_offset] = epoch_offset
+        my_checkpoints[:load_checkpoints] = load_checkpoints
+        my_checkpoints[:checkpoint_path] = checkpoint_path
+    else
+        my_checkpoints[:epoch_offset] = 0
+        delete!(my_checkpoints, :checkpoint_path)
+    end
+    return my_checkpoints
+end
+
+function find_most_recent_checkpoint(path)
+    # Find the most recent checkpoint in dir `checkpoint_dir`.
         # This is where the previous run should've saved checkpoints
-        loadpath = output[:checkpoint_dir]
         most_recent = nothing
         most_recent_chkp = nothing
-        for file in readdir(loadpath)
-            if !endswith(file, ".bson")
-                continue
+        checkpoint_path = nothing
+        load_checkpoints = false
+        epoch_offset = 0
+        if isdir(path)
+            for file in readdir(path)
+                date = parse_date(file)
+                if isnothing(date)
+                    continue
+                end
+                if isnothing(most_recent) || date > most_recent
+                    most_recent = date
+                    most_recent_chkp = file
+                end
             end
-            # Separate the date in the name and format it such that it can be parsed into a `DateTime` by `tryparse`
-            datestring = replace(split(file, "_loss")[1], "_" => ":")
-            date = tryparse(DateTime, datestring)
-            if isnothing(date)
-                continue
-            end
-            if isnothing(most_recent) || date > most_recent
-                most_recent = date
-                most_recent_chkp = file
+            if isnothing(most_recent_chkp)
+                @info "No checkpoints found. Starting training from scratch."
+                load_checkpoints = false
+            else
+                epoch_offset = parse_epoch(most_recent_chkp)
+                checkpoint_path = joinpath(path, most_recent_chkp)
+                load_checkpoints = true
+                @info "Resuming training from $most_recent_chkp."
             end
         end
-        if isnothing(most_recent_chkp)
-            @info "No checkpoints found. Starting training from scratch"
-            output[:load_checkpoints] = false
-        else
-            epoch_offset = parse(
-                Int, split(match(r"epoch[-][^.]*", most_recent_chkp).match, "-")[2]
-            )
-            output[:checkpoint_path] = joinpath(loadpath, most_recent_chkp)
-            output[:load_checkpoints] = true
-            @info "Resuming training from $most_recent_chkp"
-        end
-    end
-    output[:epoch_offset] = epoch_offset
-    # Model parameters
-    output[:depth] = options["model"]["depth"]
-    output[:attention] = options["model"]["attention"]
-    output[:dropout] = options["model"]["dropout"]
-    output[:separable] = options["model"]["separable"]
-    output[:final_attention] = options["model"]["final_attention"]
-    output[:nrsamples] = options["training"]["nrsamples"]
-    output[:epochs] = options["training"]["epochs"]
-    output[:plot_interval] = options["training"]["plot_interval"]
-    output[:plot_dir] = options["training"]["plot_path"]
-    _ensure_existence(output[:plot_dir])
-    output[:log_losses] = options["training"]["log_losses"]
-    output[:logfile] = output[:log_losses] ? joinpath(dirname(path), "losses.log") : nothing
-    output[:psfs_path] = options["training"]["psfs_path"]
-    output[:psfs_key] = options["training"]["psfs_key"]
-    output[:center_psfs] = options["data"]["center_psfs"]
-    if output[:center_psfs]
-        output[:psf_ref_index] = options["data"]["reference_index"]
-    end
-    output[:save_interval] = options["training"]["checkpoints"]["save_interval"]
+        return epoch_offset, load_checkpoints, checkpoint_path
+end
 
-    # Check that boolean fields have right datatype
-    for field in [
-        :load_checkpoints,
-        :attention,
-        :dropout,
-        :separable,
-        :final_attention,
-        :log_losses,
-        :center_psfs,
-    ]
-        temp = output[field]
-        @assert temp isa Bool "$field should be a boolean, but $temp is a $(typeof(temp))."
+function parse_epoch(checkpoint_path)
+    return parse(Int, split(match(r"epoch[-][^.]*", checkpoint_path).match, "-")[2])
+end
+
+function parse_date(checkpoint_path)
+    if !endswith(checkpoint_path, ".bson")
+        return nothing
     end
-    # Int fields should be ≥ 0
-    for field in
-        [:epoch_offset, :depth, :nrsamples, :epochs, :plot_interval, :save_interval]
-        temp = output[field]
-        @assert temp isa Int "$field should be a integer, but $temp is a $(typeof(temp))."
-        @assert temp ≥ zero(Int) "$field needs to be ≥ 0, but is $temp."
-    end
-    return output
+    # Separate the date in the name and format it such that it can be parsed into a `DateTime` by `tryparse`
+    datestring = replace(split(checkpoint_path, "_loss")[1], "_" => ":")
+    date = tryparse(DateTime, datestring)
+    return date # Could be a DateTime or nothing
 end
 
 """    find_complete(nrsamples, truth_directory, simulated_directory)
@@ -229,9 +276,8 @@ function load_volumes(
     return volumes_x, volumes_y
 end
 
-function load_data(
-    nrsamples, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
-)
+function load_data(settings::Settings; T=Float32)
+    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
     imageFileEndings = [".png", ".jpg", ".jpeg"]
     volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
     complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
@@ -262,6 +308,35 @@ function train_test_split(x; ratio=0.7, dim=ndims(x))
     train = collect(selectdim(x, dim, 1:split_ind))
     test = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
     return train, test
+end
+
+"""    prepare_model!(settings::Settings)
+
+Either load a previously loaded model or initialize a new one.
+
+Side effect: `settings.training[:optimizer]` gets set to the loaded optimizer
+if a model is loaded from a checkpoint.
+"""
+function prepare_model!(settings::Settings)
+    if !settings.checkpoints[:load_checkpoints]
+        psfs = prepare_psfs(settings)
+        psfs = my_gpu(psfs)
+        model = my_gpu(make_model(psfs, settings.model))
+    else
+        model, optimizer = my_gpu(load_model(settings.checkpoints[:checkpoint_path]))
+        settings.training[:optimizer] = optimizer
+    end
+    return model
+end
+
+function prepare_data(settings::Settings; T=Float32)
+    x_data, y_data = load_data(settings;T=T)
+    x_data = apply_noise(x_data)
+    x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
+    y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
+    train_x, test_x = train_test_split(x_data)
+    train_y, test_y = train_test_split(y_data)
+    return train_x, train_y, test_x, test_y
 end
 
 function gaussian(window_size=11, sigma=1.5; T=Float32)
@@ -395,6 +470,21 @@ function _center_psfs(psfs, center, ref_index)
 end
 
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
+
+function prepare_psfs(settings::Settings; T=Float32)
+    uncentered_psfs = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
+    psfs = _center_psfs(uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index])
+    dims = length(settings.data[:newsize])
+    nrPSFs = size(psfs)[end]
+    resized_psfs = Array{T,dims + 1}(undef, settings.data[:newsize]..., nrPSFs)
+    for i in 1:nrPSFs
+        selectdim(resized_psfs, dims + 1, i) .= imresize(
+            collect(selectdim(psfs, dims + 1, i)), settings.data[:newsize]
+        )
+    end
+    psfs = resized_psfs    
+    return psfs
+end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#
 
