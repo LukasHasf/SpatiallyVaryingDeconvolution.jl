@@ -496,7 +496,7 @@ end
     path2 = joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
     path3 = joinpath("examples", "checkpoints", "not_a_bson_file.txt")
     path4 = joinpath("examples", "checkpoints", "date_missing_loss-0.601_epoch-9.bson")
-    mkdirs(joinpath("examples", "checkpoints"))
+    mkpath(joinpath("examples", "checkpoints"))
     io = open(path1, "w")
     close(io)
     io = open(path2, "w")
