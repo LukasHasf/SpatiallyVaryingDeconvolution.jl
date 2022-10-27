@@ -41,12 +41,13 @@ function SeparableConv(
     init=Flux.glorot_uniform,
 ) where {N}
     convs = []
+    proper_pad = Flux.calc_padding(Conv, pad, filter, dilation, groups)
     for i in 1:N
         filter_dims = Tuple(ones(Int, N))
         filter_ch = i == 1 ? ch : ch[2] => ch[2]
         filter_dims = tuple([n == i ? filter[n] : 1 for n in 1:N]...)
         current_stride = tuple([n == i ? stride : 1 for n in 1:N]...)
-        current_pad = tuple([n == i ? pad : 0 for n in 1:N]...)
+        current_pad = tuple([n == i ? proper_pad[n] : 0 for n in 1:N]...)
         current_dilation = tuple([n == i ? dilation : 1 for n in 1:N]...)
         conv = Conv(
             filter_dims,
@@ -114,6 +115,33 @@ function (u::UNetUpBlock)(x, bridge)
     return u.conv_op(cat(x, bridge; dims=ndims(x) - 1))
 end
 
+struct MultiScaleConvBlock{A,B,C}
+    c1::A
+    c2::B
+    c3::C
+end
+Flux.@functor MultiScaleConvBlock
+
+function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv, dims=4)
+    small_kernel = tuple(ones(Int, dims - 2)...)
+    medium_kernel = 3 .* small_kernel
+    big_kernel = 7 .* small_kernel
+    conv1a = conv_layer(medium_kernel, in_chs => out_chs, actfun; pad=SamePad())
+    conv1b = conv_layer(medium_kernel, out_chs => out_chs, actfun; pad=SamePad())
+    conv1 = Chain(conv1a, conv1b)
+    conv2a = conv_layer(big_kernel, in_chs => out_chs, actfun; pad=SamePad())
+    conv2b = conv_layer(big_kernel, out_chs => out_chs, actfun; pad=SamePad())
+    conv2 = Chain(conv2a, conv2b)
+    conv3 = conv_layer(small_kernel, 2*out_chs => out_chs, actfun; pad=SamePad())
+    return MultiScaleConvBlock(conv1, conv2, conv3)
+end
+
+function (mscb::MultiScaleConvBlock)(x)
+    x1 = mscb.c1(x)
+    x2 = mscb.c2(x)
+    return mscb.c3(cat(x1, x2; dims=ndims(x) - 1))
+end
+
 struct ConvBlock{F}
     chain::Chain
     actfun::F
@@ -125,6 +153,7 @@ Flux.@functor ConvBlock
 function ConvBlock(
     in_chs::Int,
     out_chs::Int;
+    multiscale=false,
     kernel=(3, 3),
     dropout=false,
     activation="relu",
@@ -133,13 +162,12 @@ function ConvBlock(
     norm="batch",
     separable=false,
 )
+    conv_layer = Conv
     if transpose
         conv_layer = ConvTranspose
     else
         if separable
             conv_layer = SeparableConv
-        else
-            conv_layer = Conv
         end
     end
 
@@ -148,6 +176,10 @@ function ConvBlock(
         activation_functions[activation]
     else
         identity
+    end
+
+    if multiscale
+        return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer, dims=length(kernel)+2)
     end
 
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
@@ -205,6 +237,7 @@ function ConvDown(
     separable=false,
     dropout=false,
     norm="batch",
+    multiscale=false,
 )
     downsample_op = Conv(
         down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs
@@ -218,6 +251,7 @@ function ConvDown(
         residual=residual,
         separable=separable,
         norm=norm,
+        multiscale=multiscale,
     )
     downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
     downsample_op.bias .*= 0.01
@@ -262,7 +296,8 @@ function Unet(
     depth=4,
     dropout=false,
     separable=false,
-    final_attention=true,
+    final_attention=false,
+    multiscale=false
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     valid_downsampling_methods = ["conv"]
@@ -277,6 +312,7 @@ function Unet(
         separable=separable,
         kernel=conv_kernel,
         activation=activation,
+        multiscale=multiscale
     )
     if down == "conv"
         kernel = kernel_base .* 2
