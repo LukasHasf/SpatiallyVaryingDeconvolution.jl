@@ -267,6 +267,29 @@ end
     @test zero(eltype(img_normalized)) <= min_i <= max_i <= one(eltype(img_normalized))
 end
 
+@testset "parse_epoch" begin
+    teststring = "2022-10-26T20_51_34_loss-0.367_epoch-15.bson"
+    @test parse_epoch(teststring) isa Int
+    @test parse_epoch(teststring) == 15
+    teststring = "some/dirs/before/the/checkpoint/2022-10-26T20_51_34_loss-0.367_epoch-20.bson"
+    @test parse_epoch(teststring) isa Int
+    @test parse_epoch(teststring) == 20
+end
+
+@testset "parse_date" begin
+    # parse_date doesn't need to work on paths, only on filenames
+    teststring = "2022-10-26T20_51_34_loss-0.367_epoch-15.bson"
+    @test parse_date(teststring) isa DateTime
+    @test parse_date(teststring)==DateTime(2022, 10, 26, 20, 51, 34)
+    teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.bson"
+    @test parse_date(teststring) isa DateTime
+    @test parse_date(teststring)==DateTime(2021, 09, 16, 22, 51, 34)
+    # Everything that is not a bson file or that is not parseable should return nothing
+    teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.other"
+    @test isnothing(parse_date(teststring))
+    @test isnothing(parse_date("some_other_filename.bson"))
+end
+
 @testset "Test load data" begin
     # First, save some temporary pictures
     imgs = rand(Float32, 32, 32, 6)
@@ -388,6 +411,36 @@ end
     dummy_settings.data[:newsize] = (8,8)
     psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
     @test size(psfs_loaded) == (8, 8, 4)
+end
+
+@testset "prepare_model!" begin
+    psfs_dir = mktempdir()
+    psfs = rand(Float64, 16, 16, 4)
+    psfs_key = "abc"
+    psfs_filename = "a.h5"
+    matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
+    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+                        Dict(), 
+                        Dict(:load_checkpoints=>false))
+    model = prepare_model!(dummy_settings)
+
+    model_true = my_gpu(make_model(my_gpu(prepare_psfs(dummy_settings)), dummy_settings.model))
+    @test typeof(model) == typeof(model_true)
+
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0; opt=Flux.AdaGrad()
+    )
+
+    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+    Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+    Dict(:optimizer=>Flux.Adam()), 
+    Dict(:load_checkpoints=>true, :checkpoint_path=>testsave_path))
+
+    loaded_model = prepare_model!(dummy_settings)
+
+    @test typeof(loaded_model) == typeof(model_true)
+    @test dummy_settings.training[:optimizer] isa Flux.AdaGrad
 end
 
 @testset "_help_evaluate_loss" begin
