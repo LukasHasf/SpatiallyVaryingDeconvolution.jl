@@ -44,12 +44,12 @@ function MultiWienerWithPlan(PSFs; on_gpu=true)
     return toMultiWienerWithPlan(m; on_gpu=on_gpu)
 end
 
-"""    toMultiWienerWithPlan(m::MultiWiener; on_gpu=true)
+"""    toMultiWienerWithPlan(m; on_gpu=true)
 
 Convert a `MultiWiener` layer that uses `rfft` to a `MultiWienerNet` that uses `rfft plans`.
 If `on_gpu`, use `rCuFFTPlan`, else `rFFTWPlan`.
 """
-function toMultiWienerWithPlan(m::MultiWiener; on_gpu=true)
+function toMultiWienerWithPlan(m; on_gpu=true)
     to_gpu_cpu = on_gpu ? my_gpu : identity
     sim_psf = to_gpu_cpu(similar(m.PSF))
     nd = ndims(sim_psf)
