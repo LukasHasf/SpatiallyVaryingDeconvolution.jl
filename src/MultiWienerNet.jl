@@ -32,19 +32,32 @@ function to_multiwiener(m)
     return MultiWiener(m.PSF, m.lambda)
 end
 
-function MultiWienerWithPlan(PSFs)
+"""    MultiWienerWithPlan(PSFS; on_gpu=true)
+
+Create a `MultiWienerWithPlan` initialized with the PSFs given by `PSFS`.
+Uses plan for fourier transforms. 
+    
+If CUDA capable GPU is available and `on_gpu==true`, uses `rCuFFTPlan`, else use `rFFTWPlan`.
+"""
+function MultiWienerWithPlan(PSFs; on_gpu=true)
     m = MultiWiener(PSFs)
-    return toMultiWienerWithPlan(m)
+    return toMultiWienerWithPlan(m; on_gpu=on_gpu)
 end
 
-function toMultiWienerWithPlan(m::MultiWiener)
-    sim_psf = my_gpu(similar(m.PSF))
+"""    toMultiWienerWithPlan(m; on_gpu=true)
+
+Convert a `MultiWiener` layer that uses `rfft` to a `MultiWienerNet` that uses `rfft plans`.
+If `on_gpu`, use `rCuFFTPlan`, else `rFFTWPlan`.
+"""
+function toMultiWienerWithPlan(m; on_gpu=true)
+    to_gpu_cpu = on_gpu ? my_gpu : identity
+    sim_psf = to_gpu_cpu(similar(m.PSF))
     nd = ndims(sim_psf)
     sz = size(sim_psf)
     nrPSFs = size(m.PSF, nd)
     plan_x = plan_rfft(similar(sim_psf, sz[1:(nd - 1)]..., 1, 1), 1:(nd - 1))
     plan = plan_rfft(sim_psf, 1:(nd - 1))
-    dummy_for_inv = my_gpu(
+    dummy_for_inv = to_gpu_cpu(
         similar(
             sim_psf,
             complex(eltype(sim_psf)),
@@ -54,7 +67,7 @@ function toMultiWienerWithPlan(m::MultiWiener)
         ),
     )
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
-    return MultiWienerWithPlan(my_gpu(m.PSF), my_gpu(m.lambda), plan, inv_plan, plan_x)
+    return MultiWienerWithPlan(to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x)
 end
 
 """    (m::MultiWiener)(x)

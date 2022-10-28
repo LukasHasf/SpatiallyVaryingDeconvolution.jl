@@ -6,7 +6,8 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, nrPSFs)
-    model = SpatiallyVaryingDeconvolution.make_model(psfs)
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
+    model = SpatiallyVaryingDeconvolution.make_model(psfs, model_settings; on_gpu=false)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
     # Test that inference is working
@@ -18,7 +19,7 @@
         model, mktempdir(), [0.0], 1, 0
     )
     loaded_model = SpatiallyVaryingDeconvolution.load_model(
-        testsave_path; load_optimizer=false
+        testsave_path; load_optimizer=false, on_gpu=false
     )
     @test loaded_model(img) == prediction
 
@@ -50,7 +51,7 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, Nz, nrPSFs)
-    model = SpatiallyVaryingDeconvolution.make_model(psfs)
+    model = SpatiallyVaryingDeconvolution.make_model(psfs, model_settings; on_gpu=false)
     img = rand(Float32, Ny, Nx, Nz, nrchannels, batchsize)
     prediction = model(img)
     @test ndims(prediction) == ndims(img)
@@ -63,7 +64,7 @@
         model, mktempdir(), [0.0], 1, 0; opt=opt
     )
     loaded_model, opt_loaded = SpatiallyVaryingDeconvolution.load_model(
-        testsave_path; load_optimizer=true
+        testsave_path; load_optimizer=true, on_gpu=false
     )
     @test loaded_model(img) == prediction
     @test opt_loaded isa typeof(opt)
@@ -82,10 +83,12 @@ end
         residual=false,
         up="tconv",
         depth=4,
+        attention=true,
         dropout=false,
         norm="batch",
         separable=true,
         final_attention=false,
+        multiscale=true,
     )
     img = rand(Float32, Ny, Nx, nrch, batchsize)
 
@@ -130,8 +133,9 @@ end
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
     psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
-    model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs))
+    model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     train_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     test_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
@@ -146,21 +150,17 @@ end
     plotdir = mktempdir()
     chkptdir = mktempdir()
     logfile = joinpath(mktempdir(), "logfile.log")
+    settings = SpatiallyVaryingDeconvolution.Settings(Dict(), Dict(), Dict(:plot_dir=>plotdir, :plot_interval=>1, :optimizer=>Adam(), :epochs=>1, :logfile=>logfile),
+    Dict(:save_interval=>1, :checkpoint_dir=>chkptdir, :epoch_offset=>0))
     SpatiallyVaryingDeconvolution.train_model(
         model,
         train_x,
         train_y,
         test_x,
         test_y,
-        loss_fn;
-        epochs=1,
-        epoch_offset=0,
+        loss_fn,
+        settings;
         plotloss=true,
-        plotevery=1,
-        plotdirectory=plotdir,
-        saveevery=1,
-        checkpointdirectory=chkptdir,
-        logfile=logfile,
     )
     @test isfile(logfile)
     @test length(readdir(chkptdir)) == 2

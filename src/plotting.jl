@@ -4,10 +4,10 @@ function sliced_plot(arr)
     l = @layout [a b; c d]
     clim = extrema(arr)
     p_yx = heatmap(
-        maximum(arr; dims=3)[:, :, 1]; clim=clim, colorbar=false, ylabel="y", ticks=false
+        maximum(arr; dims=3)[:, :, 1]; clim=clim, colorbar=false, ylabel="y", ticks=false, c=:grays
     )
     p_yz = heatmap(
-        maximum(arr; dims=2)[:, 1, :]; clim=clim, colorbar=false, xlabel="z", ticks=false
+        maximum(arr; dims=2)[:, 1, :]; clim=clim, colorbar=false, xlabel="z", ticks=false, c=:grays
     )
     p_xz = heatmap(
         maximum(arr; dims=1)[1, :, :]';
@@ -15,7 +15,8 @@ function sliced_plot(arr)
         colorbar=false,
         ylabel="z",
         xlabel="x",
-        ticks=false,
+        ticks=false, 
+        c=:grays,
     )
 
     my_colorbar = scatter(
@@ -30,6 +31,7 @@ function sliced_plot(arr)
         xshowaxis=false,
         yshowaxis=false,
         ticks=false,
+        c=:grays,
     )
 
     return plot(p_yx, p_yz, p_xz, my_colorbar; layout=l)
@@ -40,8 +42,8 @@ function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
     psf = cpu(psf)
     if ndims(psf) == 3
         # 2D case -> prediction is (Ny, Nx, channels, batchsize)
-        p1 = heatmap(prediction[:, :, 1, 1])
-        p2 = heatmap(abs2.(psf[:, :, 1]))
+        p1 = heatmap(prediction[:, :, 1, 1]; c=:grays)
+        p2 = heatmap(abs2.(psf[:, :, 1]); c=:grays)
     elseif ndims(psf) == 4
         # 3D case -> prediction is (Ny, Nx, Nz, channels, batchsize)
         p1 = sliced_plot(prediction[:, :, :, 1, 1])

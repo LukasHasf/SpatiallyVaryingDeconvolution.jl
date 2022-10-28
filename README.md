@@ -47,6 +47,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `dropout` : Boolean to indicate if the UNet should employ dopout-layers during training.
 - `separable` : Whether to use separable or regular convolutions in the UNet convolution layers.
 - `final_attention` : Whether to add a convolution layer which processes all intermediate (upsampled) activations in the decoder path followed by an attention gate.
+- `multiscale` : Whether to use multiscale convolutions instead of normal ones. Increases performance in conjuction with transfer training, but requires more memory (significantly more in 3D).
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.
 - `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
 - `epochs` : The number of epochs the model will be trained.

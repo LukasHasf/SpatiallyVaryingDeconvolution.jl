@@ -89,6 +89,11 @@ end
     @test UNet.u_tanh(x) == tanh.(x)
 end
 
+@testset "u_elu" begin
+    x = -10:0.1:10
+    @test UNet.u_elu(x) == elu.(x)
+end
+
 @testset "train_real_gradient!" begin
     # Create two identical models with predetermined weights
     model = Chain(Dense(1, 5), Dense(5, 1))
@@ -262,12 +267,37 @@ end
     @test zero(eltype(img_normalized)) <= min_i <= max_i <= one(eltype(img_normalized))
 end
 
+@testset "parse_epoch" begin
+    teststring = "2022-10-26T20_51_34_loss-0.367_epoch-15.bson"
+    @test parse_epoch(teststring) isa Int
+    @test parse_epoch(teststring) == 15
+    teststring = "some/dirs/before/the/checkpoint/2022-10-26T20_51_34_loss-0.367_epoch-20.bson"
+    @test parse_epoch(teststring) isa Int
+    @test parse_epoch(teststring) == 20
+end
+
+@testset "parse_date" begin
+    # parse_date doesn't need to work on paths, only on filenames
+    teststring = "2022-10-26T20_51_34_loss-0.367_epoch-15.bson"
+    @test parse_date(teststring) isa DateTime
+    @test parse_date(teststring)==DateTime(2022, 10, 26, 20, 51, 34)
+    teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.bson"
+    @test parse_date(teststring) isa DateTime
+    @test parse_date(teststring)==DateTime(2021, 09, 16, 22, 51, 34)
+    # Everything that is not a bson file or that is not parseable should return nothing
+    teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.other"
+    @test isnothing(parse_date(teststring))
+    @test isnothing(parse_date("some_other_filename.bson"))
+end
+
 @testset "Test load data" begin
     # First, save some temporary pictures
     imgs = rand(Float32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32)),
+                        Dict(), Dict(), Dict())
     save(joinpath(train_dir, "a.png"), imgs[:, :, 1])
     save(joinpath(train_dir, "b.png"), imgs[:, :, 2])
     save(joinpath(train_dir, "exclusive_train.png"), imgs[:, :, 3])
@@ -275,7 +305,7 @@ end
     save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
     save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 1, 2)
     @test imgs_y[:, :, 1, 1] ≈ imgs[:, :, 1] atol = 1e-1
@@ -288,6 +318,8 @@ end
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
+                        Dict(), Dict(), Dict())
 
     save(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     save(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -296,7 +328,7 @@ end
     save(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
     save(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 32, 1, 2)
     @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
@@ -311,6 +343,8 @@ end
     test_dir = joinpath(img_dir, "test")
     mkdir(train_dir)
     mkdir(test_dir)
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
+                        Dict(), Dict(), Dict())
 
     matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -319,13 +353,94 @@ end
     matwrite(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
     matwrite(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
     # Load the pictures and compare
-    imgs_x, imgs_y = load_data(5, train_dir, test_dir; newsize=(32, 32, 32), T=Float32)
+    imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
     @test size(imgs_y) == (32, 32, 32, 1, 2)
     @test imgs_y[:, :, :, 1, 1] ≈ imgs[:, :, :, 1]
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+end
+
+@testset "prepare_data" begin
+    imgs = rand(Float32, 32, 32, 12)
+    img_dir = mktempdir()
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    samples_to_load = 5
+    dummy_settings = Settings(Dict(:nrsamples=>samples_to_load, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(16,17)),
+                        Dict(), Dict(), Dict())
+    for i in 1:6
+        save(joinpath(train_dir, "img_$(i).png"), imgs[:, :, i])
+        save(joinpath(test_dir, "img_$(i).png"), imgs[:, :, i])
+    end
+    train_x, train_y, test_x, test_y = prepare_data(dummy_settings; T=Float32)
+    @test all([eltype(x)==Float32 for x in [train_x, train_y, test_x, test_y]])
+    split_ind = trunc(Int, 0.7 * samples_to_load)
+    @test size(train_x) == (16, 17, 1, split_ind)
+    @test size(test_x) == (16, 17, 1, samples_to_load - split_ind)
+    @test size(train_x) == size(train_y)
+    @test size(test_x) == size(test_y)
+    @test all(-1 * one(Float32) .<= train_y .<= one(Float32))
+    @test all(-1 * one(Float32) .<= test_y .<= one(Float32))
+    # Add a bit of tolerance, since "x" data gets some additional noise after being mapped to range [0, 1]
+    @test all(-1.2 * one(Float32) .<= train_x .<= 1.2)
+    @test all(-1.2 * one(Float32) .<= test_x .<= 1.2)
+end
+
+@testset "prepare_psfs" begin
+    psfs_dir = mktempdir()
+    psfs = rand(Float64, 16, 16, 4)
+    psfs_key = "abc"
+    psfs_filename = "a.h5"
+    matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
+    dummy_settings = SpatiallyVaryingDeconvolution.Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+                        Dict(), Dict(), Dict())
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings; T=Float64)
+    @test eltype(psfs_loaded) == Float64
+    @test psfs_loaded ≈ psfs
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings; T=Float32)
+    @test eltype(psfs_loaded) == Float32
+    @test psfs_loaded ≈ Float32.(psfs)
+
+    dummy_settings.data[:center_psfs] = true
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
+    @test psfs_loaded ≈ SpatiallyVaryingDeconvolution._center_psfs(psfs, true, -1)
+
+    dummy_settings.data[:center_psfs] = false
+    dummy_settings.data[:newsize] = (8,8)
+    psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
+    @test size(psfs_loaded) == (8, 8, 4)
+end
+
+@testset "prepare_model!" begin
+    psfs_dir = mktempdir()
+    psfs = rand(Float64, 16, 16, 4)
+    psfs_key = "abc"
+    psfs_filename = "a.h5"
+    matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
+    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+                        Dict(), 
+                        Dict(:load_checkpoints=>false))
+    model = prepare_model!(dummy_settings)
+
+    model_true = my_gpu(make_model(my_gpu(prepare_psfs(dummy_settings)), dummy_settings.model))
+    @test typeof(model) == typeof(model_true)
+
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0; opt=Flux.AdaGrad()
+    )
+
+    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
+    Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+    Dict(:optimizer=>Flux.Adam()), 
+    Dict(:load_checkpoints=>true, :checkpoint_path=>testsave_path))
+
+    loaded_model = prepare_model!(dummy_settings)
+
+    @test typeof(loaded_model) == typeof(model_true)
+    @test dummy_settings.training[:optimizer] isa Flux.AdaGrad
 end
 
 @testset "_help_evaluate_loss" begin
@@ -346,41 +461,42 @@ end
     @test issetequal(["test", "test2"], dirlist)
 end
 
-@testset "read_yaml" begin
-    options = read_yaml("options.yaml")
-    @test options[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
-    @test options[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
-    @test options[:newsize] == (64, 64)
-    @test options[:center_psfs] == true
-    @test options[:psf_ref_index] == -1
-    @test options[:depth] == 3
-    @test options[:attention] == true
-    @test options[:dropout] == true
-    @test options[:separable] == true
-    @test options[:final_attention] == true
-    @test options[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
-    @test options[:psfs_key] == "psfs"
-    @test options[:nrsamples] == 700
-    @test options[:epochs] == 20
-    @test options[:optimizer] isa AdaDelta
-    @test options[:plot_interval] == 1
-    @test options[:plot_dir] == "examples/training_progress/"
-    @test options[:load_checkpoints] == false
-    @test !(:checkpoint_path in keys(options))
-    @test options[:checkpoint_dir] == "examples/checkpoints/"
-    @test options[:save_interval] == 1
-    @test options[:log_losses] == false
+@testset "Reading options file" begin
+    settings = Settings("options.yaml")
+    @test settings.data[:sim_dir] == "../../training_data/Data/JuliaForwardModel/"
+    @test settings.data[:truth_dir] == "../../training_data/Data/Ground_truth_downsampled/"
+    @test settings.data[:newsize] == (64, 64)
+    @test settings.data[:center_psfs] == true
+    @test settings.data[:psf_ref_index] == -1
+    @test settings.model[:depth] == 3
+    @test settings.model[:attention] == true
+    @test settings.model[:dropout] == true
+    @test settings.model[:separable] == true
+    @test settings.model[:final_attention] == true
+    @test settings.data[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
+    @test settings.data[:psfs_key] == "psfs"
+    @test settings.data[:nrsamples] == 700
+    @test settings.training[:epochs] == 20
+    @test settings.training[:optimizer] isa AdaDelta
+    @test settings.training[:plot_interval] == 1
+    @test settings.training[:plot_dir] == "examples/training_progress/"
+    @test settings.checkpoints[:load_checkpoints] == false
+    @test !(:checkpoint_path in keys(settings.checkpoints))
+    @test settings.checkpoints[:checkpoint_dir] == "examples/checkpoints/"
+    @test settings.checkpoints[:save_interval] == 1
+    @test settings.training[:log_losses] == false
 
     # Latest with no checkpoint found
-    options = read_yaml("options_latest.yaml")
-    @test options[:load_checkpoints] == false
+    settings = Settings("options_latest.yaml")
+    @test settings.checkpoints[:load_checkpoints] == false
 
     # Latest with fake checkpoints
     # Create 2 empty, but correctly named checkpoints, one stray file and an incorrectly named checkpoint file
-    path1 = "examples/checkpoints/2022-08-10T14_25_35_loss-0.888_epoch-1.bson"
-    path2 = "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
-    path3 = "examples/checkpoints/not_a_bson_file.txt"
-    path4 = "examples/checkpoints/date_missing_loss-0.601_epoch-9.bson"
+    path1 = joinpath("examples", "checkpoints", "2022-08-10T14_25_35_loss-0.888_epoch-1.bson")
+    path2 = joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
+    path3 = joinpath("examples", "checkpoints", "not_a_bson_file.txt")
+    path4 = joinpath("examples", "checkpoints", "date_missing_loss-0.601_epoch-9.bson")
+    mkpath(joinpath("examples", "checkpoints"))
     io = open(path1, "w")
     close(io)
     io = open(path2, "w")
@@ -389,21 +505,21 @@ end
     close(io)
     io = open(path4, "w")
     close(io)
-    options = read_yaml("options_latest.yaml")
-    @test options[:load_checkpoints] == true
-    @test options[:checkpoint_path] == path2
+    settings =  Settings("options_latest.yaml")
+    @test settings.checkpoints[:load_checkpoints] == true
+    @test joinpath(split(settings.checkpoints[:checkpoint_path], "/")...) == path2
 
     # Clean up
     rm(path1)
     rm(path2)
     rm(path3)
     rm(path4)
+    rm(joinpath("examples", "checkpoints"))
 
-    options = read_yaml("options2.yaml")
-    @test options[:load_checkpoints] == true
-    @test options[:checkpoint_path] ==
-        "examples/checkpoints/2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
-    @test options[:epoch_offset] == 8
+    settings = Settings("options2.yaml")
+    @test settings.checkpoints[:load_checkpoints] == true
+    @test joinpath(split(settings.checkpoints[:checkpoint_path],"/")...) == joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
+    @test settings.checkpoints[:epoch_offset] == 8
 end
 
 @testset "_get_default_kernel" begin
