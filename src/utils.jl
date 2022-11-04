@@ -434,6 +434,8 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
     # Zygote calculates a complex gradient, even though this is mapping  real -> real.
     # Might have to do with fft and incomplete Wirtinger derivatives? Anyway, only
     # use the real part of the gradient
+    p = Progress(length(Iterators.partition(data, batch_size)), 1)
+    l = 0
     @showprogress "Epoch progress:" for part in Iterators.partition(data, batch_size)
         try
             part = my_cu.(part)
@@ -446,6 +448,7 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
             end
             part = nothing
             Flux.update!(opt, ps, real.(gs))
+            next!(p; showvalues=[(:loss, l)])
         catch ex
             if ex isa Flux.Optimise.StopException
                 break
