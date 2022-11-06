@@ -15,6 +15,7 @@ using ProgressMeter
 include("utils.jl")
 include("UNet.jl")
 include("MultiWienerNet.jl")
+include("RLLayer.jl")
 include("losses.jl")
 include("plotting.jl")
 include("model.jl")
