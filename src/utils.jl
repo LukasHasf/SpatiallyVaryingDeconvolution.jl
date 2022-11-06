@@ -29,7 +29,7 @@ using ProgressMeter
 
 # Hardcoded mappings between the config yaml fields and internally used symbols
 const data_dict = Dict(:sim_dir=>"x_path", :truth_dir=>"y_path", :nrsamples=>"nrsamples", :newsize=>"resize_to", :center_psfs=>"center_psfs", :psf_ref_index=>"reference_index", :psfs_path=>"psfs_path", :psfs_key=>"psfs_key")
-const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale")
+const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale", :deconv=>"deconv")
 const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses")
 const checkpoint_dict = Dict(:load_checkpoints=>"load_checkpoints", :checkpoint_dir=>"checkpoint_dir", :checkpoint_path=>"checkpoint_path", :save_interval=>"save_interval")
 const optimizer_dict = Dict("ADAM" => Adam, "Descent" => Descent, "ADAMW" => AdamW, "ADAGrad" => AdaGrad, "ADADelta" => AdaDelta)
@@ -132,8 +132,10 @@ function process_data_dict(my_data)
 end
 
 function process_model_dict(my_model)
-    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool)
+    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool, :deconv=>String)
     check_types(type_dict, my_model)
+    valid_deconv = ["rl", "wiener"]
+    @assert my_model[:deconv] in ["rl", "wiener"] "deconv has to be one of $valid_deconv, but is $(my_model[:deconv])."
     return my_model
 end
 
@@ -447,6 +449,11 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
                 l
             end
             part = nothing
+            #for g in gs
+            #    if !isnothing(g)
+            #        println(any(isnan.(g)))
+            #    end
+            #end
             Flux.update!(opt, ps, real.(gs))
             next!(p; showvalues=[(:loss, l)])
         catch ex
