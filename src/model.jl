@@ -46,7 +46,7 @@ function make_model(
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
+    deconv_stage = model_settings[:deconv]=="wiener" ? MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu) : RLLayer.RL(psfs)
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -57,7 +57,7 @@ function make_model(
         norm="none",
         model_settings...
     )
-    model = Flux.Chain(modelwiener, modelUNet)
+    model = Flux.Chain(deconv_stage, modelUNet)
     return model
 end
 
