@@ -297,7 +297,8 @@ function Unet(
     dropout=false,
     separable=false,
     final_attention=false,
-    multiscale=false
+    multiscale=false,
+    kwargs...
 )
     valid_upsampling_methods = ["nearest", "tconv"]
     valid_downsampling_methods = ["conv"]
