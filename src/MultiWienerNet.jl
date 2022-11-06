@@ -70,6 +70,14 @@ function toMultiWienerWithPlan(m; on_gpu=true)
     return MultiWienerWithPlan(to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x)
 end
 
+function anscombe_transform(x::AbstractArray{T}) where {T}
+    return T.(2 .* sqrt.(max.(x .+ 3/8, zero(eltype(x)))))
+end
+
+function anscombe_transform_inv(x::AbstractArray{T}) where {T}
+    return T.((x ./ 2).^2 .- 3/8)
+end
+
 """    (m::MultiWiener)(x)
 
 Apply `MultiWiener` layer to image/volume `x`.
@@ -77,20 +85,20 @@ Apply `MultiWiener` layer to image/volume `x`.
 function (m::MultiWiener)(x)
     dims = 1:(ndims(m.PSF) - 1)
     H = rfft(m.PSF, dims)
-    x̂ = rfft(fftshift(x, dims), dims)
+    x̂ = rfft(fftshift(anscombe_transform(x), dims), dims)
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = irfft(output, size(x, 1), dims)
-    return iffted_output
+    return anscombe_transform_inv(iffted_output)
 end
 Flux.@functor MultiWiener
 
 function (m::MultiWienerWithPlan)(x)
     dims = 1:(ndims(m.PSF) - 1)
     H = m.plan * m.PSF
-    x̂ = m.plan_x * (fftshift(x, dims))
+    x̂ = m.plan_x * (fftshift(anscombe_transform(x), dims))
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = m.inv_plan.scale .* (m.inv_plan.p * output)
-    return iffted_output
+    return anscombe_transform_inv(iffted_output)
 end
 Flux.@functor MultiWienerWithPlan
 Flux.trainable(m::MultiWienerWithPlan) = (m.PSF, m.lambda)
