@@ -113,6 +113,7 @@ end
 
 function lucystep_flfm(e, psf, psf_flipped, x)
     # https://github.com/ShuJiaLab/HR-FLFM/blob/main/HRFLFM_DataProc/DeconvRL_3D_GPU_HUA.m
+    # Maybe also use tanh activation after each step? https://arxiv.org/pdf/2002.01053.pdf
     denom = forward_project(psf, e)
     fraction = x ./ denom
     return e .* backward_project(psf_flipped, fraction) 
