@@ -46,7 +46,13 @@ function make_model(
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    deconv_stage = model_settings[:deconv]=="wiener" ? MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu) : RLLayer.RL(psfs)
+    if model_settings[:deconv]=="wiener"
+        deconv_stage = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
+    elseif model_settings[:deconv]=="rl"
+        deconv_stage = RLLayer.RL(psfs)
+    elseif model_settings[:deconv]=="rl_flfm"
+        deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
+    end 
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
