@@ -29,7 +29,7 @@ myconv(a, b, dims) = irfft(rfft(a, dims) .* b, size(a, 1), dims)
 function lucystep(e, psf_ft, psf_ft_conj, dims, x)
     denom = myconv(e, psf_ft_conj, dims)
     fraction = x ./ denom
-    return e .* myconv(fraction, psf_ft, dims)
+    return sigmoid_fast.(e .* myconv(fraction, psf_ft, dims))
 end
 
 function anscombe_transform(x::AbstractArray{T}) where {T}
