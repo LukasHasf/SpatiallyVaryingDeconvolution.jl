@@ -216,6 +216,10 @@ function parse_date(checkpoint_path)
     return date # Could be a DateTime or nothing
 end
 
+function remove_file_extension(filename)
+    return filename[1:findlast(isequal('.'), filename)-1]
+end
+
 """    find_complete(nrsamples, truth_directory, simulated_directory)
 
 Return the filenames of the first `nrsamples` files that are both in `truth_directory`

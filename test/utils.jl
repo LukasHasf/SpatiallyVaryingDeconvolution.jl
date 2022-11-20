@@ -44,6 +44,15 @@ end
     @test cat(a, b; dims=2) == x
 end
 
+@testset "remove_file_extension" begin
+    filename1 = "testimg.img"
+    filename2 = "mydir/testimg.img"
+    filename3 = "i.have.dots.png"
+    @test remove_file_extension(filename1) == "testing"
+    @test remove_file_extension(filename2) == "mydir/testimg"
+    @test remove_file_extension(filename3) == "i.have.dots"
+end
+
 @testset "find_complete" begin
     filenames = ["File$i.txt" for i in 1:20]
     dir1 = mktempdir()
