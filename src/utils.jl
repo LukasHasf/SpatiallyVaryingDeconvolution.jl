@@ -134,8 +134,8 @@ end
 function process_model_dict(my_model)
     type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool, :deconv=>String)
     check_types(type_dict, my_model)
-    valid_deconv = ["rl", "wiener"]
-    @assert my_model[:deconv] in ["rl", "wiener"] "deconv has to be one of $valid_deconv, but is $(my_model[:deconv])."
+    valid_deconv = ["rl", "wiener", "rl_flfm"]
+    @assert my_model[:deconv] in valid_deconv "deconv has to be one of $valid_deconv, but is $(my_model[:deconv])."
     return my_model
 end
 
