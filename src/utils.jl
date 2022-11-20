@@ -228,9 +228,10 @@ and `simulated_directory`.
 function find_complete(nrsamples, truth_directory, simulated_directory)
     simulated_files = readdir(simulated_directory)
     truth_files = readdir(truth_directory)
-    complete_files = simulated_files ∩ truth_files
+    complete_files = [(t, s) for (t,s) in zip(truth_files, simulated_files) if remove_file_extension(t)==remove_file_extension(s)]
     upper_index = min(length(complete_files), nrsamples)
-    return view(complete_files, 1:upper_index)
+    valid_names = complete_files[1:upper_index]
+    return first.(valid_names), last.(valid_names)
 end
 
 function _map_to_zero_one(x; T=Float32)
@@ -242,64 +243,71 @@ function _map_to_zero_one(x; T=Float32)
 end
 
 function load_images(
-    complete_files, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
+    complete_files, directory; newsize=(128, 128), T=Float32
 )
-    images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
-    images_x = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
+    images = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = joinpath(truth_directory, filename)
-        filepath_simulated = joinpath(simulated_directory, filename)
+        filepath = joinpath(directory, filename)
         # TODO: Flip images along first axis?
-        images_y[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_truth), newsize))
-        images_x[:, :, 1, i] .= _map_to_zero_one(
-            imresize(load(filepath_simulated), newsize)
-        )
+        images[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath), newsize))
     end
-    return images_x, images_y
+    return images
 end
 
 function load_volumes(
     complete_files,
-    truth_directory,
-    simulated_directory;
+    directory;
     newsize=(128, 128, 32),
     T=Float32,
-    truth_key="gt",
-    sim_key="sim",
+    key="gt",
 )
-    volumes_y = Array{T,5}(undef, newsize..., 1, length(complete_files))
-    volumes_x = Array{T,5}(undef, newsize..., 1, length(complete_files))
+    volumes = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = joinpath(truth_directory, filename)
-        filepath_simulated = joinpath(simulated_directory, filename)
+        filepath = joinpath(directory, filename)
         volumes_y[:, :, :, 1, i] .= _map_to_zero_one(
-            imresize(readPSFs(filepath_truth, truth_key), newsize)
-        )
-        volumes_x[:, :, :, 1, i] .= _map_to_zero_one(
-            imresize(readPSFs(filepath_simulated, sim_key), newsize)
+            imresize(readPSFs(filepath, key), newsize)
         )
     end
-    return volumes_x, volumes_y
+    return volumes
+end
+
+"""    is_image(filename)
+
+Returns `true` if `filename` ends with an image extension.
+"""
+function is_image(filename)
+    imageFileEndings = [".png", ".jpg", ".jpeg"]
+    return any([endswith(filename, fileEnding) for fileEnding in imageFileEndings])
+end
+
+"""    is_volume(filename)
+
+Returns `true` if `filename` ends with a `mat` or `HDF5` extension.
+"""
+function is_volume(filename)
+    volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
+    return any([endswith(filename, fileEnding) for fileEnding in volumeFileEndings])
 end
 
 function load_data(settings::Settings; T=Float32)
-    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
-    imageFileEndings = [".png", ".jpg", ".jpeg"]
-    volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
-    complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
-    if any([endswith(complete_files[1], fileEnding) for fileEnding in imageFileEndings])
-        # 2D case
-        x_data, y_data = load_images(
-            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
-        )
-    elseif any([
-        endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings
-    ])
-        # 3D case
-        x_data, y_data = load_volumes(
-            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
-        )
+    if settings.model[:deconv] == "rl_flfm"
+        return load_data_flfm(settings; T=T)
     end
+    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
+    complete_files_truth, complete_files_sim = find_complete(nrsamples, truth_directory, simulated_directory)
+    if all(is_image.([complete_files_sim[1], complete_files_truth[1]]))
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
+        y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
+    elseif all(is_volume.([complete_files_sim[1], complete_files_truth[1]]))
+        x_data = load_volumes(complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim")
+        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
+    elseif is_volume(complete_files_truth[1]) && is_image(complete_files_sim[1])
+        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize[1:2], T=T)
+    else
+        error("Unknown imaging modality. Supported modalities: 3D=>3D, 2D=>2D and 3D=>2D")
+    end
+
     return x_data, y_data
 end
 
