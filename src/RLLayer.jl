@@ -6,9 +6,9 @@ struct RL{T}
     PSF::AbstractArray{T}
     n_iter::Int
 end
-#Flux.@functor RL
+Flux.@functor RL
 
-#Flux.trainable(rl::RL) = ()
+Flux.trainable(rl::RL) = (rl.PSF)
 
 function RL(PSFs)
     @assert ndims(PSFs) > 2
@@ -29,7 +29,7 @@ myconv(a, b, dims) = irfft(rfft(a, dims) .* b, size(a, 1), dims)
 function lucystep(e, psf_ft, psf_ft_conj, dims, x)
     denom = myconv(e, psf_ft_conj, dims)
     fraction = x ./ denom
-    return sigmoid_fast.(e .* myconv(fraction, psf_ft, dims))
+    return e .* myconv(fraction, psf_ft, dims)
 end
 
 function anscombe_transform(x::AbstractArray{T}) where {T}
