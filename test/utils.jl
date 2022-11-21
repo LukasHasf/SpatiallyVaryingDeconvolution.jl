@@ -88,6 +88,13 @@ end
     @test UNet.channelsize(vol2) == 8
 end
 
+@testset "anscombe transformations" begin
+    a = [1.0 2; 3 4]
+    b = 2 .* sqrt.(a .+ 3/8)
+    @test anscombe_transform(a) == b
+    @test anscombe_transform_inv(anscombe_transform(a)) == a
+end
+
 @testset "u_relu" begin
     x = -10:0.1:10
     @test UNet.u_relu(x) == relu.(x)
