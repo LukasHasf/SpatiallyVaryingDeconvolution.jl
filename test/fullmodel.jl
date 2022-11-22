@@ -133,7 +133,7 @@ end
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
     psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
     model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
