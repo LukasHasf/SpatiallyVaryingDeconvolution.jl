@@ -290,9 +290,6 @@ function is_volume(filename)
 end
 
 function load_data(settings::Settings; T=Float32)
-    if settings.model[:deconv] == "rl_flfm"
-        return load_data_flfm(settings; T=T)
-    end
     nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
     complete_files_truth, complete_files_sim = find_complete(nrsamples, truth_directory, simulated_directory)
     if all(is_image.([complete_files_sim[1], complete_files_truth[1]]))
