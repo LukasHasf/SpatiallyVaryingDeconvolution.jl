@@ -125,7 +125,7 @@ end
     a = [1.0 2; 3 4]
     b = 2 .* sqrt.(a .+ 3/8)
     @test anscombe_transform(a) == b
-    @test anscombe_transform_inv(anscombe_transform(a)) == a
+    @test anscombe_transform_inv(anscombe_transform(a)) ≈ a
 end
 
 @testset "u_relu" begin
