@@ -296,8 +296,8 @@ end
     plotdirectory = mktempdir()
     SpatiallyVaryingDeconvolution.plot_losses(train_loss, test_loss, epoch, plotdirectory)
     produced_files = readdir(plotdirectory)
-    @test "trainlossplot.png" in produced_files
-    @test "testlossplot.png" in produced_files
+    @test length(produced_files) == 1
+    @test "lossplot.png" in produced_files
 end
 
 @testset "_map_to_zero_one" begin
