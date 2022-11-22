@@ -30,16 +30,17 @@ function load_model(path; load_optimizer=true, on_gpu=true)
     end
 end
 
-"""    make_model(psfs; kwargs)
+"""    make_model(psfs, model_settings::Dict{Symbol, Any}; on_gpu=true)
 
-Create a MultiWiener model and initialize the Wiener deconvolution with `psfs`.
-Keyword arguments are:
-- `attention::Bool` : use attention gates in skip connection
-- `dropout::Bool` : use dropout layers
-- `depth::Int` : depth of the UNet
-- `separable::Bool` : use separable convolutions in UNet
-- `final_attention::Bool` : `cat` all activations in the decoder path of the UNet
- and pass them through an attention gate and a convolution before outputting
+Create a MultiDeconvolution model and initialize the deconvolution layer with `psfs`.
+Entries in `model_settings` affect the UNet unless stated otherwise. The `key=>typeof(value)` pairs in `model_settings` are:
+- `:attention => Bool` : use attention gates in skip connection
+- `:dropout => Bool` : use dropout layers
+- `:depth => Int` : depth of the UNet
+- `:separable => Bool` : use separable convolutions in UNet
+- `:final_attention => Bool` : `cat` all activations in the decoder path of the UNet  and pass them through an attention gate and a convolution before outputting
+- `:multiscale => Bool` : Use expensive multiscale convolutions for up- / downscaling
+- `:deconv => String` : Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`
 """
 function make_model(
     psfs, model_settings::Dict{Symbol, Any}; on_gpu=true
