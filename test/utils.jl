@@ -48,7 +48,7 @@ end
     filename1 = "testimg.img"
     filename2 = "mydir/testimg.img"
     filename3 = "i.have.dots.png"
-    @test remove_file_extension(filename1) == "testing"
+    @test remove_file_extension(filename1) == "testimg"
     @test remove_file_extension(filename2) == "mydir/testimg"
     @test remove_file_extension(filename3) == "i.have.dots"
 end
