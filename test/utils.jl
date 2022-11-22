@@ -522,6 +522,8 @@ end
     @test settings.model[:dropout] == true
     @test settings.model[:separable] == true
     @test settings.model[:final_attention] == true
+    @test settings.model[:multiscale] == false
+    @test settings.model[:deconv] == "wiener"
     @test settings.data[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
     @test settings.data[:psfs_key] == "psfs"
     @test settings.data[:nrsamples] == 700
