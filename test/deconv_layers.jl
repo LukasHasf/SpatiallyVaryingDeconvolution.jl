@@ -48,14 +48,14 @@ end
     @test cpu(wf2)[:, :, 1, 1] ≈ cpu(pred)[:, :, 2, 1]
 end
 
-function rl_deconvolution(img, psf, n_iter)
-    psf_flipped = reverse(psf)
-    myconv(a, b) = irfft(rfft(a) .* rfft(b), size(a, 1))
+function rl_deconvolution(img, psf, n_iter, d)
+    psf_flipped = reverse(psf; dims=tuple((1:d)...))
+    myconv(a, b) = irfft(rfft(a, 1:d) .* rfft(b, 1:d), size(a, 1), 1:d)
     rec = one.(img)
     for _ in 1:n_iter
         rec .*= myconv(img ./ myconv(rec, psf), psf_flipped)
     end
-    return ifftshift(rec)
+    return ifftshift(rec, 1:d)
 end
 
 @testset "RLLayer" begin
@@ -67,6 +67,18 @@ end
         psf_ft_flipped = rfft(reverse(psf))
         rec = one.(a)
         lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_flipped, 1:2, a)
-        @test ifftshift(lucy_one_step) == rl_deconvolution(a, psf, 1)
+        @test ifftshift(lucy_one_step) == rl_deconvolution(a, psf, 1, 2)
+        # 2D and multiple PSFs
+        a = rand(3, 3, 1, 1)
+        psf = rand(3, 3, 2)
+        psf_ft = rfft(psf, 1:2)
+        psf_ft_flipped = rfft(reverse(psf; dims=(1,2)), 1:2)
+        rec = one.(a)
+        lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_flipped, 1:2, a)
+        @test size(lucy_one_step) == (3, 3, 2, 1)
+        b = rl_deconvolution(a[:, :, 1, 1], psf[:, :, 1], 1, 2)
+        c = rl_deconvolution(a[:, :, 1, 1], psf[:, :, 2], 1, 2)
+        @test ifftshift(lucy_one_step, 1:2)[:, :, 1] == b
+        @test ifftshift(lucy_one_step, 1:2)[:, :, 2] == c
     end
 end
