@@ -6,7 +6,7 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, nrPSFs)
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
     model = SpatiallyVaryingDeconvolution.make_model(psfs, model_settings; on_gpu=false)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
