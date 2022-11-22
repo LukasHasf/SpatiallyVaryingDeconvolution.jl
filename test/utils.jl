@@ -54,6 +54,7 @@ end
 end
 
 @testset "find_complete" begin
+    # First case of file extensions being the same in both directories
     filenames = ["File$i.txt" for i in 1:20]
     dir1 = mktempdir()
     dir2 = mktempdir()
@@ -63,18 +64,50 @@ end
         io = open(joinpath(dir2, filename), "w")
         close(io)
     end
-    complete_list = find_complete(10, dir1, dir2)
+    complete_list1, complete_list2 = find_complete(10, dir1, dir2)
+    # In this case, both lists should be exactly the same
+    @test complete_list1 == complete_list2
+    # If thats the case, run the tests on one of the lists
+    complete_list = complete_list1
     @test length(complete_list) == 10
-    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    @test all([complete_list[i] in filenames for i in eachindex(complete_list)])
     io = open(joinpath(dir1, "onlyInDir1.txt"), "w")
     close(io)
     io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
     close(io)
-    complete_list = find_complete(21, dir1, dir2)
+    complete_list1, complete_list2 = find_complete(21, dir1, dir2)
+    @test complete_list1==complete_list2
+    complete_list = complete_list1
     @test length(complete_list) == 20
-    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    @test all([complete_list[i] in filenames for i in eachindex(complete_list)])
     @test !("onlyInDir1.txt" in complete_list)
     @test !("onlyInDir2.txt" in complete_list)
+
+    # Second case of file extensions being different in the two directories
+    filenames1 = ["File$i.ex1" for i in 1:20]
+    filenames2 = ["File$i.ex2" for i in 1:20]
+    dir1 = mktempdir()
+    dir2 = mktempdir()
+    for i in eachindex(filenames1)
+        io = open(joinpath(dir1, filenames1[i]), "w")
+        close(io)
+        io = open(joinpath(dir2, filenames2[i]), "w")
+        close(io)
+    end
+    complete_list1, complete_list2 = find_complete(10, dir1, dir2)
+    @test length(complete_list1) == 10 == length(complete_list2)
+    @test all([complete_list1[i] in filenames1 for i in eachindex(complete_list1)])
+    @test all([complete_list2[i] in filenames2 for i in eachindex(complete_list2)])
+    io = open(joinpath(dir1, "onlyInDir1.txt"), "w")
+    close(io)
+    io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
+    close(io)
+    complete_list1, complete_list2 = find_complete(21, dir1, dir2)
+    @test length(complete_list1) == 20 == length(complete_list2)
+    @test !("onlyInDir1.txt" in complete_list1)
+    @test !("onlyInDir2.txt" in complete_list1)
+    @test !("onlyInDir1.txt" in complete_list2)
+    @test !("onlyInDir2.txt" in complete_list2)
 end
 
 @testset "channelsize" begin
