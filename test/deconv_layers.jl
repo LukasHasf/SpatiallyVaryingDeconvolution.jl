@@ -67,6 +67,6 @@ end
         psf_ft_flipped = rfft(reverse(psf))
         rec = one.(a)
         lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_flipped, 1:2, a)
-        @test lucy_one_step == rl_deconvolution(a, psf, 1)
+        @test ifftshift(lucy_one_step) == rl_deconvolution(a, psf, 1)
     end
 end
