@@ -64,9 +64,9 @@ end
         a = rand(3, 3)
         psf = rand(3, 3)
         psf_ft = rfft(psf)
-        psf_ft_conj = conj.(psf_ft)
+        psf_ft_flipped = rfft(reverse(psf))
         rec = one.(a)
-        lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_conj, 1:2, a)
+        lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_flipped, 1:2, a)
         @test lucy_one_step == rl_deconvolution(a, psf, 1)
     end
 end
