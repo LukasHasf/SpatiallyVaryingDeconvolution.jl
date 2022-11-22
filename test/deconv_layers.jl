@@ -47,3 +47,26 @@ end
     @test cpu(wf1)[:, :, 1, 1] ≈ cpu(pred)[:, :, 1, 1]
     @test cpu(wf2)[:, :, 1, 1] ≈ cpu(pred)[:, :, 2, 1]
 end
+
+function rl_deconvolution(img, psf, n_iter)
+    psf_flipped = reverse(psf)
+    myconv(a, b) = irfft(rfft(a) .* rfft(b), size(a, 1))
+    rec = one.(img)
+    for _ in 1:n_iter
+        rec .*= myconv(img ./ myconv(rec, psf), psf_flipped)
+    end
+    return ifftshift(rec)
+end
+
+@testset "RLLayer" begin
+    @testset "lucystep" begin
+        # Simplest case: 2D and only one PSF
+        a = rand(3, 3)
+        psf = rand(3, 3)
+        psf_ft = rfft(psf)
+        psf_ft_conj = conj.(psf_ft)
+        rec = one.(a)
+        lucy_one_step = RLLayer.lucystep(rec, psf_ft, psf_ft_conj, 1:2, a)
+        @test lucy_one_step == rl_deconvolution(a, psf, 1)
+    end
+end
