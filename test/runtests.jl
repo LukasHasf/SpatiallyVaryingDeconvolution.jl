@@ -16,9 +16,9 @@ include("../src/model.jl")
 
 
 
-#include("utils.jl")
-#include("temporary.jl")
-#include("losses.jl")
+include("utils.jl")
+include("temporary.jl")
+include("losses.jl")
 include("deconv_layers.jl")
 include("fullmodel.jl")
 
