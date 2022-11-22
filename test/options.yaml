@@ -24,6 +24,7 @@ model:
     separable: true
     final_attention: true
     multiscale: false
+    deconv: wiener
 
 training:
     # How many epochs to train
