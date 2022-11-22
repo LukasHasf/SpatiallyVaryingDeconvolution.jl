@@ -469,7 +469,7 @@ end
     psfs_filename = "a.h5"
     matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
     dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
-                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false, :deconv=>"wiener"), 
                         Dict(), 
                         Dict(:load_checkpoints=>false))
     model = prepare_model!(dummy_settings)
