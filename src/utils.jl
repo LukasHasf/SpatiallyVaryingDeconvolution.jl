@@ -13,6 +13,7 @@ export write_to_logfile
 export _center_psfs
 export Settings
 export get_load_data_settings
+export anscombe_transform, anscombe_transform_inv
 
 using MAT
 using HDF5

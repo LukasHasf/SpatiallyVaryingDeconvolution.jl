@@ -103,14 +103,6 @@ function backward_project(psf, obs)
 end
 ############################################################################
 
-function anscombe_transform(x::AbstractArray{T}) where {T}
-    return T.(2 .* sqrt.(max.(x .+ 3/8, zero(eltype(x)))))
-end
-
-function anscombe_transform_inv(x::AbstractArray{T}) where {T}
-    return T.((x ./ 2).^2 .- 3/8)
-end
-
 function lucystep_flfm(e, psf, psf_flipped, x)
     # https://github.com/ShuJiaLab/HR-FLFM/blob/main/HRFLFM_DataProc/DeconvRL_3D_GPU_HUA.m
     # Maybe also use tanh activation after each step? https://arxiv.org/pdf/2002.01053.pdf

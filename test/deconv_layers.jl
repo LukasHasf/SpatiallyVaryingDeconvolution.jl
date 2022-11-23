@@ -81,4 +81,14 @@ end
         @test ifftshift(lucy_one_step, 1:2)[:, :, 1] == b
         @test ifftshift(lucy_one_step, 1:2)[:, :, 2] == c
     end
+    @testset "Applying RLLayer" begin
+        psf = rand(3,3,2)
+        rl = RLLayer.RL(psf, 30)
+        a = rand(3,3, 1, 1)
+        â = anscombe_transform(a)
+        a_rl = rl(a)
+        @test size(a_rl) == (3, 3, 2, 1)
+        @test a_rl[:, :, 1, 1] == anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 1], 30, 2))
+        @test a_rl[:, :, 2, 1] == anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 2], 30, 2))
+    end
 end
