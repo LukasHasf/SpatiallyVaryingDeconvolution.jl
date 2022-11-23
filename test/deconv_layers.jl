@@ -83,12 +83,14 @@ end
     end
     @testset "Applying RLLayer" begin
         psf = rand(3,3,2)
-        rl = RLLayer.RL(psf, 30)
+        psf = psf ./ sum(psf; dims=1:2)
+        rl = RLLayer.RL(psf)
+        @test Flux.trainable(rl) ≈ (psf)
         a = rand(3,3, 1, 1)
         â = anscombe_transform(a)
         a_rl = rl(a)
         @test size(a_rl) == (3, 3, 2, 1)
-        @test a_rl[:, :, 1, 1] == anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 1], 30, 2))
-        @test a_rl[:, :, 2, 1] == anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 2], 30, 2))
+        @test a_rl[:, :, 1, 1] ≈ anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 1], 30, 2))
+        @test a_rl[:, :, 2, 1] ≈ anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 2], 30, 2))
     end
 end
