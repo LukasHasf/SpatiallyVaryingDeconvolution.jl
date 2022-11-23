@@ -106,4 +106,11 @@ end
         pad_a2 = select_region(a; new_size=(6, 6, 1, 1))
         @test pad_a1 == pad_a2
     end
+
+    @testset "upper/lower index" begin
+        @test RLLayer_FLFM.lower_index(10)==6
+        @test RLLayer_FLFM.lower_index(11)==7
+        @test RLLayer_FLFM.upper_index(10)==15
+        @test RLLayer_FLFM.upper_index(11)==17
+    end
 end
