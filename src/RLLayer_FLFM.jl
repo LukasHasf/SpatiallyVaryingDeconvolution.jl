@@ -28,13 +28,13 @@ end
 
 Zero-Pad `arr` along its first two dimension to twice it size.
 """
-function pad_array(arr::AbstractArray{T, 3}) where {T}
+function pad_array(arr::AbstractArray)
     sizey, sizex = size(arr)[1:2]
-    sizez = size(arr, 3)
-    pad_left = zeros(eltype(arr), sizey, sizex÷2 + mod(sizex, 2), sizez)
-    pad_right = zeros(eltype(arr), sizey, sizex÷2, sizez)
-    pad_top = zeros(eltype(arr), sizey÷2 + mod(sizey, 2), 2*sizex, sizez)
-    pad_bottom = zeros(eltype(arr), sizey÷2, 2*sizex, sizez)
+    othersizes = size(arr)[3:end]
+    pad_left = zeros(eltype(arr), sizey, sizex÷2 + mod(sizex, 2), othersizes...)
+    pad_right = zeros(eltype(arr), sizey, sizex÷2, othersizes...)
+    pad_top = zeros(eltype(arr), sizey÷2 + mod(sizey, 2), 2*sizex, othersizes...)
+    pad_bottom = zeros(eltype(arr), sizey÷2, 2*sizex, othersizes...)
     pad1 = hcat(pad_left, arr, pad_right)
     pad2 = vcat(pad_top, pad1, pad_bottom)
     return pad2
