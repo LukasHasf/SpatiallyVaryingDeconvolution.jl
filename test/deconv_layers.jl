@@ -94,3 +94,16 @@ end
         @test a_rl[:, :, 2, 1] ≈ anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 2], 30, 2))
     end
 end
+
+@testset "RL_FLFM" begin
+    @testset "pad_array" begin
+        a = rand(2, 2, 1, 1)
+        pad_a1 = RLLayer_FLFM.pad_array(a)
+        pad_a2 = select_region(a; new_size=(4, 4, 1, 1))
+        @test pad_a1 == pad_a2
+        a = rand(3, 3, 1, 1)
+        pad_a1 = RLLayer_FLFM.pad_array(a)
+        pad_a2 = select_region(a; new_size=(6, 6, 1, 1))
+        @test pad_a1 == pad_a2
+    end
+end

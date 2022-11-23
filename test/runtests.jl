@@ -11,6 +11,7 @@ using Random
 include("../src/MultiWienerNet.jl")
 include("../src/utils.jl")
 include("../src/RLLayer.jl")
+include("../src/RLLayer_FLFM.jl")
 include("../src/UNet.jl")
 include("../src/model.jl")
 
