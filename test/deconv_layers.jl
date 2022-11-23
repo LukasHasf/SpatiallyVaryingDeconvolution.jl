@@ -113,4 +113,22 @@ end
         @test RLLayer_FLFM.upper_index(10)==15
         @test RLLayer_FLFM.upper_index(11)==17
     end
+
+    @testset "conv2_zygote" begin
+        a = rand(3,3)
+        b = rand(3,3)
+        conv1 = RLLayer_FLFM.conv2_zygote(a, b)
+        @test size(conv1) == (3, 3)
+        a_pad = select_region(a; new_size=(6,6))
+        b_pad = select_region(b; new_size=(6,6))
+        @test conv1 ≈ select_region(fftshift(irfft(rfft(a_pad) .* rfft(b_pad), 6)); new_size=(3, 3))
+
+        a = rand(3,3, 2)
+        b = rand(3,3, 2)
+        conv1 = RLLayer_FLFM.conv2_zygote(a, b)
+        @test size(conv1) == (3, 3, 2)
+        a_pad = select_region(a; new_size=(6,6,2))
+        b_pad = select_region(b; new_size=(6,6,2))
+        @test conv1 ≈ select_region(fftshift(irfft(rfft(a_pad, 1:2) .* rfft(b_pad, 1:2), 6, 1:2), 1:2); new_size=(3, 3, 2))
+    end
 end
