@@ -40,17 +40,6 @@ function pad_array(arr::AbstractArray)
     return pad2
 end
 
-function pad_array(arr::AbstractArray{T, 2}) where {T}
-    sizey, sizex = size(arr)[1:2]
-    pad_left = zeros(eltype(arr), sizey, sizex÷2 + mod(sizex, 2))
-    pad_right = zeros(eltype(arr), sizey, sizex÷2)
-    pad_top = zeros(eltype(arr), sizey÷2 + mod(sizey, 2), 2*sizex)
-    pad_bottom = zeros(eltype(arr), sizey÷2, 2*sizex)
-    pad1 = hcat(pad_left, arr, pad_right)
-    pad2 = vcat(pad_top, pad1, pad_bottom)
-    return pad2
-end
-
 """    lower_index(N)
 Give the index of where the original data starts in an array that was
 padded to twice its size along a dimension which originally had length `N`.
