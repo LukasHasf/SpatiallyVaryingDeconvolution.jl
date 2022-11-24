@@ -1,6 +1,9 @@
 module RLLayer_FLFM
 using Flux
 using FFTW
+using Tullio
+
+include("utils.jl")
 
 struct RL_FLFM{T}
     PSF::AbstractArray{T, 4}
@@ -20,7 +23,7 @@ leave this number small.
 """
 function RL_FLFM(PSFs; n_iter=10)
     @assert ndims(PSFs) == 4 "RL_FLFM deconvolution only works with 3D PSFs. For 2D RL deconvolution, use RL."
-    return RL(PSFs ./ sum(PSFs, dims=1:2), n_iter)
+    return RL_FLFM(PSFs ./ sum(PSFs, dims=1:2), n_iter)
 end
 
 ##################Utility#Functions#########################################
@@ -101,7 +104,7 @@ function (rl::RL_FLFM)(x)
     # x is of shape (Ny, Nx, nrchannels, batchsize)
     # A Nz dimension has to be added, so broadcasting works for `backward_project`
     # Maybe do this during data loading
-    x = reshape(x, size(x)[1:2]...,1, size(x)[3:end])
+    x = reshape(x, size(x)[1:2]...,1, size(x)[3:end]...)
     x = anscombe_transform(x)
     h = rl.PSF
     h_flipped = reverse(h; dims=(1,2))
