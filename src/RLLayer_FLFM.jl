@@ -75,11 +75,7 @@ function conv2_zygote(A, B)
     Â = rfft(A_padded, 1:2)
     B̂ = rfft(B_padded, 1:2)
     c = fftshift(irfft(Â .* B̂, 2 * newsize[1], 1:2), 1:2)
-    if ndims(c)==2
-        d = c[lower_index(newsize[1]):upper_index(newsize[1]), lower_index(newsize[2]):upper_index(newsize[2])]
-    elseif ndims(c)==3
-        d = c[lower_index(newsize[1]):upper_index(newsize[1]), lower_index(newsize[2]):upper_index(newsize[2]), :]
-    end
+    d = selectdim(selectdim(c, 1, lower_index(newsize[1]):upper_index(newsize[1])), 2, lower_index(newsize[2]):upper_index(newsize[2]))
     return d
 end
 
