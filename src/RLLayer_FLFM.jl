@@ -97,6 +97,10 @@ function lucystep_flfm(e, psf, psf_flipped, x)
 end
 
 function (rl::RL_FLFM)(x)
+    # Add singleton dimension to x
+    # x is of shape (Ny, Nx, nrchannels, batchsize)
+    # A Nz dimension has to be added, so broadcasting works for `backward_project`
+    x = reshape(x, size(x)[1:2]...,1, size(x)[3:end])
     x = anscombe_transform(x)
     h = rl.PSF
     h_flipped = reverse(h; dims=(1,2))
