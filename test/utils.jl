@@ -409,6 +409,30 @@ end
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+
+    # Load images in observations and volumes in ground truth
+    img_dir = mktempdir()
+    imgs = rand(Float32, 32, 32, 6)
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    mkdir(train_dir)
+    mkdir(test_dir)
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32, 32)),
+    Dict(), Dict(), Dict())
+    save(joinpath(test_dir, "a.png"), imgs[:, :, 4])
+    save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
+    save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
+    vols = rand(Float32, 32, 32, 32, 6)
+    matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => vols[:, :, :, 1]))
+    matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => vols[:, :, :, 2]))
+    matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => vols[:, :, :, 3]))
+    imgs_x, vols_y = load_data(dummy_settings)
+    @test size(imgs_x) == (32, 32, 1, 2)
+    @test size(vols_y) == (32, 32, 32, 1, 2)
+    @test imgs_x[:, :, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
+    @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
+    @test vols_y[:, :, :, 1, 1] ≈ vols[:, :, :, 1] atol=1e-1
+    @test vols_y[:, :, :, 1, 2] ≈ vols[:, :, :, 2] atol=1e-2
 end
 
 @testset "prepare_data" begin
