@@ -169,13 +169,52 @@ end
     end
 
     @testset "lucystep_flfm" begin
-        psf = rand(3,3,3)
+        psf = rand(3,3,3, 2)
         x = rand(3,3,1,1,1)
         psf_flipped = reverse(psf; dims=(1,2))
         rec = RLLayer_FLFM.backward_project(psf, x)
         onestep = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x)
         denom = RLLayer_FLFM.forward_project(psf, rec)
         fraction = x ./ denom
+        @test size(onestep) == (3, 3, 3, 2, 1)
         @test onestep ≈ rec .* RLLayer_FLFM.backward_project(psf_flipped, fraction)        
+    end
+
+    @testset "Apply RL_FLFM" begin
+        # Single iteration
+        psfs = rand(3,3,3,2)
+        rl_flfm = RLLayer_FLFM.RL_FLFM(psfs; n_iter=1)
+        @test rl_flfm.PSF == psfs ./ sum(psfs; dims=1:2)
+        @test rl_flfm.n_iter == 1
+        @test Flux.trainable(rl_flfm) == rl_flfm.PSF
+        x = rand(3, 3, 1, 1)
+        x̂ = rl_flfm(x)
+        psf = psfs ./ sum(psfs; dims=1:2)
+        psf_flipped = reverse(psf; dims=(1,2))
+        x = reshape(x, 3, 3, 1, 1, 1)
+        x̃ = anscombe_transform(x)
+        rec = RLLayer_FLFM.backward_project(psf, x̃)
+        x̃2 = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
+        x̂2 = anscombe_transform_inv(x̃2)
+        @test x̂ ≈ x̂2
+
+        # Multiple iterations
+        psfs = rand(3,3,3,2)
+        rl_flfm = RLLayer_FLFM.RL_FLFM(psfs; n_iter=2)
+        @test rl_flfm.PSF == psfs ./ sum(psfs; dims=1:2)
+        @test rl_flfm.n_iter == 2
+        @test Flux.trainable(rl_flfm) == rl_flfm.PSF
+        x = rand(3, 3, 1, 1)
+        x̂ = rl_flfm(x)
+        psf = psfs ./ sum(psfs; dims=1:2)
+        psf_flipped = reverse(psf; dims=(1,2))
+        x = reshape(x, 3, 3, 1, 1, 1)
+        x̃ = anscombe_transform(x)
+        rec = RLLayer_FLFM.backward_project(psf, x̃)
+        rec = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
+        x̃2 = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
+        x̂2 = anscombe_transform_inv(x̃2)
+        @test x̂ ≈ x̂2
+
     end
 end
