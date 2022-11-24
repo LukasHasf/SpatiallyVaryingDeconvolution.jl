@@ -131,4 +131,25 @@ end
         b_pad = select_region(b; new_size=(6,6,2))
         @test conv1 ≈ select_region(fftshift(irfft(rfft(a_pad, 1:2) .* rfft(b_pad, 1:2), 6, 1:2), 1:2); new_size=(3, 3, 2))
     end
+
+    @testset "forward_project" begin
+        a = rand(3, 3, 3)
+        psf = rand(3, 3, 3)
+        p1 = RLLayer_FLFM.forward_project(psf, a)
+        a_pad = select_region(a; new_size=(6,6,3))
+        psf_pad = select_region(psf; new_size=(6,6,3))
+        conv = select_region(fftshift(irfft(rfft(a_pad, 1:2) .* rfft(psf_pad, 1:2), 6, 1:2), 1:2); new_size=(3,3,3))
+        p2 = sum(conv; dims=3)
+        @test conv ≈ RLLayer_FLFM.conv2_zygote(psf, a)
+        @test p1 ≈ p2
+
+        a = rand(3, 3, 3, 1, 1)
+        psf = rand(3, 3, 3, 1, 1)
+        p1 = RLLayer_FLFM.forward_project(psf, a)
+        a_pad = select_region(a; new_size=(6,6,3,1,1))
+        psf_pad = select_region(psf; new_size=(6,6,3,1,1))
+        conv = select_region(fftshift(irfft(rfft(a_pad, 1:2) .* rfft(psf_pad, 1:2), 6, 1:2), 1:2); new_size=(3,3,3,1,1))
+        p2 = sum(conv; dims=3)
+        @test p1 ≈ p2
+    end
 end
