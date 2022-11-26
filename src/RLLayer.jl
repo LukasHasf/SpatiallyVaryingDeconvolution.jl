@@ -12,7 +12,7 @@ Flux.@functor RL
 
 Flux.trainable(rl::RL) = (rl.PSF)
 
-function RL(PSFs, n_iter)
+function RL(PSFs, n_iter=10)
     @assert ndims(PSFs) > 2
     return RL(PSFs ./ sum(PSFs, dims=1:ndims(PSFs)-1), n_iter)
 end
