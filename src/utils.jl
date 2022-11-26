@@ -411,7 +411,11 @@ Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5 with `eltype`
 function _get_default_kernel(dims; T=Float32)
     mygaussian = gaussian(; T=T)
     if dims == 3
-        @tullio kernel[x, y, z] := mygaussian[x] * mygaussian[y] * mygaussian[z]
+        N = length(mygaussian)
+        kernel = Array{T, 3}(undef, N, N, N)
+        for c in CartesianIndices(kernel)
+            kernel[c.I...] = mygaussian[c.I[1]] .* mygaussian[c.I[2]] * mygaussian[c.I[3]]
+        end
     elseif dims == 2
         kernel = mygaussian .* mygaussian'
     end

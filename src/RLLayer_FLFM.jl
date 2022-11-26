@@ -1,7 +1,6 @@
 module RLLayer_FLFM
 using Flux
 using FFTW
-using Tullio
 
 include("utils.jl")
 

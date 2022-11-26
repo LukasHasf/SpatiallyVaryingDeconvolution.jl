@@ -4,7 +4,6 @@ export start_training, load_model
 
 using YAML
 using Images, Colors
-using Tullio
 using BSON: @save, @load
 using Flux
 using CUDA

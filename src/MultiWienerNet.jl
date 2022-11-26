@@ -1,7 +1,6 @@
 module MultiWienerNet
 using Flux
 using FFTW
-using Tullio
 
 include("utils.jl")
 

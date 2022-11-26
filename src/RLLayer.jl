@@ -1,7 +1,7 @@
 module RLLayer
 using Flux
 using FFTW
-using Tullio
+
 include("utils.jl")
 
 struct RL{T}

@@ -1,7 +1,6 @@
 using SpatiallyVaryingDeconvolution
 using Test
 using Images
-using Tullio
 using FFTW
 using Flux
 using BSON: @save, @load
