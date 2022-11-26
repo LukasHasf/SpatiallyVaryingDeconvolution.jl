@@ -13,7 +13,7 @@ Flux.@functor RL_FLFM
 
 Flux.trainable(rl::RL_FLFM) = (rl.PSF)
 
-"""    RL_FLFM(PSFs)
+"""    RL_FLFM(PSFs, n_iter=10)
 
 A deconvolution layer using Richardson-Lucy like deconvolution for
 the `PSFs` of a Fourier Light Field Microscope.
