@@ -215,6 +215,6 @@ end
     model = cpu(model)
     @test loaded_model[1].PSF == model[1].PSF
     @test loaded_model[1].n_iter == model[1].n_iter
-    img = rand(Float32, Ny, Nx, nrch, batchsize)
+    img = rand(Float32, Ny, Nx, 1, nrch, batchsize)
     @test model(img) == loaded_model(img)
 end

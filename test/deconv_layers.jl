@@ -187,11 +187,10 @@ end
         @test rl_flfm.PSF == psfs ./ sum(psfs; dims=1:2)
         @test rl_flfm.n_iter == 1
         @test Flux.trainable(rl_flfm) == rl_flfm.PSF
-        x = rand(3, 3, 1, 1)
+        x = rand(3, 3, 1, 1, 1)
         x̂ = rl_flfm(x)
         psf = psfs ./ sum(psfs; dims=1:2)
         psf_flipped = reverse(psf; dims=(1,2))
-        x = reshape(x, 3, 3, 1, 1, 1)
         x̃ = anscombe_transform(x)
         rec = RLLayer_FLFM.backward_project(psf, x̃)
         x̃2 = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
@@ -204,11 +203,10 @@ end
         @test rl_flfm.PSF == psfs ./ sum(psfs; dims=1:2)
         @test rl_flfm.n_iter == 2
         @test Flux.trainable(rl_flfm) == rl_flfm.PSF
-        x = rand(3, 3, 1, 1)
+        x = rand(3, 3, 1, 1, 1)
         x̂ = rl_flfm(x)
         psf = psfs ./ sum(psfs; dims=1:2)
         psf_flipped = reverse(psf; dims=(1,2))
-        x = reshape(x, 3, 3, 1, 1, 1)
         x̃ = anscombe_transform(x)
         rec = RLLayer_FLFM.backward_project(psf, x̃)
         rec = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)

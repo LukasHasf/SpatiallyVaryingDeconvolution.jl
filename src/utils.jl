@@ -300,8 +300,11 @@ function load_data(settings::Settings; T=Float32)
         x_data = load_volumes(complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim")
         y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
     elseif is_volume(complete_files_truth[1]) && is_image(complete_files_sim[1])
+        # 2D => 3D reconstruction
         y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
         x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize[1:2], T=T)
+        # x_data needs to be reshaped by adding a singleton z-dimension, so broadcasting works in the RL_FLFM layer
+        x_data = reshape(x_data, size(x_data)[1:2]...,1,size(x_data)[3:end]...)
     else
         error("Unknown imaging modality. Supported modalities: 3D=>3D, 2D=>2D and 3D=>2D")
     end

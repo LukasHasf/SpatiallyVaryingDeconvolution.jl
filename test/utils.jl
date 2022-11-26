@@ -427,10 +427,10 @@ end
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => vols[:, :, :, 2]))
     matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => vols[:, :, :, 3]))
     imgs_x, vols_y = load_data(dummy_settings)
-    @test size(imgs_x) == (32, 32, 1, 2)
+    @test size(imgs_x) == (32, 32, 1, 1, 2)
     @test size(vols_y) == (32, 32, 32, 1, 2)
-    @test imgs_x[:, :, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
-    @test imgs_x[:, :, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
+    @test imgs_x[:, :, 1, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
+    @test imgs_x[:, :, 1, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
     @test vols_y[:, :, :, 1, 1] ≈ vols[:, :, :, 1] atol=1e-1
     @test vols_y[:, :, :, 1, 2] ≈ vols[:, :, :, 2] atol=1e-2
 end
