@@ -84,7 +84,7 @@ end
     @testset "Applying RLLayer" begin
         psf = rand(3,3,2)
         psf = psf ./ sum(psf; dims=1:2)
-        rl = RLLayer.RL(psf, 30)
+        rl = RLLayer.RL(psf; n_iter=30)
         @test Flux.trainable(rl) ≈ (psf)
         a = rand(3,3, 1, 1)
         â = anscombe_transform(a)
