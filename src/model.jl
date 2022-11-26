@@ -19,13 +19,15 @@ function load_model(path; load_optimizer=true, on_gpu=true)
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
-        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
-        return model, opt
     else
         @load path model
-        if model isa Flux.Chain
-            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
-        end
+    end
+    if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWiener
+        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
+    end
+    if load_optimizer
+        return model, opt
+    else
         return model
     end
 end
@@ -72,9 +74,9 @@ function save_model(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
     model = cpu(model)
-    if model isa Flux.Chain
+    if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWienerWithPlan
         model = Chain(MultiWienerNet.to_multiwiener(model[1]), model[2])
-    end
+    end # The other types of deconvolution layers don't need special conversion yet
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *
