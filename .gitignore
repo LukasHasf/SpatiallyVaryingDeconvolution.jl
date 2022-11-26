@@ -8,3 +8,4 @@ myoptions.yaml
 losses.log
 combinations.md
 lcov.info
+testing.jl

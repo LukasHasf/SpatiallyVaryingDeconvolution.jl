@@ -13,6 +13,7 @@ export write_to_logfile
 export _center_psfs
 export Settings
 export get_load_data_settings
+export anscombe_transform, anscombe_transform_inv
 
 using MAT
 using HDF5
@@ -29,7 +30,7 @@ using ProgressMeter
 
 # Hardcoded mappings between the config yaml fields and internally used symbols
 const data_dict = Dict(:sim_dir=>"x_path", :truth_dir=>"y_path", :nrsamples=>"nrsamples", :newsize=>"resize_to", :center_psfs=>"center_psfs", :psf_ref_index=>"reference_index", :psfs_path=>"psfs_path", :psfs_key=>"psfs_key")
-const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale")
+const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale", :deconv=>"deconv")
 const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses")
 const checkpoint_dict = Dict(:load_checkpoints=>"load_checkpoints", :checkpoint_dir=>"checkpoint_dir", :checkpoint_path=>"checkpoint_path", :save_interval=>"save_interval")
 const optimizer_dict = Dict("ADAM" => Adam, "Descent" => Descent, "ADAMW" => AdamW, "ADAGrad" => AdaGrad, "ADADelta" => AdaDelta)
@@ -132,8 +133,10 @@ function process_data_dict(my_data)
 end
 
 function process_model_dict(my_model)
-    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool)
+    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool, :deconv=>String)
     check_types(type_dict, my_model)
+    valid_deconv = ["rl", "wiener", "rl_flfm"]
+    @assert my_model[:deconv] in valid_deconv "deconv has to be one of $valid_deconv, but is $(my_model[:deconv])."
     return my_model
 end
 
@@ -214,6 +217,10 @@ function parse_date(checkpoint_path)
     return date # Could be a DateTime or nothing
 end
 
+function remove_file_extension(filename)
+    return filename[1:findlast(isequal('.'), filename)-1]
+end
+
 """    find_complete(nrsamples, truth_directory, simulated_directory)
 
 Return the filenames of the first `nrsamples` files that are both in `truth_directory`
@@ -222,9 +229,10 @@ and `simulated_directory`.
 function find_complete(nrsamples, truth_directory, simulated_directory)
     simulated_files = readdir(simulated_directory)
     truth_files = readdir(truth_directory)
-    complete_files = simulated_files ∩ truth_files
+    complete_files = [(t, s) for (t,s) in zip(truth_files, simulated_files) if remove_file_extension(t)==remove_file_extension(s)]
     upper_index = min(length(complete_files), nrsamples)
-    return view(complete_files, 1:upper_index)
+    valid_names = complete_files[1:upper_index]
+    return first.(valid_names), last.(valid_names)
 end
 
 function _map_to_zero_one(x; T=Float32)
@@ -236,64 +244,71 @@ function _map_to_zero_one(x; T=Float32)
 end
 
 function load_images(
-    complete_files, truth_directory, simulated_directory; newsize=(128, 128), T=Float32
+    complete_files, directory; newsize=(128, 128), T=Float32
 )
-    images_y = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
-    images_x = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
+    images = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = joinpath(truth_directory, filename)
-        filepath_simulated = joinpath(simulated_directory, filename)
+        filepath = joinpath(directory, filename)
         # TODO: Flip images along first axis?
-        images_y[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath_truth), newsize))
-        images_x[:, :, 1, i] .= _map_to_zero_one(
-            imresize(load(filepath_simulated), newsize)
-        )
+        images[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath), newsize))
     end
-    return images_x, images_y
+    return images
 end
 
 function load_volumes(
     complete_files,
-    truth_directory,
-    simulated_directory;
+    directory;
     newsize=(128, 128, 32),
     T=Float32,
-    truth_key="gt",
-    sim_key="sim",
+    key="gt",
 )
-    volumes_y = Array{T,5}(undef, newsize..., 1, length(complete_files))
-    volumes_x = Array{T,5}(undef, newsize..., 1, length(complete_files))
+    volumes = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
-        filepath_truth = joinpath(truth_directory, filename)
-        filepath_simulated = joinpath(simulated_directory, filename)
-        volumes_y[:, :, :, 1, i] .= _map_to_zero_one(
-            imresize(readPSFs(filepath_truth, truth_key), newsize)
-        )
-        volumes_x[:, :, :, 1, i] .= _map_to_zero_one(
-            imresize(readPSFs(filepath_simulated, sim_key), newsize)
+        filepath = joinpath(directory, filename)
+        volumes[:, :, :, 1, i] .= _map_to_zero_one(
+            imresize(readPSFs(filepath, key), newsize)
         )
     end
-    return volumes_x, volumes_y
+    return volumes
+end
+
+"""    is_image(filename)
+
+Returns `true` if `filename` ends with an image extension.
+"""
+function is_image(filename)
+    imageFileEndings = [".png", ".jpg", ".jpeg"]
+    return any([endswith(filename, fileEnding) for fileEnding in imageFileEndings])
+end
+
+"""    is_volume(filename)
+
+Returns `true` if `filename` ends with a `mat` or `HDF5` extension.
+"""
+function is_volume(filename)
+    volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
+    return any([endswith(filename, fileEnding) for fileEnding in volumeFileEndings])
 end
 
 function load_data(settings::Settings; T=Float32)
     nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
-    imageFileEndings = [".png", ".jpg", ".jpeg"]
-    volumeFileEndings = [".mat", ".h5", ".hdf", ".hdf5", ".he5"]
-    complete_files = find_complete(nrsamples, truth_directory, simulated_directory)
-    if any([endswith(complete_files[1], fileEnding) for fileEnding in imageFileEndings])
-        # 2D case
-        x_data, y_data = load_images(
-            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
-        )
-    elseif any([
-        endswith(complete_files[1], fileEnding) for fileEnding in volumeFileEndings
-    ])
-        # 3D case
-        x_data, y_data = load_volumes(
-            complete_files, truth_directory, simulated_directory; newsize=newsize, T=T
-        )
+    complete_files_truth, complete_files_sim = find_complete(nrsamples, truth_directory, simulated_directory)
+    if all(is_image.([complete_files_sim[1], complete_files_truth[1]]))
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
+        y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
+    elseif all(is_volume.([complete_files_sim[1], complete_files_truth[1]]))
+        x_data = load_volumes(complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim")
+        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
+    elseif is_volume(complete_files_truth[1]) && is_image(complete_files_sim[1])
+        # 2D => 3D reconstruction
+        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize[1:2], T=T)
+        # x_data needs to be reshaped by adding a singleton z-dimension, so broadcasting works in the RL_FLFM layer
+        x_data = reshape(x_data, size(x_data)[1:2]...,1,size(x_data)[3:end]...)
+    else
+        error("Unknown imaging modality. Supported modalities: 3D=>3D, 2D=>2D and 3D=>2D")
     end
+
     return x_data, y_data
 end
 
@@ -332,8 +347,8 @@ end
 function prepare_data(settings::Settings; T=Float32)
     x_data, y_data = load_data(settings;T=T)
     x_data = apply_noise(x_data)
-    x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
-    y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
+    #x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
+    #y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
     train_x, test_x = train_test_split(x_data)
     train_y, test_y = train_test_split(y_data)
     return train_x, train_y, test_x, test_y
@@ -399,7 +414,11 @@ Return a `dims`-dimensional gaussian with sidelength 11 and σ=1.5 with `eltype`
 function _get_default_kernel(dims; T=Float32)
     mygaussian = gaussian(; T=T)
     if dims == 3
-        @tullio kernel[x, y, z] := mygaussian[x] * mygaussian[y] * mygaussian[z]
+        N = length(mygaussian)
+        kernel = Array{T, 3}(undef, N, N, N)
+        for c in CartesianIndices(kernel)
+            kernel[c.I...] = mygaussian[c.I[1]] .* mygaussian[c.I[2]] * mygaussian[c.I[3]]
+        end
     elseif dims == 2
         kernel = mygaussian .* mygaussian'
     end
@@ -447,6 +466,11 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
                 l
             end
             part = nothing
+            #for g in gs
+            #    if !isnothing(g)
+            #        println(any(isnan.(g)))
+            #    end
+            #end
             Flux.update!(opt, ps, real.(gs))
             next!(p; showvalues=[(:loss, l)])
         catch ex
@@ -487,6 +511,26 @@ function prepare_psfs(settings::Settings; T=Float32)
     end
     psfs = resized_psfs    
     return psfs
+end
+
+"""     anscombe_transform(x::AbstractArray{T}) where {T}
+
+Transform the input array `x`  elementwise according to `x → 2√(x+3/8)`.
+
+This is a variance-stabilizing transformation that transforms a random variable with a Poisson distribution into one with an approximately standard Gaussian distribution.
+"""
+function anscombe_transform(x::AbstractArray{T}) where {T}
+    return T.(2 .* sqrt.(max.(x .+ 3/8, zero(eltype(x)))))
+end
+
+"""    anscombe_transform_inv(x::AbstractArray{T}) where {T}
+
+Transform the input array `x`  elementwise according to `x → (x/2)^2 - 3/8)`.
+
+Algebraic inverse of `anscombe_transform`, but introduces bias to the mean.
+"""
+function anscombe_transform_inv(x::AbstractArray{T}) where {T}
+    return T.((x ./ 2).^2 .- 3/8)
 end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#

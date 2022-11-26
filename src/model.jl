@@ -19,34 +19,43 @@ function load_model(path; load_optimizer=true, on_gpu=true)
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
     if load_optimizer
         @load path model opt
-        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
-        return model, opt
     else
         @load path model
-        if model isa Flux.Chain
-            model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
-        end
+    end
+    if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWiener
+        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
+    end
+    if load_optimizer
+        return model, opt
+    else
         return model
     end
 end
 
-"""    make_model(psfs; kwargs)
+"""    make_model(psfs, model_settings::Dict{Symbol, Any}; on_gpu=true)
 
-Create a MultiWiener model and initialize the Wiener deconvolution with `psfs`.
-Keyword arguments are:
-- `attention::Bool` : use attention gates in skip connection
-- `dropout::Bool` : use dropout layers
-- `depth::Int` : depth of the UNet
-- `separable::Bool` : use separable convolutions in UNet
-- `final_attention::Bool` : `cat` all activations in the decoder path of the UNet
- and pass them through an attention gate and a convolution before outputting
+Create a MultiDeconvolution model and initialize the deconvolution layer with `psfs`.
+Entries in `model_settings` affect the UNet unless stated otherwise. The `key=>typeof(value)` pairs in `model_settings` are:
+- `:attention => Bool` : use attention gates in skip connection
+- `:dropout => Bool` : use dropout layers
+- `:depth => Int` : depth of the UNet
+- `:separable => Bool` : use separable convolutions in UNet
+- `:final_attention => Bool` : `cat` all activations in the decoder path of the UNet  and pass them through an attention gate and a convolution before outputting
+- `:multiscale => Bool` : Use expensive multiscale convolutions for up- / downscaling
+- `:deconv => String` : Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`
 """
 function make_model(
     psfs, model_settings::Dict{Symbol, Any}; on_gpu=true
 )
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    modelwiener = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
+    if model_settings[:deconv]=="wiener"
+        deconv_stage = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
+    elseif model_settings[:deconv]=="rl"
+        deconv_stage = RLLayer.RL(psfs)
+    elseif model_settings[:deconv]=="rl_flfm"
+        deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
+    end 
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -57,7 +66,7 @@ function make_model(
         norm="none",
         model_settings...
     )
-    model = Flux.Chain(modelwiener, modelUNet)
+    model = Flux.Chain(deconv_stage, modelUNet)
     return model
 end
 
@@ -65,9 +74,9 @@ function save_model(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
     model = cpu(model)
-    if model isa Flux.Chain
+    if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWienerWithPlan
         model = Chain(MultiWienerNet.to_multiwiener(model[1]), model[2])
-    end
+    end # The other types of deconvolution layers don't need special conversion yet
     datestring = replace(string(round(now(), Dates.Second)), ":" => "_")
     modelname =
         datestring *

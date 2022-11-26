@@ -6,7 +6,7 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, nrPSFs)
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
     model = SpatiallyVaryingDeconvolution.make_model(psfs, model_settings; on_gpu=false)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
@@ -133,7 +133,7 @@ end
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false)
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
     psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
     model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
@@ -166,4 +166,55 @@ end
     @test length(readdir(chkptdir)) == 2
     @test all([endswith(name, ".bson") for name in readdir(chkptdir)])
     @test !isempty(readdir(plotdir))
+end
+
+@testset "Saving / loading RLLayer" begin
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"rl")
+    Ny = 16
+    Nx = 16
+    nrch = 1
+    nrPSFs = 3
+    batchsize = 1
+    psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
+    model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
+    @test model[1] isa SpatiallyVaryingDeconvolution.RLLayer.RL
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0
+    )
+    loaded_model = SpatiallyVaryingDeconvolution.load_model(
+        testsave_path; load_optimizer=false
+    )
+    @test loaded_model[1] isa SpatiallyVaryingDeconvolution.RLLayer.RL
+    loaded_model = cpu(loaded_model)
+    model = cpu(model)
+    @test loaded_model[1].PSF == model[1].PSF
+    @test loaded_model[1].n_iter == model[1].n_iter
+    img = rand(Float32, Ny, Nx, nrch, batchsize)
+    @test model(img) == loaded_model(img)
+end
+
+@testset "Saving / loading RLLayer_FLFM" begin
+    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"rl_flfm")
+    Ny = 16
+    Nx = 16
+    Nz = 16
+    nrch = 1
+    nrPSFs = 3
+    batchsize = 1
+    psfs = my_gpu(rand(Float32, Ny, Nx, Nz, nrPSFs))
+    model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
+    @test model[1] isa SpatiallyVaryingDeconvolution.RLLayer_FLFM.RL_FLFM
+    testsave_path = SpatiallyVaryingDeconvolution.save_model(
+        model, mktempdir(), [0.0], 1, 0
+    )
+    loaded_model = SpatiallyVaryingDeconvolution.load_model(
+        testsave_path; load_optimizer=false
+    )
+    @test loaded_model[1] isa SpatiallyVaryingDeconvolution.RLLayer_FLFM.RL_FLFM
+    loaded_model = cpu(loaded_model)
+    model = cpu(model)
+    @test loaded_model[1].PSF == model[1].PSF
+    @test loaded_model[1].n_iter == model[1].n_iter
+    img = rand(Float32, Ny, Nx, 1, nrch, batchsize)
+    @test model(img) == loaded_model(img)
 end

@@ -27,6 +27,19 @@ function L1_loss(ŷ, y)
     return Flux.Losses.mae(y, ŷ)
 end
 
+"""    spectral_loss(ŷ, y)
+
+Calculate difference in power spectral density of `ŷ` and `y`.
+"""
+function spectral_loss(ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}) where {T,N}
+    dims = 1:(ndims(y)-2)
+    ps_gt = log.(one(T) .+ abs.(fft(y, dims)))
+    ps_pred = log.(one(T) .+ abs.(fft(ŷ, dims)))
+    ps_gt_norm = ps_gt ./ sum(ps_gt)
+    ps_pred_norm = ps_pred ./ sum(ps_pred)
+    return sum(abs, ps_gt_norm .- ps_pred_norm)
+end
+
 function L1_SSIM_loss(ŷ, y; kernel=nothing)
     return L1_loss(ŷ, y) + SSIM_loss(ŷ, y; kernel=kernel)
 end

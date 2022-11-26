@@ -44,7 +44,17 @@ end
     @test cat(a, b; dims=2) == x
 end
 
+@testset "remove_file_extension" begin
+    filename1 = "testimg.img"
+    filename2 = "mydir/testimg.img"
+    filename3 = "i.have.dots.png"
+    @test remove_file_extension(filename1) == "testimg"
+    @test remove_file_extension(filename2) == "mydir/testimg"
+    @test remove_file_extension(filename3) == "i.have.dots"
+end
+
 @testset "find_complete" begin
+    # First case of file extensions being the same in both directories
     filenames = ["File$i.txt" for i in 1:20]
     dir1 = mktempdir()
     dir2 = mktempdir()
@@ -54,18 +64,50 @@ end
         io = open(joinpath(dir2, filename), "w")
         close(io)
     end
-    complete_list = find_complete(10, dir1, dir2)
+    complete_list1, complete_list2 = find_complete(10, dir1, dir2)
+    # In this case, both lists should be exactly the same
+    @test complete_list1 == complete_list2
+    # If thats the case, run the tests on one of the lists
+    complete_list = complete_list1
     @test length(complete_list) == 10
-    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    @test all([complete_list[i] in filenames for i in eachindex(complete_list)])
     io = open(joinpath(dir1, "onlyInDir1.txt"), "w")
     close(io)
     io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
     close(io)
-    complete_list = find_complete(21, dir1, dir2)
+    complete_list1, complete_list2 = find_complete(21, dir1, dir2)
+    @test complete_list1==complete_list2
+    complete_list = complete_list1
     @test length(complete_list) == 20
-    @test all([complete_list[i] in filenames for i in 1:length(complete_list)])
+    @test all([complete_list[i] in filenames for i in eachindex(complete_list)])
     @test !("onlyInDir1.txt" in complete_list)
     @test !("onlyInDir2.txt" in complete_list)
+
+    # Second case of file extensions being different in the two directories
+    filenames1 = ["File$i.ex1" for i in 1:20]
+    filenames2 = ["File$i.ex2" for i in 1:20]
+    dir1 = mktempdir()
+    dir2 = mktempdir()
+    for i in eachindex(filenames1)
+        io = open(joinpath(dir1, filenames1[i]), "w")
+        close(io)
+        io = open(joinpath(dir2, filenames2[i]), "w")
+        close(io)
+    end
+    complete_list1, complete_list2 = find_complete(10, dir1, dir2)
+    @test length(complete_list1) == 10 == length(complete_list2)
+    @test all([complete_list1[i] in filenames1 for i in eachindex(complete_list1)])
+    @test all([complete_list2[i] in filenames2 for i in eachindex(complete_list2)])
+    io = open(joinpath(dir1, "onlyInDir1.txt"), "w")
+    close(io)
+    io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
+    close(io)
+    complete_list1, complete_list2 = find_complete(21, dir1, dir2)
+    @test length(complete_list1) == 20 == length(complete_list2)
+    @test !("onlyInDir1.txt" in complete_list1)
+    @test !("onlyInDir2.txt" in complete_list1)
+    @test !("onlyInDir1.txt" in complete_list2)
+    @test !("onlyInDir2.txt" in complete_list2)
 end
 
 @testset "channelsize" begin
@@ -77,6 +119,13 @@ end
     vol2 = rand(Float64, 5, 6, 7, 8, 4)
     @test UNet.channelsize(img2) == 7
     @test UNet.channelsize(vol2) == 8
+end
+
+@testset "anscombe transformations" begin
+    a = [1.0 2; 3 4]
+    b = 2 .* sqrt.(a .+ 3/8)
+    @test anscombe_transform(a) == b
+    @test anscombe_transform_inv(anscombe_transform(a)) ≈ a
 end
 
 @testset "u_relu" begin
@@ -247,8 +296,8 @@ end
     plotdirectory = mktempdir()
     SpatiallyVaryingDeconvolution.plot_losses(train_loss, test_loss, epoch, plotdirectory)
     produced_files = readdir(plotdirectory)
-    @test "trainlossplot.png" in produced_files
-    @test "testlossplot.png" in produced_files
+    @test length(produced_files) == 1
+    @test "lossplot.png" in produced_files
 end
 
 @testset "_map_to_zero_one" begin
@@ -360,6 +409,30 @@ end
     @test imgs_y[:, :, :, 1, 2] ≈ imgs[:, :, :, 2]
     @test imgs_x[:, :, :, 1, 1] ≈ imgs[:, :, :, 4]
     @test imgs_x[:, :, :, 1, 2] ≈ imgs[:, :, :, 5]
+
+    # Load images in observations and volumes in ground truth
+    img_dir = mktempdir()
+    imgs = rand(Float32, 32, 32, 6)
+    train_dir = joinpath(img_dir, "train")
+    test_dir = joinpath(img_dir, "test")
+    mkdir(train_dir)
+    mkdir(test_dir)
+    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32, 32)),
+    Dict(), Dict(), Dict())
+    save(joinpath(test_dir, "a.png"), imgs[:, :, 4])
+    save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
+    save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
+    vols = rand(Float32, 32, 32, 32, 6)
+    matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => vols[:, :, :, 1]))
+    matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => vols[:, :, :, 2]))
+    matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => vols[:, :, :, 3]))
+    imgs_x, vols_y = load_data(dummy_settings)
+    @test size(imgs_x) == (32, 32, 1, 1, 2)
+    @test size(vols_y) == (32, 32, 32, 1, 2)
+    @test imgs_x[:, :, 1, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
+    @test imgs_x[:, :, 1, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
+    @test vols_y[:, :, :, 1, 1] ≈ vols[:, :, :, 1] atol=1e-1
+    @test vols_y[:, :, :, 1, 2] ≈ vols[:, :, :, 2] atol=1e-2
 end
 
 @testset "prepare_data" begin
@@ -420,7 +493,7 @@ end
     psfs_filename = "a.h5"
     matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
     dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
-                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
+                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false, :deconv=>"wiener"), 
                         Dict(), 
                         Dict(:load_checkpoints=>false))
     model = prepare_model!(dummy_settings)
@@ -473,6 +546,8 @@ end
     @test settings.model[:dropout] == true
     @test settings.model[:separable] == true
     @test settings.model[:final_attention] == true
+    @test settings.model[:multiscale] == false
+    @test settings.model[:deconv] == "wiener"
     @test settings.data[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"
     @test settings.data[:psfs_key] == "psfs"
     @test settings.data[:nrsamples] == 700

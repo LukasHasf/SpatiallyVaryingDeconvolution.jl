@@ -76,3 +76,13 @@ end
           Images.assess_ssim(img1[:, :, :, 1, 1], img2[:, :, :, 1, 1]; crop=true) atol =
         1e-4
 end
+
+@testset "Spectral loss" begin
+    N = 6
+    img1 = rand(N, N, 1, 1)
+    img2 = rand(N, N, 1, 1)
+    @test SpatiallyVaryingDeconvolution.spectral_loss(img1, img1) == zero(eltype(img1))
+
+    @test SpatiallyVaryingDeconvolution.spectral_loss(img1, img2) ==
+        SpatiallyVaryingDeconvolution.spectral_loss(img2, img1)
+end

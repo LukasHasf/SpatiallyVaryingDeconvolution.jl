@@ -4,7 +4,6 @@ export start_training, load_model
 
 using YAML
 using Images, Colors
-using Tullio
 using BSON: @save, @load
 using Flux
 using CUDA
@@ -15,6 +14,8 @@ using ProgressMeter
 include("utils.jl")
 include("UNet.jl")
 include("MultiWienerNet.jl")
+include("RLLayer.jl")
+include("RLLayer_FLFM.jl")
 include("losses.jl")
 include("plotting.jl")
 include("model.jl")
