@@ -29,10 +29,16 @@ function (rl::RL)(x)
     x = anscombe_transform(x)
     dims = 1:(ndims(rl.PSF)-1)
     otf = rfft(rl.PSF, dims)
-    otf_conj = rfft(reverse(rl.PSF; dims=tuple(collect(dims)...)), dims)
+
+    # `reverse` doesn't support a tuple as `dims` keyword if input array is a `CuArray`, so apply `reverse` dimension by dimension
+    psf_reversed = copy(rl.PSF)
+    for dim in dims
+        psf_reversed = reverse(psf_reversed; dims=dim)
+    end
+    otf_rev = rfft(psf_reversed, dims)
     rec = one.(x)
     for i in 1:rl.n_iter
-        rec = lucystep(rec, otf, otf_conj, dims, x)
+        rec = lucystep(rec, otf, otf_rev, dims, x)
     end
     return anscombe_transform_inv(ifftshift(rec, dims))
 end
