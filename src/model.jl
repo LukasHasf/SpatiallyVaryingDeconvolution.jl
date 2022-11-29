@@ -73,6 +73,7 @@ end
 function save_model(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
+    _ensure_existence(checkpointdirectory)
     model = cpu(model)
     if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWienerWithPlan
         model = Chain(MultiWienerNet.to_multiwiener(model[1]), model[2])
@@ -128,6 +129,8 @@ function train_model(
     plotevery = settings.training[:plot_interval]
     optimizer = settings.training[:optimizer]
     saveevery = settings.checkpoints[:save_interval]
+    early_stopping_patience = 10
+    early_stopping_counter = 0
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
@@ -152,6 +155,16 @@ function train_model(
             )
         end
 
+        if losses_test[epoch] == minimum(losses_test[1:epoch])
+            save_model(
+                model, joinpath(settings.checkpoints[:checkpoint_dir], "early_stop"), losses_train, epoch, epoch_offset; opt=optimizer
+            )
+            early_stopping_counter = 0
+        else
+            early_stopping_counter += 1
+            @info "Patience reduced to $(early_stopping_patience - early_stopping_counter)"
+        end
+
         if (plotevery != 0 && epoch % plotevery == 0)
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
@@ -163,6 +176,11 @@ function train_model(
         write_to_logfile(
             settings.training[:logfile], epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
         )
+
+        if early_stopping_counter >= early_stopping_patience
+            @info "Early stopping triggered. Stopping training..."
+            break
+        end
     end
     # At the end of training, save a checkpoint
     return save_model(
