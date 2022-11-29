@@ -150,7 +150,8 @@ end
     plotdir = mktempdir()
     chkptdir = mktempdir()
     logfile = joinpath(mktempdir(), "logfile.log")
-    settings = SpatiallyVaryingDeconvolution.Settings(Dict(), Dict(), Dict(:plot_dir=>plotdir, :plot_interval=>1, :optimizer=>Adam(), :epochs=>1, :logfile=>logfile),
+    settings = SpatiallyVaryingDeconvolution.Settings(Dict(), Dict(),
+    Dict(:plot_dir=>plotdir, :plot_interval=>1, :optimizer=>Adam(), :epochs=>1, :logfile=>logfile, :early_stopping=>0),
     Dict(:save_interval=>1, :checkpoint_dir=>chkptdir, :epoch_offset=>0))
     SpatiallyVaryingDeconvolution.train_model(
         model,

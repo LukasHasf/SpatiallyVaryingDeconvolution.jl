@@ -37,6 +37,7 @@ training:
     # Where should that plot be saved?
     plot_path: examples/training_progress/
     log_losses: false
+    early_stopping: 0
 
 checkpoints:
     # Should a previously trained model be loaded?
