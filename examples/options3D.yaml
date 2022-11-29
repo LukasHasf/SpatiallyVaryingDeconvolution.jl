@@ -24,6 +24,8 @@ model:
     final_attention: true
     # In 3D, multiscale requires a lot of memory
     multiscale: false
+    # Early stopping patience. 0 for disabling early stopping
+    early_stopping: 0
 
 training:
     # How many epochs to train

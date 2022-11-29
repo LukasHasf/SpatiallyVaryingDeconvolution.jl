@@ -129,7 +129,7 @@ function train_model(
     plotevery = settings.training[:plot_interval]
     optimizer = settings.training[:optimizer]
     saveevery = settings.checkpoints[:save_interval]
-    early_stopping_patience = 10
+    early_stopping_patience = settings.training[:early_stopping]
     early_stopping_counter = 0
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
@@ -155,16 +155,6 @@ function train_model(
             )
         end
 
-        if losses_test[epoch] == minimum(losses_test[1:epoch])
-            save_model(
-                model, joinpath(settings.checkpoints[:checkpoint_dir], "early_stop"), losses_train, epoch, epoch_offset; opt=optimizer
-            )
-            early_stopping_counter = 0
-        else
-            early_stopping_counter += 1
-            @info "Patience reduced to $(early_stopping_patience - early_stopping_counter)"
-        end
-
         if (plotevery != 0 && epoch % plotevery == 0)
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
@@ -176,10 +166,23 @@ function train_model(
         write_to_logfile(
             settings.training[:logfile], epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
         )
-
-        if early_stopping_counter >= early_stopping_patience
-            @info "Early stopping triggered. Stopping training..."
-            break
+        # Early stopping logic
+        if early_stopping_patience > 0
+            if losses_test[epoch] == minimum(losses_test[1:epoch])
+                savedir = joinpath(settings.checkpoints[:checkpoint_dir], "early_stop")
+                foreach(rm, filter(endswith(".bson"), readdir(savedir; join=true)))
+                save_model(
+                    model, savedir, losses_train, epoch, epoch_offset; opt=optimizer
+                )
+                early_stopping_counter = 0
+            else
+                early_stopping_counter += 1
+                @info "Patience reduced to $(early_stopping_patience - early_stopping_counter)"
+            end
+            if early_stopping_counter >= early_stopping_patience
+                @info "Early stopping triggered. Stopping training..."
+                break
+            end
         end
     end
     # At the end of training, save a checkpoint
