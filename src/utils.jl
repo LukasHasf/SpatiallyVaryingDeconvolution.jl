@@ -19,6 +19,7 @@ using MAT
 using HDF5
 using NDTools
 using FFTW
+using Flux
 using LinearAlgebra
 using Images
 using Noise
