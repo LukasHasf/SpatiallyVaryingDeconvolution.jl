@@ -95,7 +95,7 @@ function save_model(
     return modelpath
 end
 
-function setup_training(model, train_x, train_y, test_x, test_y, settings::Settings)
+function setup_training(model, train_x, train_y, test_x, test_y, settings)
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
     example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
@@ -118,7 +118,7 @@ function train_model(
     test_x,
     test_y,
     loss,
-    settings::Settings;
+    settings;
     plotloss=false,
 )
     train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1)
