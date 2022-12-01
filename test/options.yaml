@@ -37,6 +37,7 @@ training:
     plot_path: examples/training_progress/
     log_losses: false
     early_stopping: 0
+    batchsize: 1
 
 checkpoints:
     # Should a previously trained model be loaded?
