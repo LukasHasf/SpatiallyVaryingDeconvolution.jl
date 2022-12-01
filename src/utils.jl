@@ -32,7 +32,7 @@ using ProgressMeter
 # Hardcoded mappings between the config yaml fields and internally used symbols
 const data_dict = Dict(:sim_dir=>"x_path", :truth_dir=>"y_path", :nrsamples=>"nrsamples", :newsize=>"resize_to", :center_psfs=>"center_psfs", :psf_ref_index=>"reference_index", :psfs_path=>"psfs_path", :psfs_key=>"psfs_key")
 const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale", :deconv=>"deconv")
-const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses", :early_stopping=>"early_stopping")
+const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses", :early_stopping=>"early_stopping", :batchsize=>"batchsize")
 const checkpoint_dict = Dict(:load_checkpoints=>"load_checkpoints", :checkpoint_dir=>"checkpoint_dir", :checkpoint_path=>"checkpoint_path", :save_interval=>"save_interval")
 const optimizer_dict = Dict("ADAM" => Adam, "Descent" => Descent, "ADAMW" => AdamW, "ADAGrad" => AdaGrad, "ADADelta" => AdaDelta)
 
@@ -143,10 +143,12 @@ end
 
 function process_training_dict(my_training; kwargs...)
     type_dict = Dict(:epochs=>Int,
-    :plot_interval=>Int, :plot_dir=>String, :log_losses=>Bool, :early_stopping=>Int)
+    :plot_interval=>Int, :plot_dir=>String, :log_losses=>Bool, :early_stopping=>Int, :batchsize=>Int)
     check_types(type_dict, my_training)
     optimizer_kw = my_training[:optimizer]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not implemented"
+    @assert my_training[:early_stopping] >= 0 "early_stopping must be >= 0"
+    @assert my_training[:batchsize] > 0 "batchsize must be > 0"
 
     my_training[:optimizer] = optimizer_dict[optimizer_kw]()
     _ensure_existence(my_training[:plot_dir])
