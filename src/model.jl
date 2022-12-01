@@ -121,7 +121,7 @@ function train_model(
     settings;
     plotloss=false,
 )
-    train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1)
+    train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=true)
     test_data_iterator = Flux.DataLoader((test_x, test_y); batchsize=1)
     example_data_x, pars, training_datapoints, losses_test, losses_train = setup_training(model, train_x, train_y, test_x, test_y, settings)
     epochs = settings.training[:epochs]
@@ -130,11 +130,12 @@ function train_model(
     optimizer = settings.training[:optimizer]
     saveevery = settings.checkpoints[:save_interval]
     early_stopping_patience = settings.training[:early_stopping]
+    batchsize = settings.training[:batchsize]
     early_stopping_counter = 0
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
-        train_real_gradient!(loss, pars, training_datapoints, optimizer; batch_size=1)
+        train_real_gradient!(loss, pars, training_datapoints, optimizer; batch_size=batchsize)
         trainmode!(model, false)
         losses_train[epoch] = mean(
             _help_evaluate_loss(train_data_iterator, loss)
