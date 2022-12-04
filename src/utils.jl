@@ -363,7 +363,7 @@ function gaussian(window_size=11, sigma=1.5; T=Float32)
     return T.(gauss / sum(gauss))
 end
 
-const CUDA_functional =
+const CUDA_functional::Bool =
     CUDA.functional() &&
     any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
 
