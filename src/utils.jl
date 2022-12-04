@@ -60,9 +60,9 @@ function load_dataset(
 end
 =#
 
-function add_noise(img)
-    g_noise = randn(eltype(img), size(img)) .* (rand(eltype(img)) * 0.02 + 0.005)
-    peak = rand(eltype(img)) * 4500 + 500
+function add_noise(img::AbstractArray{T}) where {T}
+    g_noise = randn(T, size(img)) .* (rand(T) * 0.02 + 0.005)
+    peak = rand(T) * 4500 + 500
     img = poisson(img, peak)
     img .+= g_noise
     return img
