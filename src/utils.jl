@@ -469,11 +469,6 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
                 l
             end
             part = nothing
-            #for g in gs
-            #    if !isnothing(g)
-            #        println(any(isnan.(g)))
-            #    end
-            #end
             Flux.update!(opt, ps, real.(gs))
             next!(p; showvalues=[(:loss, l)])
         catch ex
