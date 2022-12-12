@@ -171,6 +171,8 @@ function train_model(
         if early_stopping_patience > 0
             if losses_test[epoch] == minimum(losses_test[1:epoch])
                 savedir = joinpath(settings.checkpoints[:checkpoint_dir], "early_stop")
+                # Right now, existence of the early stopping checkpoint folder is not checked while reading the YYAML file -> TODO
+                _ensure_existence(savedir)
                 foreach(rm, filter(endswith(".bson"), readdir(savedir; join=true)))
                 save_model(
                     model, savedir, losses_train, epoch, epoch_offset; opt=optimizer
