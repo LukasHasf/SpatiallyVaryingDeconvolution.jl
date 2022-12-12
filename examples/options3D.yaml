@@ -24,9 +24,6 @@ model:
     final_attention: true
     # In 3D, multiscale requires a lot of memory
     multiscale: false
-    # Early stopping patience. 0 for disabling early stopping
-    early_stopping: 0
-    batchsize: 1
 
 training:
     # How many epochs to train
@@ -37,14 +34,11 @@ training:
     plot_interval: 1
     # Where should that plot be saved?
     plot_path: examples/training_progress/
-    log_losses: falsecheckpoints:
-    # Should a previously trained model be loaded?
-    load_checkpoints: false
-    # If load_checkpoints, what is the path to the checkpoint?
-    checkpoint_path: nothing
-    # Directory where new checkpoints will be saved
-    checkpoint_dir: examples/checkpoints/
-    # How often should a checkpoint be saved? 0 for never
+    log_losses: false
+    # Early stopping patience. 0 for disabling early stopping
+    early_stopping: 0
+    batchsize: 1
+    
     
 
 checkpoints:
