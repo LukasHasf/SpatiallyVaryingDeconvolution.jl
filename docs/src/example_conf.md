@@ -7,8 +7,14 @@ data:
     x_path : ../training_data/Data/Simulated_Miniscope_2D_Training_data/
     # Path to ground truth
     y_path : ../training_data/Data/Ground_truth_downsampled/
+    # How many training+testing samples to load from x_path and y_path
+    nrsamples: 1000
     # Data needs to be resized to be a power of two along each axis
     resize_to : [64, 64]
+    # Path to the PSF file
+    psfs_path: ../SpatiallyVaryingConvolution/comaPSF.mat
+    # Key under which the PSFs are stored
+    psfs_key: psfs
     # Should the data be centered?
     center_psfs: true
     # If center_psfs, which index corresponds to the central PSF? -1 means length \div 2 + 1
@@ -25,14 +31,11 @@ model:
     separable: true
     # Concatenate all UNet activations and concolve them as a final step
     final_attention: true
+    multiscale: false
+    # Which deconvolution layer to use. One of [wiener, rl, rl_flfm]
+    deconv: wiener
 
 training:
-    # Path to the PSF file
-    psfs_path: ../SpatiallyVaryingConvolution/comaPSF.mat
-    # Key under which the PSFs are stored
-    psfs_key: psfs
-    # How many training+testing samples to load from x_path and y_path
-    nrsamples: 1000
     # How many epochs to train
     epochs: 50
     # The employed optimizer
@@ -43,15 +46,19 @@ training:
     plot_path: examples/training_progress/
     # Should the losses be written to a log file?
     log_losses: false
-    checkpoints:
-        # Should a previously trained model be loaded? [true, false, latest]
-        load_checkpoints: latest
-        # If load_checkpoints, what is the path to the checkpoint?
-        checkpoint_path: nothing
-        # Directory where new checkpoints will be saved
-        checkpoint_dir: examples/checkpoints/
-        # How often should a checkpoint be saved? 0 for never except for at the end of training
-        save_interval: 1
+    # Early stopping patience. 0 for disabling early stopping
+    early_stopping: 0
+    batchsize: 1
+    
+checkpoints:
+    # Should a previously trained model be loaded? [true, false, latest]
+    load_checkpoints: latest
+    # If load_checkpoints, what is the path to the checkpoint?
+    checkpoint_path: nothing
+    # Directory where new checkpoints will be saved
+    checkpoint_dir: examples/checkpoints/
+    # How often should a checkpoint be saved? 0 for never except for at the end of training
+    save_interval: 1
 ```
 
 ## The options in detail
@@ -64,6 +71,8 @@ Here's a list of what each field in the configuration field does:
 - `dropout` : Boolean to indicate if the UNet should employ dopout-layers during training.
 - `separable` : Whether to use separable or regular convolutions in the UNet convolution layers.
 - `final_attention` : Whether to add a convolution layer which processes all intermediate (upsampled) activations in the decoder path followed by an attention gate.
+- `multiscale` : Whether to use multiscale convolutions instead of normal ones. Increases performance in conjuction with transfer training, but requires more memory (significantly more in 3D).
+- `deconv` :  Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`. `"wiener"` for a Wiener deconvolution layer, `"rl"` for Richardson-Lucy deconvolution layer and `"rl_flfm"` for a Richardson-Lucy deconvolution that is adapted to Fourier Light Field Microscopy (2D observation -> 3D reconstruction).
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.
 - `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
 - `epochs` : The number of epochs the model will be trained.
