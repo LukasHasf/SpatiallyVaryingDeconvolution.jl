@@ -43,3 +43,17 @@ end
 function L1_SSIM_loss(ŷ, y; kernel=nothing)
     return L1_loss(ŷ, y) + SSIM_loss(ŷ, y; kernel=kernel)
 end
+
+"""    L2_penalty(model)
+
+L2 regularisation for the weights of the UNet.
+"""
+function L2_penalty(model)
+    ps = Flux.params(model[2])
+    s = 0.0
+    # I know indexing like this is discouraged, but other kinds of loops fail for some reason
+    for i in 1:length(ps)
+        s = s + sum(abs2, ps[i])
+    end
+    return s / 2000
+end
