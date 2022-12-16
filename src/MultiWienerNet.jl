@@ -92,6 +92,6 @@ function (m::MultiWienerWithPlan)(x)
     return iffted_output
 end
 Flux.@functor MultiWienerWithPlan
-Flux.trainable(m::MultiWienerWithPlan) = (m.PSF, m.lambda)
+Flux.trainable(m::MultiWienerWithPlan) = (PSF = m.PSF, lambda = m.lambda)
 
 end # module
