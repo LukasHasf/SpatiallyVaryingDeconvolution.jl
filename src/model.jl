@@ -168,8 +168,9 @@ function train_model(
             settings.training[:logfile], epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
         )
         # Early stopping logic
-        if early_stopping_patience > 0
-            if losses_test[epoch] == minimum(losses_test[1:epoch])
+        if early_stopping_patience > 0 && epoch > 1
+            # Chech that new loss is minimal loss and that loss is actually changing
+            if losses_test[epoch] == minimum(losses_test[1:epoch]) && !iszero(losses_test[epoch] - losses_test[epoch - 1])
                 savedir = joinpath(settings.checkpoints[:checkpoint_dir], "early_stop")
                 # Right now, existence of the early stopping checkpoint folder is not checked while reading the YYAML file -> TODO
                 _ensure_existence(savedir)
