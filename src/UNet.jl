@@ -221,9 +221,8 @@ end
 function ConvDown(
     in_chs::Int,
     out_chs::Int;
-    down_kernel=(2, 2),
     kernel=(3, 3),
-    down_activation=identity,
+    downsample_method="maxpool",
     residual=false,
     activation="relu",
     separable=false,
@@ -231,9 +230,15 @@ function ConvDown(
     norm="batch",
     multiscale=false,
 )
-    downsample_op = Conv(
-        down_kernel, in_chs => in_chs, down_activation; stride=2, groups=in_chs
-    )
+    down_window = ntuple(i->2, length(kernel))
+    downsample_op = MaxPool(down_window)
+    if downsample_method=="conv"
+        downsample_op = Conv(
+            down_window, in_chs => in_chs, identity; stride=2, groups=in_chs
+        )
+        downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
+        downsample_op.bias .*= 0.01
+    end
     conv_op = ConvBlock(
         in_chs,
         out_chs;
@@ -245,8 +250,6 @@ function ConvDown(
         norm=norm,
         multiscale=multiscale,
     )
-    downsample_op.weight .= 0.01 .* downsample_op.weight .+ 0.25
-    downsample_op.bias .*= 0.01
     return Chain(downsample_op, conv_op)
 end
 
@@ -309,16 +312,13 @@ function Unet(
         activation=activation,
         multiscale=multiscale
     )
-    if down == "conv"
-        kernel = kernel_base .* 2
-        encoder_blocks = []
-        for i in 1:depth
-            second_exponent = i == depth ? i : i + 1
-            c = ConvDown(
-                16 * 2^i, 16 * 2^second_exponent; down_kernel=kernel, conv_config...
-            ) # 32, 64, 128, 256, ... input channels
-            push!(encoder_blocks, c)
-        end
+    encoder_blocks = []
+    for i in 1:depth
+        second_exponent = i == depth ? i : i + 1
+        c = ConvDown(
+            16 * 2^i, 16 * 2^second_exponent; downsample_method=down, conv_config...
+        ) # 32, 64, 128, 256, ... input channels
+        push!(encoder_blocks, c)
     end
 
     initial_block = ConvBlock(channels, 32; conv_config...)
