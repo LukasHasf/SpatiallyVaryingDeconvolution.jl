@@ -2,6 +2,9 @@ module UNet
 using Flux
 using Statistics
 
+const valid_upsampling_methods = ["nearest", "tconv"]
+const valid_downsampling_methods = ["conv", "maxpool"]
+
 """    channelsize(x)
 
 Return the size of the channel dimension of `x`.
@@ -300,8 +303,9 @@ function Unet(
     multiscale=false,
     kwargs...
 )
-    valid_upsampling_methods = ["nearest", "tconv"]
-    valid_downsampling_methods = ["conv"]
+    # Check that some of the options are valid
+    global valid_downsampling_methods
+    global valid_upsampling_methods
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
     @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
     kernel_base = tuple(ones(Int, dims - 2)...)
