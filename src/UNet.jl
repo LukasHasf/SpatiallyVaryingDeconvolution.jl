@@ -148,7 +148,7 @@ end
 struct ConvBlock{F}
     chain::Chain
     actfun::F
-    residual::Bool
+    residual
 end
 Flux.trainable(c::ConvBlock) = (c.chain,)
 Flux.@functor ConvBlock
@@ -204,29 +204,18 @@ function ConvBlock(
         dropout1 = identity
         dropout2 = identity
     end
-    #chain = Chain(conv1, dropout1, norm1, actfun conv2, dropout2, norm2)
     chain = Chain(conv1, norm1, dropout1, conv2, norm2, dropout2)
-    return ConvBlock(chain, actfun, residual)
+    residual_func = x -> zero(eltype(x))
+    if residual
+        residual_func = conv_layer(ntuple(i->1, length(kernel)), in_chs=>out_chs, pad=0)
+    end
+    return ConvBlock(chain, actfun, residual_func)
 end
 
 function (c::ConvBlock)(x)
-    x1 = c.chain(x)
-    cx1 = channelsize(x1)
-    cx = channelsize(x)
-    if c.residual
-        selection = 1:min(cx1, cx)
-        filldimension = [size(x)[1:(end - 2)]..., abs(cx1 - cx), size(x)[end]]
-        selected_x = selectdim(x, ndims(x) - 1, selection)
-        if cx1 > cx
-            x1 =
-                x1 .+
-                cat(selected_x, fill(zero(eltype(x)), filldimension...); dims=ndims(x1) - 1)
-        else
-            x1 = x1 .+ selected_x
-        end
-    end
-    #x1 = c.actfun(x1)
-    return x1
+    y = c.chain(x)
+    skip = c.residual(x)
+    return y .+ skip
 end
 
 function ConvDown(
