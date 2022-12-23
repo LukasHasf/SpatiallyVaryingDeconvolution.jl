@@ -328,6 +328,7 @@ function Unet(
         residual_block = ConvBlock(channels, labels; conv_config...)
     end
 
+    attention_blocks = repeat([false], depth)
     if attention
         attention_blocks = []
         for i in 1:depth
@@ -335,8 +336,6 @@ function Unet(
             a = AttentionBlock(nrch, nrch, nrch; dims=dims)
             push!(attention_blocks, a)
         end
-    else
-        attention_blocks = repeat([false], depth)
     end
 
     up_blocks = []
