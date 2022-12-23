@@ -308,6 +308,7 @@ function Unet(
     global valid_upsampling_methods
     @assert up in valid_upsampling_methods "Upsample method \"$up\" not in $(valid_upsampling_methods)."
     @assert down in valid_downsampling_methods "Downsampling method \"$down\" not in $(valid_downsampling_methods)."
+    # Prepare a NamedTuple conv_config used for the options of the ConvBlocks.
     kernel_base = tuple(ones(Int, dims - 2)...)
     conv_kernel = kernel_base .* 3
     conv_config = (
