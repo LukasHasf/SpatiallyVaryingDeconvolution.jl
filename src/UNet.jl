@@ -175,11 +175,7 @@ function ConvBlock(
     end
 
     activation_functions = Dict("relu" => u_relu, "tanh" => u_tanh, "elu" => u_elu)
-    actfun = if activation in keys(activation_functions)
-        activation_functions[activation]
-    else
-        identity
-    end
+    actfun = get(activation_functions, activation, identity)
 
     if multiscale
         return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer, dims=length(kernel)+2)
