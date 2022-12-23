@@ -284,7 +284,7 @@ function Unet(
     dims=4;
     residual::Bool=false,
     up="nearest",
-    down="conv",
+    down="maxpool",
     activation="relu",
     norm="batch",
     attention=false,
