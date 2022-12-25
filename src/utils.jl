@@ -222,7 +222,7 @@ end
 
 """    remove_file_extension(filename)
 
-Returns the part of a string `filename` that occurs before the last '.'.
+Return the part of a string `filename` that occurs before the last '.'.
 """
 function remove_file_extension(filename)
     return filename[1:findlast(isequal('.'), filename)-1]
