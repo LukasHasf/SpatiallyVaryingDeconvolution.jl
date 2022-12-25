@@ -184,21 +184,19 @@ function ConvBlock(
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
     conv2 = conv_layer(kernel, out_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
 
+    norm1 = identity
+    norm2 = identity
     if norm == "batch"
         norm1 = BatchNorm(out_chs)
         norm2 = BatchNorm(out_chs)
-    else
-        norm1 = identity
-        norm2 = identity
     end
 
+    dropout1 = identity
+    dropout2 = identity
     if dropout
         # Channel-wise droput
         dropout1 = Dropout(0.05; dims=length(kernel) + 1)
         dropout2 = Dropout(0.05; dims=length(kernel) + 1)
-    else
-        dropout1 = identity
-        dropout2 = identity
     end
     chain = Chain(conv1, norm1, dropout1, conv2, norm2, dropout2)
     residual_func = x -> zero(eltype(x))
