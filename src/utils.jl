@@ -220,6 +220,10 @@ function parse_date(checkpoint_path)
     return date # Could be a DateTime or nothing
 end
 
+"""    remove_file_extension(filename)
+
+Returns the part of a string `filename` that occurs before the last '.'.
+"""
 function remove_file_extension(filename)
     return filename[1:findlast(isequal('.'), filename)-1]
 end
