@@ -8,6 +8,12 @@ const valid_downsampling_methods = ["conv", "maxpool"]
 """    channelsize(x)
 
 Return the size of the channel dimension of `x`.
+
+# Examples
+```julia-repl
+julia> channelsize(ones(10, 20, 30, 40))
+30
+```
 """
 function channelsize(x)
     return size(x, ndims(x) - 1)
@@ -153,6 +159,32 @@ end
 Flux.trainable(c::ConvBlock) = (c.chain,)
 Flux.@functor ConvBlock
 
+"""    ConvBlock(in_chs::Int, out_chs::Int; multiscale=false, kernel=(3,3), dropout=false, activation="relu", transpose=false, residual=true, norm="batch", separable=false)
+
+Basic building block of the `Unet`. Does conv -> `activation` -> `norm` -> dropout -> conv -> `activation` -> `norm` -> dropout.
+
+It expects data with `in_chs` channels and outputs data with `out_chs` channels.
+
+If `residual`, the input gets passed thrugh a `1x1` convolution and added elementwise to the output of the block.
+
+If `dropout==true`, the dropout layers are applied with a dropout probability of 10%.
+
+If `norm=="batch"`, batchnorms will be applied, otherwise no normalization happens.
+
+`kernel` refers to the kernel size of the convolutional layers.
+
+`transpose` decides whether a transpose or normal convolutional layer is used.
+
+If `separable==true` a `SeparableConv` is used instead of a normal one.
+
+If `multiscale==true`, a `MultiScaleConvBlock` is returned instead. This overrides all settings except `in_chs`, `out_chs`, `activation`, `separable` and `transpose`.
+
+# Examples
+```julia-repl
+julia> UNet.ConvBlock(10,20)
+Main.UNet.ConvBlock{typeof(Main.UNet.u_relu)}(Chain(Conv((3, 3), 10 => 20, u_relu, pad=1), BatchNorm(20), identity, Conv((3, 3), 20 => 20, u_relu, pad=1), BatchNorm(20), identity), Main.UNet.u_relu, Conv((1, 1), 10 => 20))
+```
+"""
 function ConvBlock(
     in_chs::Int,
     out_chs::Int;
@@ -272,6 +304,10 @@ end
 
 Flux.@functor Unet
 
+"""    function Unet(channels::Int=1, labels::Int=channels, dims=4; residual::Bool=false, up="nearest", down="maxpool", activation="relu", norm="batch", attention=false, depth=4, dropout=false, separable=false, final_attention=false, multiscale=false, kwargs...)
+
+Create an U-Net.
+"""
 function Unet(
     channels::Int=1,
     labels::Int=channels,
