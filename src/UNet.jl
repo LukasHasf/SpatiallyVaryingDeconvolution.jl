@@ -195,8 +195,8 @@ function ConvBlock(
     dropout2 = identity
     if dropout
         # Channel-wise droput
-        dropout1 = Dropout(0.05; dims=length(kernel) + 1)
-        dropout2 = Dropout(0.05; dims=length(kernel) + 1)
+        dropout1 = Dropout(0.1; dims=length(kernel) + 1)
+        dropout2 = Dropout(0.1; dims=length(kernel) + 1)
     end
     chain = Chain(conv1, norm1, dropout1, conv2, norm2, dropout2)
     residual_func = x -> zero(eltype(x))
