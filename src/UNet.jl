@@ -306,7 +306,31 @@ Flux.@functor Unet
 
 """    function Unet(channels::Int=1, labels::Int=channels, dims=4; residual::Bool=false, up="nearest", down="maxpool", activation="relu", norm="batch", attention=false, depth=4, dropout=false, separable=false, final_attention=false, multiscale=false, kwargs...)
 
-Create an U-Net.
+Create an U-Net, which accepts data with `channels` channels and outputs data with `labels` channels.
+
+The total dimensionsality of the input data should be given by `dims` ( 2 or 3 spatial dimsension + 1 channel dimension + 1 batch dimension).
+
+- `residual::Bool` : Whether to use residual double convolutions. Also whether to use a residual convolutional connection directly from the input to the output of the UNet. TODO: Separate the two residual options.
+
+- `up::AbstractString` : Upsampling method. One of `["nearest", "tconv"]`.
+
+- `down::AbstractString` : Downsampling method. One of `["conv", "maxpool"]`.
+
+- `activation::AbstractString` : Activation function. Supported functions: `["relu", "tanh", "elu"]`.
+
+- `norm::AbstractString` : Batch normalization. Either `"none"` or `"batch"`.
+
+- `attention::Bool` : Whether to use attention gates in the skip connections.
+
+- `depth::Int` : The length of the encoding/decoding path.
+
+- `dropout::Bool` : Whether to use `Dropout` layers after the convolutions.
+
+- `separable::Bool` : Whether to use separable convolution kernels.
+
+- `final_attention::Bool` : Whether to add a layer at the end which convolves the outputs of the decoder path with a 1x1 kernel after passing a self-attention gate.
+
+- `multiscale::Bool` : Whether to use multiscale convolution blocks, which consist of several convolution with different kernel sizes. This improves transfer learning performance, but requires a lot more computations, especially in 3D.
 """
 function Unet(
     channels::Int=1,
@@ -403,6 +427,13 @@ function Unet(
     return Unet(residual_block, encoder, decoder, attention_module, upsampler)
 end
 
+"""    decode(ops::Tuple, ft::Tuple)
+
+Calculate the decoding path of an UNet.
+
+`ops` is a `Tuple` containing the decoding operations, ordered from deepest to most shallow.
+`ft` is a `Tuple` that contains the activations of the encoding path, ordered from most shallow to deepest.
+"""
 function decode(ops::Tuple, ft::Tuple)
     up = first(ops)(ft[end], ft[end - 1])
     #= The next line looks a bit backwards, but the next `up` is calculated
@@ -410,10 +441,18 @@ function decode(ops::Tuple, ft::Tuple)
     return decode(Base.tail(ops), (ft[1:(end - 2)]..., up))..., up
 end
 
+"""    decode(::Tuple{}, ft::NTuple{1, T}) where {T}
+
+Final `decode` operation.
+"""
 function decode(::Tuple{}, ft::NTuple{1,T}) where {T}
     return tuple(first(ft))
 end
 
+"""    (u::Unet)(x)
+
+Apply a `Unet` to the input data `x`.
+"""
 function (u::Unet)(x)
     cs = Flux.activations(u.encoder, x)
     ups = decode(u.decoder, cs)
