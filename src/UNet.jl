@@ -161,13 +161,13 @@ Flux.@functor ConvBlock
 
 """    ConvBlock(in_chs::Int, out_chs::Int; multiscale=false, kernel=(3,3), dropout=false, activation="relu", transpose=false, residual=true, norm="batch", separable=false)
 
-Basic building block of the `Unet`. Does conv -> `activation` -> `norm` -> dropout -> conv -> `activation` -> `norm` -> dropout.
+Basic building block of the `Unet`. Does dropout -> conv -> `activation` -> `norm` -> conv -> `activation` -> `norm`.
 
 It expects data with `in_chs` channels and outputs data with `out_chs` channels.
 
 If `residual`, the input gets passed thrugh a `1x1` convolution and added elementwise to the output of the block.
 
-If `dropout==true`, the dropout layers are applied with a dropout probability of 10%.
+If `dropout==true`, the dropout layers are applied with a dropout probability of 50%.
 
 If `norm=="batch"`, batchnorms will be applied, otherwise no normalization happens.
 
@@ -224,13 +224,10 @@ function ConvBlock(
     end
 
     dropout1 = identity
-    dropout2 = identity
     if dropout
-        # Channel-wise droput
-        dropout1 = Dropout(0.1; dims=length(kernel) + 1)
-        dropout2 = Dropout(0.1; dims=length(kernel) + 1)
+        dropout1 = Dropout(0.5)
     end
-    chain = Chain(conv1, norm1, dropout1, conv2, norm2, dropout2)
+    chain = Chain(conv1, norm1, conv2, norm2, dropout1)
     residual_func = x -> zero(eltype(x))
     if residual
         residual_func = conv_layer(ntuple(i->1, length(kernel)), in_chs=>out_chs, pad=0)
@@ -366,6 +363,8 @@ function Unet(
         activation=activation,
         multiscale=multiscale
     )
+    # This has the same options as conv_config, except that dropout is disabled -> Used for beginning and end of UNet
+    conv_config_initial = merge(conv_config, (dropout=false,))
     encoder_blocks = []
     for i in 1:depth
         second_exponent = i == depth ? i : i + 1
@@ -403,10 +402,12 @@ function Unet(
             )
         end
         second_index = (!final_attention && (i == depth)) ? labels : 2^(5 + depth - (i + 1))
+        # The last decoding block shouldn't have dropout
+        config = i == depth ? conv_config_initial : conv_config
         u = UNetUpBlock(
             upsample_function,
             attention_blocks[i],
-            ConvBlock(2^(5 + depth - (i - 1)), second_index; conv_config...),
+            ConvBlock(2^(5 + depth - (i - 1)), second_index; config...),
         )
         push!(up_blocks, u)
     end
