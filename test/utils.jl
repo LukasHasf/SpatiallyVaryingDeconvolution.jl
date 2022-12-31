@@ -552,9 +552,12 @@ end
     @test settings.data[:psfs_key] == "psfs"
     @test settings.data[:nrsamples] == 700
     @test settings.training[:epochs] == 20
-    @test settings.training[:optimizer] isa AdaDelta
+    @test settings.training[:optimizer][1] isa WeightDecay
+    @test settings.training[:optimizer][2] isa AdaDelta
     @test settings.training[:plot_interval] == 1
     @test settings.training[:plot_dir] == "examples/training_progress/"
+    @test settings.training[:batchsize] == 1
+    @test settings.training[:weight_decay] == 0.1
     @test settings.checkpoints[:load_checkpoints] == false
     @test !(:checkpoint_path in keys(settings.checkpoints))
     @test settings.checkpoints[:checkpoint_dir] == "examples/checkpoints/"

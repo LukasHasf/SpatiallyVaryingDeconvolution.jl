@@ -39,8 +39,7 @@ training:
     # Early stopping patience. 0 for disabling early stopping
     early_stopping: 0
     batchsize: 1
-    
-    
+    weight_decay: 0.0  
 
 checkpoints:
     # Should a previously trained model be loaded?
