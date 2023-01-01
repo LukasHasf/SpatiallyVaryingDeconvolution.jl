@@ -106,7 +106,7 @@ end
 
 function (a::AttentionBlock)(x)
     return a(x, x)
-endaugur
+end
 
 struct UNetUpBlock{X,Y,Z}
     upsample::X
