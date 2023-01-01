@@ -102,7 +102,7 @@ function setup_training(model, train_x, train_y, test_x, test_y, settings)
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     plot_prediction(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
     pars = Flux.params(model)
-    training_datapoints = Flux.Data.DataLoader(
+    training_datapoints = Flux.DataLoader(
         (train_x, train_y); batchsize=1, shuffle=false
     )
     epochs = settings.training[:epochs]
