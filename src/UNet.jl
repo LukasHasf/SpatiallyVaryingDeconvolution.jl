@@ -106,7 +106,7 @@ end
 
 function (a::AttentionBlock)(x)
     return a(x, x)
-end
+endaugur
 
 struct UNetUpBlock{X,Y,Z}
     upsample::X
@@ -224,10 +224,13 @@ function ConvBlock(
     end
 
     dropout1 = identity
+    dropout2 = identity
     if dropout
-        dropout1 = Dropout(0.5)
+        channeldim = length(kernel) + 1
+        dropout1 = Dropout(0.5; dims=channeldim)
+        dropout2 = Dropout(0.5; dims=channeldim)
     end
-    chain = Chain(conv1, norm1, conv2, norm2, dropout1)
+    chain = Chain(conv1, dropout1, norm1, conv2, dropout2, norm2)
     residual_func = x -> zero(eltype(x))
     if residual
         residual_func = conv_layer(ntuple(i->1, length(kernel)), in_chs=>out_chs, pad=0)
