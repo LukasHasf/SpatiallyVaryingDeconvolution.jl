@@ -9,7 +9,7 @@ Load a `MultiWienerNet` from a checkpoint saved at `path`.
 
 Optionally load the optimizer used for training with `load_optimizer`. Returns `(model [, optimizer])`. 
 
-Optionally prepare the newtork for moving to the GPU if available by setting `on_gpu` (`true` by default).
+Optionally prepare the network for moving to the GPU if available by setting `on_gpu` (`true` by default).
 """
 function load_model(path; load_optimizer=true, on_gpu=true)
     Core.eval(Main, :(using Flux: Flux))
