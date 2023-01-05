@@ -76,6 +76,7 @@ function save_model(
 )
     _ensure_existence(checkpointdirectory)
     model = cpu(model)
+    # This check and conversion is necessary because saving a RFFT plan and loading it again results in Julia segfaulting
     if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWienerWithPlan
         model = Chain(MultiWienerNet.to_multiwiener(model[1]), model[2])
     end # The other types of deconvolution layers don't need special conversion yet
