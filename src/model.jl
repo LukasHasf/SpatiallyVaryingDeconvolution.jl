@@ -17,6 +17,7 @@ function load_model(path; load_optimizer=true, on_gpu=true)
     Core.eval(Main, :(using NNlib: NNlib))
     Core.eval(Main, :(using FFTW: FFTW))
     Core.eval(Main, :(using AbstractFFTs: AbstractFFTs))
+    Core.eval(Main, :(using Random: Random))
     if load_optimizer
         @load path model opt
     else
