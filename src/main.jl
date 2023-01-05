@@ -70,14 +70,7 @@ function start_training(settings::Settings; T=Float32)
     end
     # Training
     return train_model(
-        model,
-        train_x,
-        train_y,
-        test_x,
-        test_y,
-        loss_fn,
-        settings;
-        plotloss=true,
+        model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
     )
 end
 

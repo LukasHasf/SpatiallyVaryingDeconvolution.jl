@@ -24,7 +24,9 @@ function load_model(path; load_optimizer=true, on_gpu=true)
         @load path model
     end
     if model isa Flux.Chain && model[1] isa MultiWienerNet.MultiWiener
-        model = Chain(MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2])
+        model = Chain(
+            MultiWienerNet.toMultiWienerWithPlan(model[1]; on_gpu=on_gpu), model[2]
+        )
     end
     if load_optimizer
         return model, opt
@@ -45,18 +47,16 @@ Entries in `model_settings` affect the UNet unless stated otherwise. The `key=>t
 - `:multiscale => Bool` : Use expensive multiscale convolutions for up- / downscaling
 - `:deconv => String` : Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`
 """
-function make_model(
-    psfs, model_settings::Dict{Symbol, Any}; on_gpu=true
-)
+function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
-    if model_settings[:deconv]=="wiener"
+    if model_settings[:deconv] == "wiener"
         deconv_stage = MultiWienerNet.MultiWienerWithPlan(psfs; on_gpu=on_gpu)
-    elseif model_settings[:deconv]=="rl"
+    elseif model_settings[:deconv] == "rl"
         deconv_stage = RLLayer.RL(psfs)
-    elseif model_settings[:deconv]=="rl_flfm"
+    elseif model_settings[:deconv] == "rl_flfm"
         deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
-    end 
+    end
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
@@ -65,7 +65,7 @@ function make_model(
         activation="relu",
         residual=true,
         norm="none",
-        model_settings...
+        model_settings...,
     )
     model = Flux.Chain(deconv_stage, modelUNet)
     return model
@@ -104,9 +104,7 @@ function setup_training(model, train_x, train_y, test_x, test_y, settings)
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     plot_prediction(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
     pars = Flux.params(model)
-    training_datapoints = Flux.DataLoader(
-        (train_x, train_y); batchsize=1, shuffle=false
-    )
+    training_datapoints = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=false)
     epochs = settings.training[:epochs]
     losses_test = zeros(Float64, epochs)
     losses_train = zeros(Float64, epochs)
@@ -114,18 +112,13 @@ function setup_training(model, train_x, train_y, test_x, test_y, settings)
 end
 
 function train_model(
-    model,
-    train_x,
-    train_y,
-    test_x,
-    test_y,
-    loss,
-    settings;
-    plotloss=false,
+    model, train_x, train_y, test_x, test_y, loss, settings; plotloss=false
 )
     train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=true)
     test_data_iterator = Flux.DataLoader((test_x, test_y); batchsize=1)
-    example_data_x, pars, training_datapoints, losses_test, losses_train = setup_training(model, train_x, train_y, test_x, test_y, settings)
+    example_data_x, pars, training_datapoints, losses_test, losses_train = setup_training(
+        model, train_x, train_y, test_x, test_y, settings
+    )
     epochs = settings.training[:epochs]
     epoch_offset = settings.checkpoints[:epoch_offset]
     plotevery = settings.training[:plot_interval]
@@ -137,14 +130,12 @@ function train_model(
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
         trainmode!(model, true)
-        train_real_gradient!(loss, pars, training_datapoints, optimizer; batch_size=batchsize)
+        train_real_gradient!(
+            loss, pars, training_datapoints, optimizer; batch_size=batchsize
+        )
         trainmode!(model, false)
-        losses_train[epoch] = mean(
-            _help_evaluate_loss(train_data_iterator, loss)
-        )
-        losses_test[epoch] = mean(
-            _help_evaluate_loss(test_data_iterator, loss)
-        )
+        losses_train[epoch] = mean(_help_evaluate_loss(train_data_iterator, loss))
+        losses_test[epoch] = mean(_help_evaluate_loss(test_data_iterator, loss))
         println(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
@@ -154,32 +145,41 @@ function train_model(
 
         if (saveevery != 0 && epoch % saveevery == 0)
             save_model(
-                model, settings.checkpoints[:checkpoint_dir], losses_train, epoch, epoch_offset; opt=optimizer
+                model,
+                settings.checkpoints[:checkpoint_dir],
+                losses_train,
+                epoch,
+                epoch_offset;
+                opt=optimizer,
             )
         end
 
         if (plotevery != 0 && epoch % plotevery == 0)
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
-            plot_prediction(pred_to_plot, psf_to_plot, epoch, epoch_offset, settings.training[:plot_dir])
+            plot_prediction(
+                pred_to_plot, psf_to_plot, epoch, epoch_offset, settings.training[:plot_dir]
+            )
             if plotloss
                 plot_losses(losses_train, losses_test, epoch, settings.training[:plot_dir])
             end
         end
         write_to_logfile(
-            settings.training[:logfile], epoch + epoch_offset, losses_train[epoch], losses_test[epoch]
+            settings.training[:logfile],
+            epoch + epoch_offset,
+            losses_train[epoch],
+            losses_test[epoch],
         )
         # Early stopping logic
         if early_stopping_patience > 0 && epoch > 1
             # Chech that new loss is minimal loss and that loss is actually changing
-            if losses_test[epoch] == minimum(losses_test[1:epoch]) && !iszero(losses_test[epoch] - losses_test[epoch - 1])
+            if losses_test[epoch] == minimum(losses_test[1:epoch]) &&
+                !iszero(losses_test[epoch] - losses_test[epoch - 1])
                 savedir = joinpath(settings.checkpoints[:checkpoint_dir], "early_stop")
                 # Right now, existence of the early stopping checkpoint folder is not checked while reading the YYAML file -> TODO
                 _ensure_existence(savedir)
                 foreach(rm, filter(endswith(".bson"), readdir(savedir; join=true)))
-                save_model(
-                    model, savedir, losses_train, epoch, epoch_offset; opt=optimizer
-                )
+                save_model(model, savedir, losses_train, epoch, epoch_offset; opt=optimizer)
                 early_stopping_counter = 0
             else
                 early_stopping_counter += 1

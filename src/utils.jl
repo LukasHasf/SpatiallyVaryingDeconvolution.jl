@@ -30,11 +30,48 @@ using Dates
 using ProgressMeter
 
 # Hardcoded mappings between the config yaml fields and internally used symbols
-const data_dict = Dict(:sim_dir=>"x_path", :truth_dir=>"y_path", :nrsamples=>"nrsamples", :newsize=>"resize_to", :center_psfs=>"center_psfs", :psf_ref_index=>"reference_index", :psfs_path=>"psfs_path", :psfs_key=>"psfs_key")
-const model_dict = Dict(:depth=>"depth", :attention=>"attention", :dropout=>"dropout", :separable=>"separable", :final_attention=>"final_attention", :multiscale=>"multiscale", :deconv=>"deconv")
-const training_dict = Dict(:epochs=>"epochs", :optimizer=>"optimizer", :plot_interval=>"plot_interval", :plot_dir=>"plot_path", :log_losses=>"log_losses", :early_stopping=>"early_stopping", :batchsize=>"batchsize", :weight_decay=>"weight_decay")
-const checkpoint_dict = Dict(:load_checkpoints=>"load_checkpoints", :checkpoint_dir=>"checkpoint_dir", :checkpoint_path=>"checkpoint_path", :save_interval=>"save_interval")
-const optimizer_dict = Dict("ADAM" => Adam, "Descent" => Descent, "ADAMW" => AdamW, "ADAGrad" => AdaGrad, "ADADelta" => AdaDelta)
+const data_dict = Dict(
+    :sim_dir => "x_path",
+    :truth_dir => "y_path",
+    :nrsamples => "nrsamples",
+    :newsize => "resize_to",
+    :center_psfs => "center_psfs",
+    :psf_ref_index => "reference_index",
+    :psfs_path => "psfs_path",
+    :psfs_key => "psfs_key",
+)
+const model_dict = Dict(
+    :depth => "depth",
+    :attention => "attention",
+    :dropout => "dropout",
+    :separable => "separable",
+    :final_attention => "final_attention",
+    :multiscale => "multiscale",
+    :deconv => "deconv",
+)
+const training_dict = Dict(
+    :epochs => "epochs",
+    :optimizer => "optimizer",
+    :plot_interval => "plot_interval",
+    :plot_dir => "plot_path",
+    :log_losses => "log_losses",
+    :early_stopping => "early_stopping",
+    :batchsize => "batchsize",
+    :weight_decay => "weight_decay",
+)
+const checkpoint_dict = Dict(
+    :load_checkpoints => "load_checkpoints",
+    :checkpoint_dir => "checkpoint_dir",
+    :checkpoint_path => "checkpoint_path",
+    :save_interval => "save_interval",
+)
+const optimizer_dict = Dict(
+    "ADAM" => Adam,
+    "Descent" => Descent,
+    "ADAMW" => AdamW,
+    "ADAGrad" => AdaGrad,
+    "ADADelta" => AdaDelta,
+)
 
 #=
 function load_dataset(
@@ -77,37 +114,37 @@ function apply_noise(imgs)
 end
 
 struct Settings
-    data::Dict{Symbol, Any}
-    model::Dict{Symbol, Any}
-    training::Dict{Symbol, Any}
-    checkpoints::Dict{Symbol, Any}
+    data::Dict{Symbol,Any}
+    model::Dict{Symbol,Any}
+    training::Dict{Symbol,Any}
+    checkpoints::Dict{Symbol,Any}
 end
 
 function Settings(path)
     in = YAML.load_file(path)
     data = in["data"]
-    my_data = Dict{Symbol, Any}()
+    my_data = Dict{Symbol,Any}()
     for (key, value) in data_dict
         my_data[key] = data[value]
     end
     my_data = process_data_dict(my_data)
 
     model = in["model"]
-    my_model = Dict{Symbol, Any}()
+    my_model = Dict{Symbol,Any}()
     for (key, value) in model_dict
         my_model[key] = model[value]
     end
     my_model = process_model_dict(my_model)
 
     training = in["training"]
-    my_training = Dict{Symbol, Any}()
+    my_training = Dict{Symbol,Any}()
     for (key, value) in training_dict
         my_training[key] = training[value]
     end
     my_training = process_training_dict(my_training; path=path)
 
     checkpoint = in["checkpoints"]
-    my_checkpoints = Dict{Symbol, Any}()
+    my_checkpoints = Dict{Symbol,Any}()
     for (key, value) in checkpoint_dict
         my_checkpoints[key] = checkpoint[value]
     end
@@ -116,7 +153,7 @@ function Settings(path)
 end
 
 function get_load_data_settings(s::Settings)
-    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize];
+    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize]
 end
 
 function check_types(type_dict, value_dict)
@@ -127,14 +164,30 @@ function check_types(type_dict, value_dict)
 end
 
 function process_data_dict(my_data)
-    type_dict = Dict(:sim_dir=>String, :truth_dir=>String, :nrsamples=>Int, :center_psfs=>Bool, :psf_ref_index=>Int, :psfs_path=>String, :psfs_key=>String)
+    type_dict = Dict(
+        :sim_dir => String,
+        :truth_dir => String,
+        :nrsamples => Int,
+        :center_psfs => Bool,
+        :psf_ref_index => Int,
+        :psfs_path => String,
+        :psfs_key => String,
+    )
     check_types(type_dict, my_data)
     my_data[:newsize] = tuple(my_data[:newsize]...)
     return my_data
 end
 
 function process_model_dict(my_model)
-    type_dict = Dict(:depth=>Int, :attention=>Bool, :dropout=>Bool, :separable=>Bool, :final_attention=>Bool, :multiscale=>Bool, :deconv=>String)
+    type_dict = Dict(
+        :depth => Int,
+        :attention => Bool,
+        :dropout => Bool,
+        :separable => Bool,
+        :final_attention => Bool,
+        :multiscale => Bool,
+        :deconv => String,
+    )
     check_types(type_dict, my_model)
     valid_deconv = ["rl", "wiener", "rl_flfm"]
     @assert my_model[:deconv] in valid_deconv "deconv has to be one of $valid_deconv, but is $(my_model[:deconv])."
@@ -142,8 +195,15 @@ function process_model_dict(my_model)
 end
 
 function process_training_dict(my_training; kwargs...)
-    type_dict = Dict(:epochs=>Int,
-    :plot_interval=>Int, :plot_dir=>String, :log_losses=>Bool, :early_stopping=>Int, :batchsize=>Int, :weight_decay=>Float64)
+    type_dict = Dict(
+        :epochs => Int,
+        :plot_interval => Int,
+        :plot_dir => String,
+        :log_losses => Bool,
+        :early_stopping => Int,
+        :batchsize => Int,
+        :weight_decay => Float64,
+    )
     check_types(type_dict, my_training)
     optimizer_kw = my_training[:optimizer]
     @assert optimizer_kw in keys(optimizer_dict) "Optimizer $optimizer_kw not implemented"
@@ -152,20 +212,27 @@ function process_training_dict(my_training; kwargs...)
     @assert my_training[:weight_decay] >= 0.0 "weight_decay must be positive"
 
     opt = optimizer_dict[optimizer_kw]()
-    my_training[:optimizer] = iszero(my_training[:weight_decay]) ? opt : Flux.Optimiser(WeightDecay(my_training[:weight_decay]) , opt)
+    my_training[:optimizer] = if iszero(my_training[:weight_decay])
+        opt
+    else
+        Flux.Optimiser(WeightDecay(my_training[:weight_decay]), opt)
+    end
     _ensure_existence(my_training[:plot_dir])
-    my_training[:logfile] = my_training[:log_losses] ? joinpath(dirname(kwargs[:path]), "losses.log") : nothing
+    my_training[:logfile] =
+        my_training[:log_losses] ? joinpath(dirname(kwargs[:path]), "losses.log") : nothing
     return my_training
 end
 
 function process_checkpoints_dict(my_checkpoints)
-    type_dict = Dict(:checkpoint_dir=>String, :save_interval=>Int)
+    type_dict = Dict(:checkpoint_dir => String, :save_interval => Int)
     check_types(type_dict, my_checkpoints)
     @assert my_checkpoints[:load_checkpoints] in [true, false, "latest"] "load_checkpoints needs to be one of [true, false, \"latest\"]."
     if my_checkpoints[:load_checkpoints] isa Bool && my_checkpoints[:load_checkpoints]
         my_checkpoints[:epoch_offset] = parse_epoch(my_checkpoints[:checkpoint_path])
     elseif my_checkpoints[:load_checkpoints] == "latest"
-        epoch_offset, load_checkpoints, checkpoint_path = find_most_recent_checkpoint(my_checkpoints[:checkpoint_dir])
+        epoch_offset, load_checkpoints, checkpoint_path = find_most_recent_checkpoint(
+            my_checkpoints[:checkpoint_dir]
+        )
         my_checkpoints[:epoch_offset] = epoch_offset
         my_checkpoints[:load_checkpoints] = load_checkpoints
         my_checkpoints[:checkpoint_path] = checkpoint_path
@@ -178,34 +245,34 @@ end
 
 function find_most_recent_checkpoint(path)
     # Find the most recent checkpoint in dir `checkpoint_dir`.
-        # This is where the previous run should've saved checkpoints
-        most_recent = nothing
-        most_recent_chkp = nothing
-        checkpoint_path = nothing
-        load_checkpoints = false
-        epoch_offset = 0
-        if isdir(path)
-            for file in readdir(path)
-                date = parse_date(file)
-                if isnothing(date)
-                    continue
-                end
-                if isnothing(most_recent) || date > most_recent
-                    most_recent = date
-                    most_recent_chkp = file
-                end
+    # This is where the previous run should've saved checkpoints
+    most_recent = nothing
+    most_recent_chkp = nothing
+    checkpoint_path = nothing
+    load_checkpoints = false
+    epoch_offset = 0
+    if isdir(path)
+        for file in readdir(path)
+            date = parse_date(file)
+            if isnothing(date)
+                continue
             end
-            if isnothing(most_recent_chkp)
-                @info "No checkpoints found. Starting training from scratch."
-                load_checkpoints = false
-            else
-                epoch_offset = parse_epoch(most_recent_chkp)
-                checkpoint_path = joinpath(path, most_recent_chkp)
-                load_checkpoints = true
-                @info "Resuming training from $most_recent_chkp."
+            if isnothing(most_recent) || date > most_recent
+                most_recent = date
+                most_recent_chkp = file
             end
         end
-        return epoch_offset, load_checkpoints, checkpoint_path
+        if isnothing(most_recent_chkp)
+            @info "No checkpoints found. Starting training from scratch."
+            load_checkpoints = false
+        else
+            epoch_offset = parse_epoch(most_recent_chkp)
+            checkpoint_path = joinpath(path, most_recent_chkp)
+            load_checkpoints = true
+            @info "Resuming training from $most_recent_chkp."
+        end
+    end
+    return epoch_offset, load_checkpoints, checkpoint_path
 end
 
 function parse_epoch(checkpoint_path)
@@ -227,7 +294,7 @@ end
 Return the part of a string `filename` that occurs before the last '.'.
 """
 function remove_file_extension(filename)
-    return filename[1:findlast(isequal('.'), filename)-1]
+    return filename[1:(findlast(isequal('.'), filename) - 1)]
 end
 
 """    find_complete(nrsamples, truth_directory, simulated_directory)
@@ -238,7 +305,10 @@ and `simulated_directory`.
 function find_complete(nrsamples, truth_directory, simulated_directory)
     simulated_files = readdir(simulated_directory)
     truth_files = readdir(truth_directory)
-    complete_files = [(t, s) for (t,s) in zip(truth_files, simulated_files) if remove_file_extension(t)==remove_file_extension(s)]
+    complete_files = [
+        (t, s) for (t, s) in zip(truth_files, simulated_files) if
+        remove_file_extension(t) == remove_file_extension(s)
+    ]
     upper_index = min(length(complete_files), nrsamples)
     valid_names = complete_files[1:upper_index]
     return first.(valid_names), last.(valid_names)
@@ -252,9 +322,7 @@ function _map_to_zero_one(x; T=Float32)
     return out_x
 end
 
-function load_images(
-    complete_files, directory; newsize=(128, 128), T=Float32
-)
+function load_images(complete_files, directory; newsize=(128, 128), T=Float32)
     images = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
         filepath = joinpath(directory, filename)
@@ -265,11 +333,7 @@ function load_images(
 end
 
 function load_volumes(
-    complete_files,
-    directory;
-    newsize=(128, 128, 32),
-    T=Float32,
-    key="gt",
+    complete_files, directory; newsize=(128, 128, 32), T=Float32, key="gt"
 )
     volumes = Array{T,5}(undef, newsize..., 1, length(complete_files))
     for (i, filename) in enumerate(complete_files)
@@ -300,20 +364,32 @@ function is_volume(filename)
 end
 
 function load_data(settings::Settings; T=Float32)
-    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(settings)
-    complete_files_truth, complete_files_sim = find_complete(nrsamples, truth_directory, simulated_directory)
+    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(
+        settings
+    )
+    complete_files_truth, complete_files_sim = find_complete(
+        nrsamples, truth_directory, simulated_directory
+    )
     if all(is_image.([complete_files_sim[1], complete_files_truth[1]]))
         x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
         y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
     elseif all(is_volume.([complete_files_sim[1], complete_files_truth[1]]))
-        x_data = load_volumes(complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim")
-        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
+        x_data = load_volumes(
+            complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim"
+        )
+        y_data = load_volumes(
+            complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt"
+        )
     elseif is_volume(complete_files_truth[1]) && is_image(complete_files_sim[1])
         # 2D => 3D reconstruction
-        y_data = load_volumes(complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt")
-        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize[1:2], T=T)
+        y_data = load_volumes(
+            complete_files_truth, truth_directory; newsize=newsize, T=T, key="gt"
+        )
+        x_data = load_images(
+            complete_files_sim, simulated_directory; newsize=newsize[1:2], T=T
+        )
         # x_data needs to be reshaped by adding a singleton z-dimension, so broadcasting works in the RL_FLFM layer
-        x_data = reshape(x_data, size(x_data)[1:2]...,1,size(x_data)[3:end]...)
+        x_data = reshape(x_data, size(x_data)[1:2]..., 1, size(x_data)[3:end]...)
     else
         error("Unknown imaging modality. Supported modalities: 3D=>3D, 2D=>2D and 3D=>2D")
     end
@@ -354,7 +430,7 @@ function prepare_model!(settings::Settings)
 end
 
 function prepare_data(settings::Settings; T=Float32)
-    x_data, y_data = load_data(settings;T=T)
+    x_data, y_data = load_data(settings; T=T)
     x_data = apply_noise(x_data)
     #x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
     #y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
@@ -424,7 +500,7 @@ function _get_default_kernel(dims; T=Float32)
     mygaussian = gaussian(; T=T)
     if dims == 3
         N = length(mygaussian)
-        kernel = Array{T, 3}(undef, N, N, N)
+        kernel = Array{T,3}(undef, N, N, N)
         for c in CartesianIndices(kernel)
             kernel[c.I...] = mygaussian[c.I[1]] .* mygaussian[c.I[2]] * mygaussian[c.I[3]]
         end
@@ -504,7 +580,9 @@ pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
 function prepare_psfs(settings::Settings; T=Float32)
     uncentered_psfs = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
-    psfs = _center_psfs(uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index])
+    psfs = _center_psfs(
+        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index]
+    )
     dims = length(settings.data[:newsize])
     nrPSFs = size(psfs)[end]
     resized_psfs = Array{T,dims + 1}(undef, settings.data[:newsize]..., nrPSFs)
@@ -513,7 +591,7 @@ function prepare_psfs(settings::Settings; T=Float32)
             collect(selectdim(psfs, dims + 1, i)), settings.data[:newsize]
         )
     end
-    psfs = resized_psfs    
+    psfs = resized_psfs
     return psfs
 end
 
@@ -524,7 +602,7 @@ Transform the input array `x`  elementwise according to `x → 2√(x+3/8)`.
 This is a variance-stabilizing transformation that transforms a random variable with a Poisson distribution into one with an approximately standard Gaussian distribution.
 """
 function anscombe_transform(x::AbstractArray{T}) where {T}
-    return T.(2 .* sqrt.(max.(x .+ 3/8, zero(eltype(x)))))
+    return T.(2 .* sqrt.(max.(x .+ 3 / 8, zero(eltype(x)))))
 end
 
 """    anscombe_transform_inv(x::AbstractArray{T}) where {T}
@@ -534,7 +612,7 @@ Transform the input array `x`  elementwise according to `x → (x/2)^2 - 3/8)`.
 Algebraic inverse of `anscombe_transform`, but introduces bias to the mean.
 """
 function anscombe_transform_inv(x::AbstractArray{T}) where {T}
-    return T.((x ./ 2).^2 .- 3/8)
+    return T.((x ./ 2) .^ 2 .- 3 / 8)
 end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#

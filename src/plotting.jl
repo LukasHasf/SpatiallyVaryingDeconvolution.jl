@@ -4,10 +4,20 @@ function sliced_plot(arr)
     l = @layout [a b; c d]
     clim = extrema(arr)
     p_yx = heatmap(
-        maximum(arr; dims=3)[:, :, 1]; clim=clim, colorbar=false, ylabel="y", ticks=false, c=:grays
+        maximum(arr; dims=3)[:, :, 1];
+        clim=clim,
+        colorbar=false,
+        ylabel="y",
+        ticks=false,
+        c=:grays,
     )
     p_yz = heatmap(
-        maximum(arr; dims=2)[:, 1, :]; clim=clim, colorbar=false, xlabel="z", ticks=false, c=:grays
+        maximum(arr; dims=2)[:, 1, :];
+        clim=clim,
+        colorbar=false,
+        xlabel="z",
+        ticks=false,
+        c=:grays,
     )
     p_xz = heatmap(
         maximum(arr; dims=1)[1, :, :]';
@@ -15,7 +25,7 @@ function sliced_plot(arr)
         colorbar=false,
         ylabel="z",
         xlabel="x",
-        ticks=false, 
+        ticks=false,
         c=:grays,
     )
 

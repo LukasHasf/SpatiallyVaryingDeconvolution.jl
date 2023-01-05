@@ -26,7 +26,7 @@ function transfer_train(old_model_path, new_resolution::Tuple, options_path)
     options = Settings(options_path)
     options.data[:newsize] = new_resolution
     new_model = my_gpu(new_model)
-    start_training(new_model, options)
+    return start_training(new_model, options)
 end
 
 #=
@@ -57,13 +57,6 @@ function start_training(model, settings::Settings; T=Float32)
     end
     # Training
     return train_model(
-        model,
-        train_x,
-        train_y,
-        test_x,
-        test_y,
-        loss_fn,
-        settings;
-        plotloss=true,
+        model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
     )
 end

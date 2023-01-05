@@ -66,7 +66,9 @@ function toMultiWienerWithPlan(m; on_gpu=true)
         ),
     )
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
-    return MultiWienerWithPlan(to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x)
+    return MultiWienerWithPlan(
+        to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x
+    )
 end
 
 """    (m::MultiWiener)(x)
@@ -92,6 +94,6 @@ function (m::MultiWienerWithPlan)(x)
     return iffted_output
 end
 Flux.@functor MultiWienerWithPlan
-Flux.trainable(m::MultiWienerWithPlan) = (PSF = m.PSF, lambda = m.lambda)
+Flux.trainable(m::MultiWienerWithPlan) = (PSF=m.PSF, lambda=m.lambda)
 
 end # module

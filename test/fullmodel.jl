@@ -6,7 +6,15 @@
     nrPSFs = 3
     batchsize = 1
     psfs = rand(Float32, Ny, Nx, nrPSFs)
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
+    model_settings = Dict{Symbol,Any}(
+        :attention => false,
+        :dropout => false,
+        :depth => 3,
+        :separable => false,
+        :final_attention => false,
+        :multiscale => false,
+        :deconv => "wiener",
+    )
     model = SpatiallyVaryingDeconvolution.make_model(psfs, model_settings; on_gpu=false)
     img = rand(Float32, Ny, Nx, nrchannels, batchsize)
     prediction = model(img)
@@ -133,7 +141,15 @@ end
     nrchannels = 1
     nrPSFs = 3
     batchsize = 1
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"wiener")
+    model_settings = Dict{Symbol,Any}(
+        :attention => false,
+        :dropout => false,
+        :depth => 3,
+        :separable => false,
+        :final_attention => false,
+        :multiscale => false,
+        :deconv => "wiener",
+    )
     psfs = my_gpu(rand(Float32, Ny, Nx, nrPSFs))
     model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
@@ -150,18 +166,22 @@ end
     plotdir = mktempdir()
     chkptdir = mktempdir()
     logfile = joinpath(mktempdir(), "logfile.log")
-    settings = SpatiallyVaryingDeconvolution.Settings(Dict(), Dict(),
-    Dict(:plot_dir=>plotdir, :plot_interval=>1, :optimizer=>Adam(), :epochs=>1, :logfile=>logfile, :early_stopping=>0, :batchsize=>1),
-    Dict(:save_interval=>1, :checkpoint_dir=>chkptdir, :epoch_offset=>0))
+    settings = SpatiallyVaryingDeconvolution.Settings(
+        Dict(),
+        Dict(),
+        Dict(
+            :plot_dir => plotdir,
+            :plot_interval => 1,
+            :optimizer => Adam(),
+            :epochs => 1,
+            :logfile => logfile,
+            :early_stopping => 0,
+            :batchsize => 1,
+        ),
+        Dict(:save_interval => 1, :checkpoint_dir => chkptdir, :epoch_offset => 0),
+    )
     SpatiallyVaryingDeconvolution.train_model(
-        model,
-        train_x,
-        train_y,
-        test_x,
-        test_y,
-        loss_fn,
-        settings;
-        plotloss=true,
+        model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
     )
     @test isfile(logfile)
     @test length(readdir(chkptdir)) == 2
@@ -170,7 +190,15 @@ end
 end
 
 @testset "Saving / loading RLLayer" begin
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"rl")
+    model_settings = Dict{Symbol,Any}(
+        :attention => false,
+        :dropout => false,
+        :depth => 3,
+        :separable => false,
+        :final_attention => false,
+        :multiscale => false,
+        :deconv => "rl",
+    )
     Ny = 16
     Nx = 16
     nrch = 1
@@ -195,7 +223,15 @@ end
 end
 
 @testset "Saving / loading RLLayer_FLFM" begin
-    model_settings = Dict{Symbol, Any}(:attention=>false, :dropout=>false, :depth=>3, :separable=>false, :final_attention=>false, :multiscale=>false, :deconv=>"rl_flfm")
+    model_settings = Dict{Symbol,Any}(
+        :attention => false,
+        :dropout => false,
+        :depth => 3,
+        :separable => false,
+        :final_attention => false,
+        :multiscale => false,
+        :deconv => "rl_flfm",
+    )
     Ny = 16
     Nx = 16
     Nz = 16

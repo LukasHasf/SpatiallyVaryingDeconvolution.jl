@@ -6,8 +6,9 @@
 end
 
 @testset "show_cuda_capability" begin
-    gpu_available = CUDA.functional() &&
-    any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
+    gpu_available =
+        CUDA.functional() &&
+        any([CUDA.capability(dev) for dev in CUDA.devices()] .>= VersionNumber(3, 5, 0))
     teststring = gpu_available ? "Running on GPU" : "Running on CPU"
     @test_logs (:info, teststring) show_cuda_capability()
 end
@@ -76,7 +77,7 @@ end
     io = open(joinpath(dir1, "onlyInDir2.txt"), "w")
     close(io)
     complete_list1, complete_list2 = find_complete(21, dir1, dir2)
-    @test complete_list1==complete_list2
+    @test complete_list1 == complete_list2
     complete_list = complete_list1
     @test length(complete_list) == 20
     @test all([complete_list[i] in filenames for i in eachindex(complete_list)])
@@ -123,7 +124,7 @@ end
 
 @testset "anscombe transformations" begin
     a = [1.0 2; 3 4]
-    b = 2 .* sqrt.(a .+ 3/8)
+    b = 2 .* sqrt.(a .+ 3 / 8)
     @test anscombe_transform(a) == b
     @test anscombe_transform_inv(anscombe_transform(a)) ≈ a
 end
@@ -183,7 +184,7 @@ end
         Float32[-0.0054387837],
     ])
     @test cpu(ps[:]) ≈ answer[:]
-    @test cpu(ps[:]) ≈ cpu(ps2[:]) atol=0.01
+    @test cpu(ps[:]) ≈ cpu(ps2[:]) atol = 0.01
 end
 
 @testset "addnoise" begin
@@ -329,10 +330,10 @@ end
     # parse_date doesn't need to work on paths, only on filenames
     teststring = "2022-10-26T20_51_34_loss-0.367_epoch-15.bson"
     @test parse_date(teststring) isa DateTime
-    @test parse_date(teststring)==DateTime(2022, 10, 26, 20, 51, 34)
+    @test parse_date(teststring) == DateTime(2022, 10, 26, 20, 51, 34)
     teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.bson"
     @test parse_date(teststring) isa DateTime
-    @test parse_date(teststring)==DateTime(2021, 09, 16, 22, 51, 34)
+    @test parse_date(teststring) == DateTime(2021, 09, 16, 22, 51, 34)
     # Everything that is not a bson file or that is not parseable should return nothing
     teststring = "2021-09-16T22_51_34_loss-0.367_epoch-20.other"
     @test isnothing(parse_date(teststring))
@@ -345,8 +346,17 @@ end
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
-    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32)),
-                        Dict(), Dict(), Dict())
+    dummy_settings = Settings(
+        Dict(
+            :nrsamples => 5,
+            :truth_dir => train_dir,
+            :sim_dir => test_dir,
+            :newsize => (32, 32),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
     save(joinpath(train_dir, "a.png"), imgs[:, :, 1])
     save(joinpath(train_dir, "b.png"), imgs[:, :, 2])
     save(joinpath(train_dir, "exclusive_train.png"), imgs[:, :, 3])
@@ -367,8 +377,17 @@ end
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
-    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
-                        Dict(), Dict(), Dict())
+    dummy_settings = Settings(
+        Dict(
+            :nrsamples => 5,
+            :truth_dir => train_dir,
+            :sim_dir => test_dir,
+            :newsize => (32, 32, 32),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
 
     save(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     save(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -392,8 +411,17 @@ end
     test_dir = joinpath(img_dir, "test")
     mkdir(train_dir)
     mkdir(test_dir)
-    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32,32)),
-                        Dict(), Dict(), Dict())
+    dummy_settings = Settings(
+        Dict(
+            :nrsamples => 5,
+            :truth_dir => train_dir,
+            :sim_dir => test_dir,
+            :newsize => (32, 32, 32),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
 
     matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
@@ -417,8 +445,17 @@ end
     test_dir = joinpath(img_dir, "test")
     mkdir(train_dir)
     mkdir(test_dir)
-    dummy_settings = Settings(Dict(:nrsamples=>5, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(32,32, 32)),
-    Dict(), Dict(), Dict())
+    dummy_settings = Settings(
+        Dict(
+            :nrsamples => 5,
+            :truth_dir => train_dir,
+            :sim_dir => test_dir,
+            :newsize => (32, 32, 32),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
     save(joinpath(test_dir, "a.png"), imgs[:, :, 4])
     save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
     save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
@@ -429,10 +466,10 @@ end
     imgs_x, vols_y = load_data(dummy_settings)
     @test size(imgs_x) == (32, 32, 1, 1, 2)
     @test size(vols_y) == (32, 32, 32, 1, 2)
-    @test imgs_x[:, :, 1, 1, 1] ≈ imgs[:, :, 4] atol=1e-1
-    @test imgs_x[:, :, 1, 1, 2] ≈ imgs[:, :, 5] atol=1e-1
-    @test vols_y[:, :, :, 1, 1] ≈ vols[:, :, :, 1] atol=1e-1
-    @test vols_y[:, :, :, 1, 2] ≈ vols[:, :, :, 2] atol=1e-2
+    @test imgs_x[:, :, 1, 1, 1] ≈ imgs[:, :, 4] atol = 1e-1
+    @test imgs_x[:, :, 1, 1, 2] ≈ imgs[:, :, 5] atol = 1e-1
+    @test vols_y[:, :, :, 1, 1] ≈ vols[:, :, :, 1] atol = 1e-1
+    @test vols_y[:, :, :, 1, 2] ≈ vols[:, :, :, 2] atol = 1e-2
 end
 
 @testset "prepare_data" begin
@@ -441,14 +478,23 @@ end
     train_dir = joinpath(img_dir, "train")
     test_dir = joinpath(img_dir, "test")
     samples_to_load = 5
-    dummy_settings = Settings(Dict(:nrsamples=>samples_to_load, :truth_dir=>train_dir, :sim_dir=>test_dir, :newsize=>(16,17)),
-                        Dict(), Dict(), Dict())
+    dummy_settings = Settings(
+        Dict(
+            :nrsamples => samples_to_load,
+            :truth_dir => train_dir,
+            :sim_dir => test_dir,
+            :newsize => (16, 17),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
     for i in 1:6
         save(joinpath(train_dir, "img_$(i).png"), imgs[:, :, i])
         save(joinpath(test_dir, "img_$(i).png"), imgs[:, :, i])
     end
     train_x, train_y, test_x, test_y = prepare_data(dummy_settings; T=Float32)
-    @test all([eltype(x)==Float32 for x in [train_x, train_y, test_x, test_y]])
+    @test all([eltype(x) == Float32 for x in [train_x, train_y, test_x, test_y]])
     split_ind = trunc(Int, 0.7 * samples_to_load)
     @test size(train_x) == (16, 17, 1, split_ind)
     @test size(test_x) == (16, 17, 1, samples_to_load - split_ind)
@@ -467,8 +513,18 @@ end
     psfs_key = "abc"
     psfs_filename = "a.h5"
     matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
-    dummy_settings = SpatiallyVaryingDeconvolution.Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
-                        Dict(), Dict(), Dict())
+    dummy_settings = SpatiallyVaryingDeconvolution.Settings(
+        Dict(
+            :psfs_path => joinpath(psfs_dir, psfs_filename),
+            :psfs_key => psfs_key,
+            :center_psfs => false,
+            :psf_ref_index => -1,
+            :newsize => (16, 16),
+        ),
+        Dict(),
+        Dict(),
+        Dict(),
+    )
     psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings; T=Float64)
     @test eltype(psfs_loaded) == Float64
     @test psfs_loaded ≈ psfs
@@ -481,7 +537,7 @@ end
     @test psfs_loaded ≈ SpatiallyVaryingDeconvolution._center_psfs(psfs, true, -1)
 
     dummy_settings.data[:center_psfs] = false
-    dummy_settings.data[:newsize] = (8,8)
+    dummy_settings.data[:newsize] = (8, 8)
     psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
     @test size(psfs_loaded) == (8, 8, 4)
 end
@@ -492,23 +548,56 @@ end
     psfs_key = "abc"
     psfs_filename = "a.h5"
     matwrite(joinpath(psfs_dir, psfs_filename), Dict(psfs_key => psfs))
-    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
-                        Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false, :deconv=>"wiener"), 
-                        Dict(), 
-                        Dict(:load_checkpoints=>false))
+    dummy_settings = Settings(
+        Dict(
+            :psfs_path => joinpath(psfs_dir, psfs_filename),
+            :psfs_key => psfs_key,
+            :center_psfs => false,
+            :psf_ref_index => -1,
+            :newsize => (16, 16),
+        ),
+        Dict(
+            :depth => 3,
+            :attention => false,
+            :dropout => true,
+            :separable => false,
+            :final_attention => true,
+            :multiscale => false,
+            :deconv => "wiener",
+        ),
+        Dict(),
+        Dict(:load_checkpoints => false),
+    )
     model = prepare_model!(dummy_settings)
 
-    model_true = my_gpu(make_model(my_gpu(prepare_psfs(dummy_settings)), dummy_settings.model))
+    model_true = my_gpu(
+        make_model(my_gpu(prepare_psfs(dummy_settings)), dummy_settings.model)
+    )
     @test typeof(model) == typeof(model_true)
 
     testsave_path = SpatiallyVaryingDeconvolution.save_model(
         model, mktempdir(), [0.0], 1, 0; opt=Flux.AdaGrad()
     )
 
-    dummy_settings = Settings(Dict(:psfs_path=>joinpath(psfs_dir, psfs_filename), :psfs_key=>psfs_key, :center_psfs=>false, :psf_ref_index=>-1, :newsize=>(16,16)),
-    Dict(:depth=>3, :attention=>false, :dropout=>true, :separable=>false, :final_attention=>true, :multiscale=>false), 
-    Dict(:optimizer=>Flux.Adam()), 
-    Dict(:load_checkpoints=>true, :checkpoint_path=>testsave_path))
+    dummy_settings = Settings(
+        Dict(
+            :psfs_path => joinpath(psfs_dir, psfs_filename),
+            :psfs_key => psfs_key,
+            :center_psfs => false,
+            :psf_ref_index => -1,
+            :newsize => (16, 16),
+        ),
+        Dict(
+            :depth => 3,
+            :attention => false,
+            :dropout => true,
+            :separable => false,
+            :final_attention => true,
+            :multiscale => false,
+        ),
+        Dict(:optimizer => Flux.Adam()),
+        Dict(:load_checkpoints => true, :checkpoint_path => testsave_path),
+    )
 
     loaded_model = prepare_model!(dummy_settings)
 
@@ -570,8 +659,12 @@ end
 
     # Latest with fake checkpoints
     # Create 2 empty, but correctly named checkpoints, one stray file and an incorrectly named checkpoint file
-    path1 = joinpath("examples", "checkpoints", "2022-08-10T14_25_35_loss-0.888_epoch-1.bson")
-    path2 = joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
+    path1 = joinpath(
+        "examples", "checkpoints", "2022-08-10T14_25_35_loss-0.888_epoch-1.bson"
+    )
+    path2 = joinpath(
+        "examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson"
+    )
     path3 = joinpath("examples", "checkpoints", "not_a_bson_file.txt")
     path4 = joinpath("examples", "checkpoints", "date_missing_loss-0.601_epoch-9.bson")
     mkpath(joinpath("examples", "checkpoints"))
@@ -583,7 +676,7 @@ end
     close(io)
     io = open(path4, "w")
     close(io)
-    settings =  Settings("options_latest.yaml")
+    settings = Settings("options_latest.yaml")
     @test settings.checkpoints[:load_checkpoints] == true
     @test joinpath(split(settings.checkpoints[:checkpoint_path], "/")...) == path2
 
@@ -596,7 +689,8 @@ end
 
     settings = Settings("options2.yaml")
     @test settings.checkpoints[:load_checkpoints] == true
-    @test joinpath(split(settings.checkpoints[:checkpoint_path],"/")...) == joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
+    @test joinpath(split(settings.checkpoints[:checkpoint_path], "/")...) ==
+        joinpath("examples", "checkpoints", "2022-08-10T15_58_16_loss-0.733_epoch-8.bson")
     @test settings.checkpoints[:epoch_offset] == 8
 end
 

@@ -141,7 +141,7 @@ function MultiScaleConvBlock(in_chs::Int, out_chs::Int; actfun, conv_layer=Conv,
     conv2a = conv_layer(big_kernel, in_chs => out_chs, actfun; pad=SamePad())
     conv2b = conv_layer(big_kernel, out_chs => out_chs, actfun; pad=SamePad())
     conv2 = Chain(conv2a, conv2b)
-    conv3 = conv_layer(small_kernel, 2*out_chs => out_chs, actfun; pad=SamePad())
+    conv3 = conv_layer(small_kernel, 2 * out_chs => out_chs, actfun; pad=SamePad())
     return MultiScaleConvBlock(conv1, conv2, conv3)
 end
 
@@ -210,7 +210,9 @@ function ConvBlock(
     actfun = get(activation_functions, activation, identity)
 
     if multiscale
-        return MultiScaleConvBlock(in_chs, out_chs; actfun=actfun, conv_layer=conv_layer, dims=length(kernel)+2)
+        return MultiScaleConvBlock(
+            in_chs, out_chs; actfun=actfun, conv_layer=conv_layer, dims=length(kernel) + 2
+        )
     end
 
     conv1 = conv_layer(kernel, in_chs => out_chs, actfun; pad=1, init=Flux.glorot_normal)
@@ -233,7 +235,7 @@ function ConvBlock(
     chain = Chain(conv1, dropout1, norm1, conv2, dropout2, norm2)
     residual_func = x -> zero(eltype(x))
     if residual
-        residual_func = conv_layer(ntuple(i->1, length(kernel)), in_chs=>out_chs, pad=0)
+        residual_func = conv_layer(ntuple(i -> 1, length(kernel)), in_chs => out_chs; pad=0)
     end
     return ConvBlock(chain, actfun, residual_func)
 end
@@ -256,9 +258,9 @@ function ConvDown(
     norm="batch",
     multiscale=false,
 )
-    down_window = ntuple(i->2, length(kernel))
+    down_window = ntuple(i -> 2, length(kernel))
     downsample_op = MaxPool(down_window)
-    if downsample_method=="conv"
+    if downsample_method == "conv"
         downsample_op = Conv(
             down_window, in_chs => in_chs, identity; stride=2, groups=in_chs
         )
@@ -347,7 +349,7 @@ function Unet(
     separable=false,
     final_attention=false,
     multiscale=false,
-    kwargs...
+    kwargs...,
 )
     # Check that some of the options are valid
     global valid_downsampling_methods
@@ -364,7 +366,7 @@ function Unet(
         separable=separable,
         kernel=conv_kernel,
         activation=activation,
-        multiscale=multiscale
+        multiscale=multiscale,
     )
     # This has the same options as conv_config, except that dropout is disabled -> Used for beginning and end of UNet
     conv_config_initial = merge(conv_config, (dropout=false,))
