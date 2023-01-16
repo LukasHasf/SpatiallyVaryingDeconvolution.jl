@@ -39,12 +39,10 @@ end =#
 function start_training(model, settings::Settings; T=Float32)
     # Load and preprocess the data
     train_x, train_y, test_x, test_y = prepare_data(settings; T=T)
-    # Set right optimizer
-    prepare_model!(settings)
-
     # Define / load the model
     dims = length(settings.data[:newsize])
-    model = prepare_model!(settings)
+    # Set right optimizer
+    prepare_model!(settings)
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
     kernel = _get_default_kernel(dims; T=T)
@@ -59,4 +57,21 @@ function start_training(model, settings::Settings; T=Float32)
     return train_model(
         model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
     )
+end
+
+
+function train_path(options_path, resolutions)
+    # First: Train initial model
+    options = Settings(options_path)
+    dims = length(options.data[:newsize])
+    dims_helper = ntuple(1.0, dims)
+    options.data[:newsize] = dims_helper .* resolutions[1]
+    model = prepare_model!(options)
+    model_path = start_training(model, options)
+    # Then transfer parameters to a neural network training on a different resolution
+    for r in resolutions[2:end]
+        model_path = transfer_train(model_path, dims_helper .* r, options_path)
+    end
+    # Return the model path of the model trained on the last (and highest) resolution images
+    return model_path
 end
