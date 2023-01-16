@@ -4,9 +4,7 @@ Start the training of a deconvolution network.
 
 All numeric data will be of type `T` (default `Float32`).
 
-If this function signature is called, all of the following keywords
-    need to be included in `kwargs`:
-
+# Arguments
 - `psfs_path::String` : Path to the file containing the psfs
 
 - `psfs_key::String` : Key to access the PSFs in `psfs_path`
