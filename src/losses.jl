@@ -5,6 +5,10 @@ function nn_convolve(img::AbstractArray{T,N}; kernel::AbstractArray{T,N}) where 
     return convolved
 end
 
+"""    SSIM_loss(ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}; kernel=nothing)
+
+SSIM loss between `ŷ` and `y` using kernel `kernel`.
+"""
 function SSIM_loss(
     ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}; kernel=nothing
 ) where {T,N}
@@ -23,6 +27,10 @@ function SSIM_loss(
     return one(T) - mean(ssim_map)
 end
 
+"""    L1_loss(ŷ, y)
+
+Mean absolute error between `ŷ` and `y`.
+"""
 function L1_loss(ŷ, y)
     return Flux.Losses.mae(y, ŷ)
 end
@@ -40,6 +48,11 @@ function spectral_loss(ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}) where {T,
     return sum(abs, ps_gt_norm .- ps_pred_norm)
 end
 
+"""    L1_SSIM_loss(ŷ, y; kernel=nothing)
+
+Sum of the `L1_loss` and the `SSIM_loss`. 
+For the calculation of the SSIM-loss, use the given `kernel`.
+"""
 function L1_SSIM_loss(ŷ, y; kernel=nothing)
     return L1_loss(ŷ, y) + SSIM_loss(ŷ, y; kernel=kernel)
 end

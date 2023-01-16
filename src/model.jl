@@ -71,6 +71,17 @@ function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
     return model
 end
 
+"""    save_model(model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing)
+
+Save neural network `model` in `checkpointdirectory`.
+
+`losses_train` is the history of losses on training data, which will be read at index `epoch` to get the loss that will be put in the filename.
+
+The model will be saved as `checkpointdirectory/yyyy-mm-ddThh_mm_ss_loss_(losses_train[epoch])_epoch-(epoch+epoch_offset).bson`.
+
+Optionally, the optimizer `opt` used for training can be saved as well, if training should be continued after loading the checkpoint. 
+This is only required for stateful opimizers.
+"""
 function save_model(
     model, checkpointdirectory, losses_train, epoch, epoch_offset; opt=nothing
 )
@@ -97,6 +108,14 @@ function save_model(
     return modelpath
 end
 
+"""    setup_training(model, train_x, train_y, test_x, test_y, settings)
+
+Helper function to prepare training of the model.
+
+Selects sample data for plotting, prepares the dataset and initializes some arrays storing losses.
+
+Returns one example data point from `test_x` for plotting, the trainable parameters of `model`, the `DataLoader` containing `train_x` and `train_y`, and two zero-vectors of length `epochs`.
+"""
 function setup_training(model, train_x, train_y, test_x, test_y, settings)
     example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
@@ -111,6 +130,15 @@ function setup_training(model, train_x, train_y, test_x, test_y, settings)
     return example_data_x, pars, training_datapoints, losses_test, losses_train
 end
 
+"""    train_model(model, train_x, train_y, test_x, test_y, loss, settings; plotloss=false)
+
+Train Flux model `model` on the dataset `(train_x, train_y)`. Each epoch, evaluate performance
+on both the training dataset and the tesing dataset `(test_x, test_y)`, using the loss function `loss`.
+
+Use the `settings` object for all other training related options. For these settings, refer to the documentation.
+
+If `plotloss==true`, plot a graph showing the history of training and test losses.
+"""
 function train_model(
     model, train_x, train_y, test_x, test_y, loss, settings; plotloss=false
 )
