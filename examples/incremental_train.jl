@@ -13,7 +13,7 @@ function transfer_train(old_model_path, new_resolution::Tuple, options_path)
     old_learned_psfs = deconv_layer.PSF
     new_PSF = imresize(old_learned_psfs, new_resolution)
     new_deconv = deconv_layer
-    if deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener
+    if deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener || deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWienerWithPlan
         old_learned_λ = old_model[1].lambda
         new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener(new_PSF, old_learned_λ)
         new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.toMultiWienerWithPlan(new_deconv)
