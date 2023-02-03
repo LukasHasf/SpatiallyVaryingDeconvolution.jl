@@ -4,6 +4,7 @@ examples/cpu/*
 LocalPreferences.toml
 .JuliaFormatter.toml
 debug.jl
+signalnoiseratio.jl
 myoptions.yaml
 losses.log
 combinations.md
