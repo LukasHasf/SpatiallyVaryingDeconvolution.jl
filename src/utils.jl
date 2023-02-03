@@ -39,6 +39,7 @@ const data_dict = Dict(
     :psf_ref_index => "reference_index",
     :psfs_path => "psfs_path",
     :psfs_key => "psfs_key",
+    :snr => "SNR"
 )
 const model_dict = Dict(
     :depth => "depth",
@@ -122,10 +123,10 @@ function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     return poisson_image .+ gaussian_noise
 end
 
-function apply_noise(imgs)
+function apply_noise(imgs; SNR=70)
     N = ndims(imgs)
     for i in 1:size(imgs, N)
-        selectdim(imgs, N, i) .= add_noise(collect(selectdim(imgs, N, i)))
+        selectdim(imgs, N, i) .= add_noise(collect(selectdim(imgs, N, i)); SNR=SNR)
     end
     return imgs
 end
@@ -189,6 +190,7 @@ function process_data_dict(my_data)
         :psf_ref_index => Int,
         :psfs_path => String,
         :psfs_key => String,
+        :snr => Int,
     )
     check_types(type_dict, my_data)
     my_data[:newsize] = tuple(my_data[:newsize]...)
@@ -448,7 +450,8 @@ end
 
 function prepare_data(settings::Settings; T=Float32)
     x_data, y_data = load_data(settings; T=T)
-    x_data = apply_noise(x_data)
+    SNR = settings.data[:snr]
+    x_data = apply_noise(x_data; SNR=SNR)
     #x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
     #y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
     train_x, test_x = train_test_split(x_data)

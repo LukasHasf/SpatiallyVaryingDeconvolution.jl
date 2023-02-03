@@ -42,6 +42,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `x_path`, `y_path` : The paths to the ground_truth and training dat directories. See [Preparing the training data](#preparing-the-training-data)
 - `resize_to` : The UNet implementation requires samples to be powers of 2 in size along each spatial dimension. Each sample is resized to the dimension specified by this.
 - `center_psfs`, `reference_index` : If your PSFs are not already centered, set `center_psfs` to `true` and set the `reference_index` to the PSF closest to the center.
+- `SNR` : Signal to noise ratio of the training data. Noise is applied to the training data. The strength of the noise is chosen such that the noisy training data has a SNR close to the one given in the options.
 - `depth` : The number of downsampling / upsampling steps in the UNet.
 - `attention` : Boolean to indicate if the UNet should use attention gates.
 - `dropout` : Boolean to indicate if the UNet should employ dopout-layers during training.
