@@ -190,29 +190,35 @@ end
 @testset "addnoise" begin
     # Test addnoise for images
     img = ones(Float64, 200, 300, 1, 1)
-    nimg = add_noise(img)
-    # Since img is just ones, dominating noise is Gaussian with std 1 * (rand(Float64) * 0.02 + 0.005)and mean zero => 0 to 0.025
-    # But there is still Poisson noise of 1/sqrt(x) where x is 500 ... 5000
+    nimg = add_noise(img; SNR=70)
+    # Standard deviation should be 1/SNR and the mean should stay unchanged
+    # At the standard SNR of 70, the std should be 0.014
     @test size(img) == size(nimg)
-    @test zero(eltype(nimg)) < std(nimg) < 0.025 + inv(sqrt(500))
-    @test mean(nimg) ≈ 1.0 atol = 0.01
-
-    img = ones(Float64, 200, 200, 1, 1) .* 1000
-    nimg = add_noise(img)
-    @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
-    @test mean(nimg) ≈ 1000.0 atol = 10
+    @test zero(eltype(nimg)) < std(nimg) < 0.02
+    @test mean(nimg) ≈ 1.0 atol = 0.02
 
     # Test addnoise for volumes
     img = ones(Float32, 100, 200, 300, 1, 1)
     nimg = add_noise(img)
     @test size(img) == size(nimg)
-    @test zero(eltype(nimg)) < std(nimg) < 0.025 + inv(sqrt(500))
-    @test mean(nimg) ≈ 1.0 atol = 0.01
+    @test zero(eltype(nimg)) < std(nimg) < 0.02
+    @test mean(nimg) ≈ 1.0 atol = 0.02
 
-    img = ones(Float32, 100, 200, 300, 1, 1) .* 1000
-    nimg = add_noise(img)
-    @test zero(eltype(nimg)) < std(nimg) < 0.025 + 1000 / sqrt(500)
-    @test mean(nimg) ≈ 1000.0 atol = 10
+    # Stronger noise, SNR=20
+    img = ones(Float64, 200, 300, 1, 1)
+    nimg = add_noise(img; SNR=20)
+    # Standard deviation should be 1/SNR and the mean should stay unchanged
+    # At SNR of 20, the std should be 0.05
+    @test size(img) == size(nimg)
+    @test zero(eltype(nimg)) < std(nimg) < 0.06
+    @test mean(nimg) ≈ 1.0 atol = 0.06
+
+    # Test addnoise for volumes
+    img = ones(Float32, 100, 200, 300, 1, 1)
+    nimg = add_noise(img; SNR=20)
+    @test size(img) == size(nimg)
+    @test zero(eltype(nimg)) < std(nimg) < 0.06
+    @test mean(nimg) ≈ 1.0 atol = 0.06
 end
 
 @testset "applynoise" begin
