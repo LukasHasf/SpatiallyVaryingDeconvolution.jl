@@ -13,10 +13,15 @@ function transfer_train(old_model_path, new_resolution::Tuple, options_path)
     old_learned_psfs = deconv_layer.PSF
     new_PSF = imresize(old_learned_psfs, new_resolution)
     new_deconv = deconv_layer
-    if deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener || deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWienerWithPlan
+    if deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener ||
+        deconv_layer isa SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWienerWithPlan
         old_learned_λ = old_model[1].lambda
-        new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener(new_PSF, old_learned_λ)
-        new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.toMultiWienerWithPlan(new_deconv)
+        new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.MultiWiener(
+            new_PSF, old_learned_λ
+        )
+        new_deconv = SpatiallyVaryingDeconvolution.MultiWienerNet.toMultiWienerWithPlan(
+            new_deconv
+        )
     elseif deconv_layer isa SpatiallyVaryingDeconvolution.RLLayer.RL
         old_n_iter = deconv_layer.n_iter
         new_deconv = SpatiallyVaryingDeconvolution.RLLayer.RL(new_PSF, old_n_iter)
@@ -65,7 +70,7 @@ function append_to_filename(path, s)
     filename = path_parts[end]
     filename, ext = splitext(filename)
     filename = filename * s * ext
-    return joinpath(path_parts[1:(end-1)]..., filename)
+    return joinpath(path_parts[1:(end - 1)]..., filename)
 end
 
 function train_path(options_path, resolutions)

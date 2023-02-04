@@ -27,7 +27,7 @@ function lucystep(e, psf_ft, psf_ft_conj, dims, x)
 end
 
 function (rl::RL)(x)
-    x = rl.anscombe ?   anscombe_transform(x) : x
+    x = rl.anscombe ? anscombe_transform(x) : x
     dims = 1:(ndims(rl.PSF) - 1)
     otf = rfft(rl.PSF, dims)
 

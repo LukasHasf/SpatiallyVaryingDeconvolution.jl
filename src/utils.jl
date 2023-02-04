@@ -39,7 +39,7 @@ const data_dict = Dict(
     :psf_ref_index => "reference_index",
     :psfs_path => "psfs_path",
     :psfs_key => "psfs_key",
-    :snr => "SNR"
+    :snr => "SNR",
 )
 const model_dict = Dict(
     :depth => "depth",
@@ -115,7 +115,7 @@ gaussian standard deviation `σ` by `σ = 1/√λ`.
 """
 function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     # Define the gaussian and possion noise parameters such that the resulting images has the specified SNR
-    λ = 3/2 * SNR^2
+    λ = 3 / 2 * SNR^2
     σ = inv(√λ)
     # Apply the noise
     gaussian_noise = randn(T, size(img)) .* σ
@@ -581,7 +581,7 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
             end
         end
     end
-    finish!(p)
+    return finish!(p)
 end
 
 function _center_psfs(psfs, center, ref_index)
