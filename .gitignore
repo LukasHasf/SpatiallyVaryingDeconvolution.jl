@@ -10,3 +10,4 @@ losses.log
 combinations.md
 lcov.info
 testing.jl
+*.swp
