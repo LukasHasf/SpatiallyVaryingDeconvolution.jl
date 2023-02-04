@@ -490,6 +490,7 @@ end
             :truth_dir => train_dir,
             :sim_dir => test_dir,
             :newsize => (16, 17),
+	    :snr => 70,
         ),
         Dict(),
         Dict(),
