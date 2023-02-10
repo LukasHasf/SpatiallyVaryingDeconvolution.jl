@@ -584,7 +584,7 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
     return finish!(p)
 end
 
-function _center_psfs(psfs, center, ref_index)
+function _center_psfs(psfs, center, ref_index, positions)
     if !center
         return psfs
     end
@@ -593,16 +593,22 @@ function _center_psfs(psfs, center, ref_index)
     else
         ref_index
     end
-    psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), ref_index)))
+    if isnothing(positions)
+        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), ref_index)))
+    else
+        center_pos = size(psfs)[1:(end-1)] .÷ 2 .+ 1
+        shifts = 1 .* (center_pos .- positions)
+        psfs = shift_psfs(psfs, shifts)
+    end
     return psfs
 end
 
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
 function prepare_psfs(settings::Settings; T=Float32)
-    uncentered_psfs = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
+    uncentered_psfs, positions = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
     psfs = _center_psfs(
-        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index]
+        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index], positions
     )
     dims = length(settings.data[:newsize])
     nrPSFs = size(psfs)[end]
@@ -646,9 +652,14 @@ function readPSFs(path::String, key::String)
     elseif any([endswith(path, fileEnding) for fileEnding in hdf5FileEndings])
         file = h5open(path, "r")
     end
+
     if haskey(file, key)
         psfs = read(file, key)
-        return psfs
+        if haskey(file, "positions")
+            positions = read(file, "positions")
+            return psfs, positions
+        end
+        return psfs, nothing
     end
 end
 
@@ -707,7 +718,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         return sqrt(sum(abs2.(x)))
     end
 
-    yi_reg = similar(stack, size(stack)...)
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
@@ -725,7 +735,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     plan = plan_rfft(dummy_for_plan; flags=FFTW.MEASURE)
     iplan = inv(plan)
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = similar(stack_dct, Ns...)
     ft_stack = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
     for m in 1:M
@@ -741,20 +750,33 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         push!(good_indices, m)
         good_count += 1
     end
+    yi_reg = shift_psfs(stack, si, good_indices)
+    return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
+end
 
-    if N == 4 && maximum(abs.(si[3, :])) > zero(eltype(si))
+"""    shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+Shift each measurement image/volume in `stack` by the x-y-z-shifts given in `shift_indices` (`size(shift_indices)=(N, size(stack, N))`).
+Only the measurements indexed by `good_indices` are considered.
+"""
+function shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+    # Output destination
+    yi_reg = similar(stack)
+    # Temporary shifting destination
+    im_reg = similar(stack, size(stack)[1:(end - 1)])
+    #Populate yi_reg
+    # In 3D, with z-shift, do a linear shift (without wrap-around)
+    if N == 4 && maximum(abs.(shift_indices[3, :])) > zero(eltype(shift_indices))
         for ind in good_indices
-            selected_stack = selectdim(stack, ND, ind)
-            linshift!(im_reg, selected_stack, si[:, ind])
-            selectdim(yi_reg, ND, ind) .= im_reg
+            selected_stack = selectdim(stack, N, ind)
+            linshift!(im_reg, selected_stack, shift_indices[:, ind])
+            selectdim(yi_reg, N, ind) .= im_reg
+        end
+    else
+        # Else, a circshift should be good enough
+        for ind in good_indices
+            circshift!(im_reg, selectdim(stack, N, ind), shift_indices[:, ind])
+            selectdim(yi_reg, N, ind) .= im_reg
         end
     end
-
-    # Populate yi_reg
-    for ind in good_indices
-        circshift!(im_reg, selectdim(stack, ND, ind), si[:, ind])
-        selectdim(yi_reg, ND, ind) .= im_reg
-    end
-
-    return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
+    return yi_reg
 end
