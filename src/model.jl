@@ -57,10 +57,14 @@ function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
     elseif model_settings[:deconv] == "rl_flfm"
         deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
     end
+    dimension = ndims(deconv_stage.PSF) + 1
+    if size(deconv_stage.PSF, 3)==1 && deconv_stage isa RLLayer_FLFM.RL_FLFM
+        dimension -= 1
+    end
     modelUNet = UNet.Unet(
         nrPSFs,
         1,
-        ndims(psfs) + 1;
+        dimension;
         up="nearest",
         activation="relu",
         residual=true,

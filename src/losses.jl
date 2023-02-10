@@ -27,6 +27,10 @@ function SSIM_loss(
     return one(T) - mean(ssim_map)
 end
 
+function SSIM_loss(ŷ::AbstractArray{T, 4}, y::AbstractArray{T,5 }; kernel=nothing) where {T}
+    return SSIM_loss(ŷ, dropdims(y; dims=3); kernel=kernel)
+end
+
 """    L1_loss(ŷ, y)
 
 Mean absolute error between `ŷ` and `y`.

@@ -119,7 +119,11 @@ function (rl::RL_FLFM)(x)
     for _ in 1:(rl.n_iter)
         rec = lucystep_flfm(rec, h, h_flipped, x)
     end
-    return anscombe_transform_inv(rec)
+    rec = anscombe_transform_inv(rec)
+    if size(rl.PSF, 3) == 1
+        rec = dropdims(rec; dims=3)
+    end
+    return rec
 end
 
 end # module RLLayer_FLFM
