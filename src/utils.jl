@@ -389,9 +389,17 @@ function load_data(settings::Settings; T=Float32)
     complete_files_truth, complete_files_sim = find_complete(
         nrsamples, truth_directory, simulated_directory
     )
-    if all(is_image.([complete_files_sim[1], complete_files_truth[1]]))
+    if all(is_image.([complete_files_sim[1], complete_files_truth[1]])) && settings.model[:deconv] != "rl_flfm"
+        # 2D => 2D deconvolution with Wiener or RL deconvolution
         x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
         y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
+    elseif all(is_image.([complete_files_sim[1], complete_files_truth[1]])) && settings.model[:deconv] == "rl_flfm"
+        # 2D => 2D deconvolution with RL deconvolution for FLFM. This deconvolution needs 3D input and output, so if
+        # 2D images are loaded, make the pseudo-3D by adding a singleton z-dimension.
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
+        y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
+        x_data = reshape(x_data, size(x_data)[1:2]..., 1, size(x_data)[3:end]...)
+        y_data = reshape(y_data, size(y_data)[1:2]..., 1, size(y_data)[3:end]...)
     elseif all(is_volume.([complete_files_sim[1], complete_files_truth[1]]))
         x_data = load_volumes(
             complete_files_sim, simulated_directory; newsize=newsize, T=T, key="sim"

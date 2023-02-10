@@ -21,7 +21,16 @@ The RL deconvolution will run for `n_iter` iterations. It is recommended to
 leave this number small.
 """
 function RL_FLFM(PSFs; n_iter=10)
-    @assert ndims(PSFs) == 4 "RL_FLFM deconvolution only works with 3D PSFs. For 2D RL deconvolution, use RL."
+    if ndims(PSFs) == 3
+        println("RL_FLFM deconvolution only works with 3D PSFs. For 2D RL deconvolution, use RL.")
+        println("Reshape to 3D PSFs with a depth of 1? (y/n)")
+        response = readline()
+        if lowercase(response) == "y"
+            PSFs = reshape(PSFs, size(PSFs)[1:2]..., 1, size(PSFs, 3))
+        else
+            exit(0)
+        end
+    end
     return RL_FLFM(PSFs ./ sum(PSFs; dims=1:2), n_iter)
 end
 
