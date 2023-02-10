@@ -26,7 +26,7 @@ function RL_FLFM(PSFs; n_iter=10)
         println("Reshape to 3D PSFs with a depth of 1? (y/n)")
         response = readline()
         if lowercase(response) == "y"
-            PSFs = reshape(PSFs, size(PSFs)[1:2], 1, size(PSFs, 3))
+            PSFs = reshape(PSFs, size(PSFs)[1:2]..., 1, size(PSFs, 3))
         else
             exit(0)
         end
