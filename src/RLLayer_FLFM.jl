@@ -10,7 +10,7 @@ struct RL_FLFM{T}
 end
 Flux.@functor RL_FLFM
 
-Flux.trainable(rl::RL_FLFM) = (rl.PSF)
+Flux.trainable(rl::RL_FLFM) = ()
 
 """    RL_FLFM(PSFs, n_iter=10)
 
@@ -42,10 +42,11 @@ Zero-Pad `arr` along its first two dimension to twice it size.
 function pad_array(arr::AbstractArray)
     sizey, sizex = size(arr)[1:2]
     othersizes = size(arr)[3:end]
-    pad_left = zeros(eltype(arr), sizey, sizex ÷ 2 + mod(sizex, 2), othersizes...)
-    pad_right = zeros(eltype(arr), sizey, sizex ÷ 2, othersizes...)
-    pad_top = zeros(eltype(arr), sizey ÷ 2 + mod(sizey, 2), 2 * sizex, othersizes...)
-    pad_bottom = zeros(eltype(arr), sizey ÷ 2, 2 * sizex, othersizes...)
+    pad_left = zeros(eltype(arr), sizey, sizex ÷ 2 + mod(sizex, 2), othersizes...) |> my_gpu
+    pad_right = zeros(eltype(arr), sizey, sizex ÷ 2, othersizes...) |> my_gpu
+    pad_top = zeros(eltype(arr), sizey ÷ 2 + mod(sizey, 2), 2 * sizex, othersizes...) |> my_gpu
+    pad_bottom = zeros(eltype(arr), sizey ÷ 2, 2 * sizex, othersizes...) |> my_gpu
+
     pad1 = hcat(pad_left, arr, pad_right)
     pad2 = vcat(pad_top, pad1, pad_bottom)
     return pad2
@@ -108,13 +109,13 @@ function lucystep_flfm(e, psf, psf_flipped, x)
     # Maybe also use tanh activation after each step? https://arxiv.org/pdf/2002.01053.pdf
     denom = forward_project(psf, e)
     fraction = x ./ denom
-    return e .* backward_project(psf_flipped, fraction)
+    return tanh.(e .* backward_project(psf_flipped, fraction))
 end
 
 function (rl::RL_FLFM)(x)
     x = anscombe_transform(x)
     h = rl.PSF
-    h_flipped = reverse(h; dims=(1, 2))
+    h_flipped = reverse(reverse(h; dims=1); dims=2)
     rec = backward_project(h, x)
     for _ in 1:(rl.n_iter)
         rec = lucystep_flfm(rec, h, h_flipped, x)
@@ -123,6 +124,9 @@ function (rl::RL_FLFM)(x)
     if size(rl.PSF, 3) == 1
         rec = dropdims(rec; dims=3)
     end
+    #if any(isnan.(rec))
+    #    rec = zero.(rec)
+    #end
     return rec
 end
 

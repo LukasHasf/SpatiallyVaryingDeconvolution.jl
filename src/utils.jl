@@ -479,6 +479,9 @@ const CUDA_functional::Bool =
 
 function show_cuda_capability()
     global CUDA_functional
+    println("CUDA functional: $(CUDA.functional())")
+    println("CUDA devices: $(CUDA.devices())")
+    println(CUDA.versioninfo())
     if CUDA_functional
         @info "Running on GPU"
     else
@@ -616,7 +619,7 @@ pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 function prepare_psfs(settings::Settings; T=Float32)
     uncentered_psfs, positions = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
     psfs = _center_psfs(
-        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index], positions
+        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index], nothing
     )
     dims = length(settings.data[:newsize])
     nrPSFs = size(psfs)[end]

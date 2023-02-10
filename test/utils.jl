@@ -15,11 +15,11 @@ end
 
 @testset "_center_psfs" begin
     psfs = rand(Float32, 10, 10, 10)
-    @test psfs == _center_psfs(psfs, false, -1)
+    @test psfs == _center_psfs(psfs, false, -1, nothing)
     psfs2, _ = registerPSFs(psfs, psfs[:, :, 6])
-    @test psfs2 == _center_psfs(psfs, true, -1)
+    @test psfs2 == _center_psfs(psfs, true, -1, nothing)
     psfs3, _ = registerPSFs(psfs, psfs[:, :, 2])
-    @test psfs3 == _center_psfs(psfs, true, 2)
+    @test psfs3 == _center_psfs(psfs, true, 2, nothing)
 end
 
 @testset "train_test_split" begin
