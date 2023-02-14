@@ -15,11 +15,11 @@ end
 
 @testset "_center_psfs" begin
     psfs = rand(Float32, 10, 10, 10)
-    @test psfs == _center_psfs(psfs, false, -1)
+    @test psfs == _center_psfs(psfs, false, -1, nothing)
     psfs2, _ = registerPSFs(psfs, psfs[:, :, 6])
-    @test psfs2 == _center_psfs(psfs, true, -1)
+    @test psfs2 == _center_psfs(psfs, true, -1, nothing)
     psfs3, _ = registerPSFs(psfs, psfs[:, :, 2])
-    @test psfs3 == _center_psfs(psfs, true, 2)
+    @test psfs3 == _center_psfs(psfs, true, 2, nothing)
 end
 
 @testset "train_test_split" begin
@@ -359,7 +359,7 @@ end
             :sim_dir => test_dir,
             :newsize => (32, 32),
         ),
-        Dict(),
+        Dict(:deconv => "wiener"),
         Dict(),
         Dict(),
     )
@@ -492,7 +492,7 @@ end
             :newsize => (16, 17),
             :snr => 80,
         ),
-        Dict(),
+        Dict(:deconv => "wiener"),
         Dict(),
         Dict(),
     )
@@ -541,7 +541,7 @@ end
 
     dummy_settings.data[:center_psfs] = true
     psfs_loaded = SpatiallyVaryingDeconvolution.prepare_psfs(dummy_settings)
-    @test psfs_loaded ≈ SpatiallyVaryingDeconvolution._center_psfs(psfs, true, -1)
+    @test psfs_loaded ≈ SpatiallyVaryingDeconvolution._center_psfs(psfs, true, -1, nothing)
 
     dummy_settings.data[:center_psfs] = false
     dummy_settings.data[:newsize] = (8, 8)
