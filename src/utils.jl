@@ -358,7 +358,7 @@ function load_volumes(
     for (i, filename) in enumerate(complete_files)
         filepath = joinpath(directory, filename)
         volumes[:, :, :, 1, i] .= _map_to_zero_one(
-            imresize(readPSFs(filepath, key), newsize)
+            imresize(readPSFs(filepath, key)[1], newsize)
         )
     end
     return volumes
