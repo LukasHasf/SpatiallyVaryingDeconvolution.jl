@@ -424,7 +424,7 @@ function Unet(
         Chain(
             # AttentionBlock(in_channels, in_channels, in_channels; dims=dims),
             # This self attention block can likely be replaced by a nonlinear activation function
-            x -> σ.(x),
+            u_tanh,
             Conv(kernel_base, in_channels => 1; pad=SamePad()),
         )
     else
