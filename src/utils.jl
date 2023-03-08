@@ -13,7 +13,6 @@ export write_to_logfile
 export _center_psfs
 export Settings
 export get_load_data_settings
-export anscombe_transform, anscombe_transform_inv
 
 using MAT
 using HDF5
@@ -628,26 +627,6 @@ function prepare_psfs(settings::Settings; T=Float32)
     end
     psfs = resized_psfs
     return psfs
-end
-
-"""     anscombe_transform(x::AbstractArray{T}) where {T}
-
-Transform the input array `x`  elementwise according to `x → 2√(x+3/8)`.
-
-This is a variance-stabilizing transformation that transforms a random variable with a Poisson distribution into one with an approximately standard Gaussian distribution.
-"""
-function anscombe_transform(x::AbstractArray{T}) where {T}
-    return T.(2 .* sqrt.(max.(x .+ 3 / 8, zero(eltype(x)))))
-end
-
-"""    anscombe_transform_inv(x::AbstractArray{T}) where {T}
-
-Transform the input array `x`  elementwise according to `x → (x/2)^2 - 3/8)`.
-
-Algebraic inverse of `anscombe_transform`, but introduces bias to the mean.
-"""
-function anscombe_transform_inv(x::AbstractArray{T}) where {T}
-    return T.((x ./ 2) .^ 2 .- 3 / 8)
 end
 
 #= readPSFs and registerPSFs should eventually be imported from SpatiallyVaryingConvolution=#

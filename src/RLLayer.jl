@@ -7,15 +7,14 @@ include("utils.jl")
 struct RL{T}
     PSF::AbstractArray{T}
     n_iter::Int
-    anscombe::Bool
 end
 Flux.@functor RL
 
 Flux.trainable(rl::RL) = (rl.PSF)
 
-function RL(PSFs; n_iter=10, anscombe=true)
+function RL(PSFs; n_iter=10)
     @assert ndims(PSFs) > 2
-    return RL(PSFs ./ sum(PSFs; dims=1:(ndims(PSFs) - 1)), n_iter, anscombe)
+    return RL(PSFs ./ sum(PSFs; dims=1:(ndims(PSFs) - 1)), n_iter)
 end
 
 myconv(a, b, dims) = irfft(rfft(a, dims) .* b, size(a, 1), dims)
@@ -27,7 +26,6 @@ function lucystep(e, psf_ft, psf_ft_conj, dims, x)
 end
 
 function (rl::RL)(x)
-    x = rl.anscombe ? anscombe_transform(x) : x
     dims = 1:(ndims(rl.PSF) - 1)
     otf = rfft(rl.PSF, dims)
 
@@ -42,7 +40,6 @@ function (rl::RL)(x)
         rec = lucystep(rec, otf, otf_rev, dims, x)
     end
     out = ifftshift(rec, dims)
-    out = rl.anscombe ? anscombe_transform_inv(out) : out
     return out
 end
 end # module

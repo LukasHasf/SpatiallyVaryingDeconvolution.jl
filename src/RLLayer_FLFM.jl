@@ -112,14 +112,12 @@ function lucystep_flfm(e, psf, psf_flipped, x)
 end
 
 function (rl::RL_FLFM)(x)
-    x = anscombe_transform(x)
     h = rl.PSF
     h_flipped = reverse(h; dims=(1, 2))
     rec = backward_project(h, x)
     for _ in 1:(rl.n_iter)
         rec = lucystep_flfm(rec, h, h_flipped, x)
     end
-    rec = anscombe_transform_inv(rec)
     if size(rl.PSF, 3) == 1
         rec = dropdims(rec; dims=3)
     end

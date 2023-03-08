@@ -83,22 +83,8 @@ end
     end
     @testset "Applying RLLayer" begin
         psf = rand(3, 3, 2)
-        anscombe = true
         psf = psf ./ sum(psf; dims=1:2)
-        rl = RLLayer.RL(psf; n_iter=30, anscombe=anscombe)
-        @test Flux.trainable(rl) ≈ (psf)
-        a = rand(3, 3, 1, 1)
-        â = anscombe_transform(a)
-        a_rl = rl(a)
-        @test size(a_rl) == (3, 3, 2, 1)
-        @test a_rl[:, :, 1, 1] ≈
-            anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 1], 30, 2))
-        @test a_rl[:, :, 2, 1] ≈
-            anscombe_transform_inv(rl_deconvolution(â[:, :, 1, 1], psf[:, :, 2], 30, 2))
-        psf = rand(3, 3, 2)
-        anscombe = false
-        psf = psf ./ sum(psf; dims=1:2)
-        rl = RLLayer.RL(psf; n_iter=30, anscombe=anscombe)
+        rl = RLLayer.RL(psf; n_iter=30)
         @test Flux.trainable(rl) ≈ (psf)
         a = rand(3, 3, 1, 1)
         â = a
@@ -215,10 +201,10 @@ end
         x̂ = rl_flfm(x)
         psf = psfs ./ sum(psfs; dims=1:2)
         psf_flipped = reverse(psf; dims=(1, 2))
-        x̃ = anscombe_transform(x)
+        x̃ = x
         rec = RLLayer_FLFM.backward_project(psf, x̃)
         x̃2 = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
-        x̂2 = anscombe_transform_inv(x̃2)
+        x̂2 = x̃2
         @test x̂ ≈ x̂2
 
         # Multiple iterations
@@ -231,11 +217,11 @@ end
         x̂ = rl_flfm(x)
         psf = psfs ./ sum(psfs; dims=1:2)
         psf_flipped = reverse(psf; dims=(1, 2))
-        x̃ = anscombe_transform(x)
+        x̃ = x
         rec = RLLayer_FLFM.backward_project(psf, x̃)
         rec = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
         x̃2 = RLLayer_FLFM.lucystep_flfm(rec, psf, psf_flipped, x̃)
-        x̂2 = anscombe_transform_inv(x̃2)
+        x̂2 = x̃2
         @test x̂ ≈ x̂2
     end
 end

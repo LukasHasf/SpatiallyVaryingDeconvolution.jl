@@ -11,7 +11,6 @@ A Wiener-deconvolution layer with multiple learnable kernels.
 struct MultiWiener{T,N}
     PSF::AbstractArray{T,N}
     lambda::AbstractArray{T,N}
-    anscombe::Bool
 end
 
 struct MultiWienerWithPlan{T,N}
@@ -20,17 +19,16 @@ struct MultiWienerWithPlan{T,N}
     plan::Any
     inv_plan::Any
     plan_x::Any
-    anscombe::Bool
 end
 
-function MultiWiener(PSFs::AbstractArray; anscombe=false)
+function MultiWiener(PSFs::AbstractArray)
     lambda = similar(PSFs, (ones(Int, ndims(PSFs) - 1)..., size(PSFs)[end]))
     fill!(lambda, rand(Float32))
-    return MultiWiener{eltype(PSFs),ndims(PSFs)}(PSFs, lambda, anscombe)
+    return MultiWiener{eltype(PSFs),ndims(PSFs)}(PSFs, lambda)
 end
 
 function to_multiwiener(m)
-    return MultiWiener(m.PSF, m.lambda, m.anscombe)
+    return MultiWiener(m.PSF, m.lambda)
 end
 
 """    MultiWienerWithPlan(PSFS; on_gpu=true)
@@ -69,7 +67,7 @@ function toMultiWienerWithPlan(m; on_gpu=true)
     )
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
     return MultiWienerWithPlan(
-        to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x, m.anscombe
+        to_gpu_cpu(m.PSF), to_gpu_cpu(m.lambda), plan, inv_plan, plan_x
     )
 end
 
@@ -79,24 +77,20 @@ Apply `MultiWiener` layer to image/volume `x`.
 """
 function (m::MultiWiener)(x)
     dims = 1:(ndims(m.PSF) - 1)
-    x = m.anscombe ? anscombe_transform(x) : x
     H = rfft(m.PSF, dims)
     x̂ = rfft(fftshift(x, dims), dims)
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = irfft(output, size(x, 1), dims)
-    out = m.anscombe ? anscombe_transform_inv(iffted_output) : iffted_output
-    return out
+    return iffted_output
 end
 Flux.@functor MultiWiener
 
 function (m::MultiWienerWithPlan)(x)
     dims = 1:(ndims(m.PSF) - 1)
-    x = m.anscombe ? anscombe_transform(x) : x
     H = m.plan * m.PSF
     x̂ = m.plan_x * (fftshift(x, dims))
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = m.inv_plan.scale .* (m.inv_plan.p * output)
-    out = m.anscombe ? anscombe_transform_inv(iffted_output) : iffted_output
     return iffted_output
 end
 Flux.@functor MultiWienerWithPlan
