@@ -1,6 +1,7 @@
 module RLLayer_FLFM
 using Flux
 using FFTW
+using NNlib
 
 include("utils.jl")
 
@@ -123,6 +124,8 @@ function (rl::RL_FLFM)(x)
     if size(rl.PSF, 3) == 1
         rec = dropdims(rec; dims=3)
     end
+    rec = NNlib.upsample_bilinear(rec, (3,3))
+    rec = rec[end÷3+1 : 2*end÷3, end÷3+1 : 2*end÷3, :, :]
     return rec
 end
 
