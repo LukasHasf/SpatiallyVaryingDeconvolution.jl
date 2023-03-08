@@ -1,6 +1,6 @@
 export prepare_psfs
 export load_data, apply_noise
-export train_test_split
+export train_validation_split
 export prepare_data
 export prepare_model!
 export gaussian
@@ -388,11 +388,13 @@ function load_data(settings::Settings; T=Float32)
     complete_files_truth, complete_files_sim = find_complete(
         nrsamples, truth_directory, simulated_directory
     )
-    if all(is_image.([complete_files_sim[1], complete_files_truth[1]])) && settings.model[:deconv] != "rl_flfm"
+    if all(is_image.([complete_files_sim[1], complete_files_truth[1]])) &&
+        settings.model[:deconv] != "rl_flfm"
         # 2D => 2D deconvolution with Wiener or RL deconvolution
         x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
         y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
-    elseif all(is_image.([complete_files_sim[1], complete_files_truth[1]])) && settings.model[:deconv] == "rl_flfm"
+    elseif all(is_image.([complete_files_sim[1], complete_files_truth[1]])) &&
+        settings.model[:deconv] == "rl_flfm"
         # 2D => 2D deconvolution with RL deconvolution for FLFM. This deconvolution needs 3D input and output, so if
         # 2D images are loaded, make the pseudo-3D by adding a singleton z-dimension.
         x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
@@ -423,17 +425,17 @@ function load_data(settings::Settings; T=Float32)
     return x_data, y_data
 end
 
-"""    train_test_split(x; ratio=0.7, dim=ndims(x))
+"""    train_validation_split(x; ratio=0.7, dim=ndims(x))
 
 Split dataset `x` into two datasets, with the first containing `ratio` 
 and the second containing `1-ratio` parts of `x`.
 Splits dataset along dimension `dim` (Default is last dimension).
 """
-function train_test_split(x; ratio=0.7, dim=ndims(x))
+function train_validation_split(x; ratio=0.7, dim=ndims(x))
     split_ind = trunc(Int, ratio * size(x, dim))
     train = collect(selectdim(x, dim, 1:split_ind))
-    test = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
-    return train, test
+    validation = collect(selectdim(x, dim, (1 + split_ind):size(x, dim)))
+    return train, validation
 end
 
 """    prepare_model!(settings::Settings)
@@ -461,9 +463,9 @@ function prepare_data(settings::Settings; T=Float32)
     x_data = apply_noise(x_data; SNR=SNR)
     #x_data = x_data .* convert(eltype(x_data), 2) .- one(eltype(x_data))
     #y_data = y_data .* convert(eltype(y_data), 2) .- one(eltype(y_data))
-    train_x, test_x = train_test_split(x_data)
-    train_y, test_y = train_test_split(y_data)
-    return train_x, train_y, test_x, test_y
+    train_x, validation_x = train_validation_split(x_data)
+    train_y, validation_y = train_validation_split(y_data)
+    return train_x, train_y, validation_x, validation_y
 end
 
 function gaussian(window_size=11, sigma=1.5; T=Float32)
@@ -540,12 +542,12 @@ end
 function _init_logfile(logfile)
     if !isnothing(logfile)
         open(logfile, "w") do io
-            println(io, "epoch, train loss, test loss")
+            println(io, "epoch, train loss, validation loss")
         end
     end
 end
 
-function write_to_logfile(logfile, epoch, train_loss, test_loss)
+function write_to_logfile(logfile, epoch, train_loss, validation_loss)
     if isnothing(logfile)
         return nothing
     end
@@ -553,7 +555,7 @@ function write_to_logfile(logfile, epoch, train_loss, test_loss)
         _init_logfile(logfile)
     end
     open(logfile, "a") do io
-        println(io, "$(epoch), $(train_loss), $(test_loss)")
+        println(io, "$(epoch), $(train_loss), $(validation_loss)")
     end
 end
 
@@ -603,7 +605,7 @@ function _center_psfs(psfs, center, ref_index, positions)
     if isnothing(positions)
         psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), ref_index)))
     else
-        center_pos = size(psfs)[1:(end-1)] .÷ 2 .+ 1
+        center_pos = size(psfs)[1:(end - 1)] .÷ 2 .+ 1
         shifts = 1 .* (center_pos .- positions)
         psfs = shift_psfs(psfs, shifts)
     end
@@ -613,9 +615,14 @@ end
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
 function prepare_psfs(settings::Settings; T=Float32)
-    uncentered_psfs, positions = readPSFs(settings.data[:psfs_path], settings.data[:psfs_key])
+    uncentered_psfs, positions = readPSFs(
+        settings.data[:psfs_path], settings.data[:psfs_key]
+    )
     psfs = _center_psfs(
-        uncentered_psfs, settings.data[:center_psfs], settings.data[:psf_ref_index], positions
+        uncentered_psfs,
+        settings.data[:center_psfs],
+        settings.data[:psf_ref_index],
+        positions,
     )
     dims = length(settings.data[:newsize])
     nrPSFs = size(psfs)[end]
@@ -745,7 +752,9 @@ end
 Shift each measurement image/volume in `stack` by the x-y-z-shifts given in `shift_indices` (`size(shift_indices)=(N, size(stack, N))`).
 Only the measurements indexed by `good_indices` are considered.
 """
-function shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+function shift_psfs(
+    stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)
+) where {T,N}
     # Output destination
     yi_reg = similar(stack)
     # Temporary shifting destination

@@ -69,10 +69,10 @@ function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
     return savefig(p2, psf_path)
 end
 
-function plot_losses(train_loss, test_loss, epoch, plotdirectory)
+function plot_losses(train_loss, validation_loss, epoch, plotdirectory)
     plot(train_loss[1:epoch]; label="Train loss")
     xlabel!("Epochs")
     ylabel!("Loss")
-    plot!(test_loss[1:epoch]; label="Test loss")
+    plot!(validation_loss[1:epoch]; label="Validation loss")
     return savefig(joinpath(plotdirectory, "lossplot.png"))
 end

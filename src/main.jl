@@ -13,7 +13,7 @@ All numeric data will be of type `T` (default `Float32`).
 
 - `psf_ref_index<:Integer` : Index of the reference PSF in the PSFs array
 
-- `nrsamples<:Integer` : Number of samples to load for training and testing
+- `nrsamples<:Integer` : Number of samples to load for training and validation
 
 - `truth_dir::String` : Path to directory containing ground truth samples
 
@@ -41,7 +41,7 @@ All numeric data will be of type `T` (default `Float32`).
 
 - `checkpoint_dir::String` : Directory in which to store checkpoints 
 
-- `plot_interval<:Integer` : Plot prediction of model on a test sample every `plot_interval` epochs
+- `plot_interval<:Integer` : Plot prediction of model on a validation sample every `plot_interval` epochs
 
 - `plot_dir::String` : Directory in which to save the generated plots
 
@@ -51,7 +51,7 @@ All numeric data will be of type `T` (default `Float32`).
 """
 function start_training(settings::Settings; T=Float32)
     # Load and process the data
-    train_x, train_y, test_x, test_y = prepare_data(settings; T=T)
+    train_x, train_y, validation_x, validation_y = prepare_data(settings; T=T)
 
     # Define / load the model
     dims = length(settings.data[:newsize])
@@ -68,7 +68,14 @@ function start_training(settings::Settings; T=Float32)
     end
     # Training
     return train_model(
-        model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
+        model,
+        train_x,
+        train_y,
+        validation_x,
+        validation_y,
+        loss_fn,
+        settings;
+        plotloss=true,
     )
 end
 

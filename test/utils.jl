@@ -22,22 +22,22 @@ end
     @test psfs3 == _center_psfs(psfs, true, 2, nothing)
 end
 
-@testset "train_test_split" begin
+@testset "train_validation_split" begin
     x = rand(10)
-    a, b = train_test_split(x)
+    a, b = train_validation_split(x)
 
     @test length(a) == 7
     @test length(b) == 3
     @test vcat(a, b) == x
 
     x = rand(10)
-    a, b = train_test_split(x; ratio=0.4)
+    a, b = train_validation_split(x; ratio=0.4)
     @test length(a) == 4
     @test length(b) == 6
     @test vcat(a, b) == x
 
     x = rand(10, 10, 10)
-    a, b = train_test_split(x; dim=2)
+    a, b = train_validation_split(x; dim=2)
     @test ndims(a) == 3
     @test ndims(b) == 3
     @test size(a) == (10, 7, 10)
@@ -244,21 +244,21 @@ end
 @testset "Logging" begin
     epoch = 10
     loss_train = 0.5
-    loss_test = 0.56
+    loss_validation = 0.56
     logdir = mktempdir()
 
     # isnothing(logfile) should result in no action
-    write_to_logfile(nothing, epoch, loss_train, loss_test)
+    write_to_logfile(nothing, epoch, loss_train, loss_validation)
     @test isempty(readdir(logdir))
 
     epoch = 11
     loss_train = 0.4
-    loss_test = 0.45
+    loss_validation = 0.45
     logdir = mktempdir()
     logfile = joinpath(logdir, "losses.log")
-    write_to_logfile(logfile, epoch, loss_train, loss_test)
+    write_to_logfile(logfile, epoch, loss_train, loss_validation)
     @test isfile(logfile)
-    @test read(logfile, String) == "epoch, train loss, test loss\n11, 0.4, 0.45\n"
+    @test read(logfile, String) == "epoch, train loss, validation loss\n11, 0.4, 0.45\n"
 end
 
 @testset "Test plotting" begin
@@ -291,10 +291,12 @@ end
 
     # plot losses
     train_loss = rand(Float32, 20)
-    test_loss = rand(Float32, 20)
+    validation_loss = rand(Float32, 20)
     epoch = 10
     plotdirectory = mktempdir()
-    SpatiallyVaryingDeconvolution.plot_losses(train_loss, test_loss, epoch, plotdirectory)
+    SpatiallyVaryingDeconvolution.plot_losses(
+        train_loss, validation_loss, epoch, plotdirectory
+    )
     produced_files = readdir(plotdirectory)
     @test length(produced_files) == 1
     @test "lossplot.png" in produced_files
@@ -344,12 +346,12 @@ end
     imgs = rand(Float32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
-    test_dir = joinpath(img_dir, "test")
+    validation_dir = joinpath(img_dir, "validation")
     dummy_settings = Settings(
         Dict(
             :nrsamples => 5,
             :truth_dir => train_dir,
-            :sim_dir => test_dir,
+            :sim_dir => validation_dir,
             :newsize => (32, 32),
         ),
         Dict(:deconv => "wiener"),
@@ -359,9 +361,9 @@ end
     save(joinpath(train_dir, "a.png"), imgs[:, :, 1])
     save(joinpath(train_dir, "b.png"), imgs[:, :, 2])
     save(joinpath(train_dir, "exclusive_train.png"), imgs[:, :, 3])
-    save(joinpath(test_dir, "a.png"), imgs[:, :, 4])
-    save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
-    save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
+    save(joinpath(validation_dir, "a.png"), imgs[:, :, 4])
+    save(joinpath(validation_dir, "b.png"), imgs[:, :, 5])
+    save(joinpath(validation_dir, "exclusive_validation.png"), imgs[:, :, 6])
     # Load the pictures and compare
     imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 1, 2)
@@ -375,12 +377,12 @@ end
     imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
-    test_dir = joinpath(img_dir, "test")
+    validation_dir = joinpath(img_dir, "validation")
     dummy_settings = Settings(
         Dict(
             :nrsamples => 5,
             :truth_dir => train_dir,
-            :sim_dir => test_dir,
+            :sim_dir => validation_dir,
             :newsize => (32, 32, 32),
         ),
         Dict(),
@@ -391,9 +393,11 @@ end
     save(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     save(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
     save(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => imgs[:, :, :, 3]))
-    save(joinpath(test_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
-    save(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
-    save(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
+    save(joinpath(validation_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
+    save(joinpath(validation_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
+    save(
+        joinpath(validation_dir, "exclusive_validation.h5"), Dict("sim" => imgs[:, :, :, 6])
+    )
     # Load the pictures and compare
     imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
@@ -407,14 +411,14 @@ end
     imgs = rand(Float32, 32, 32, 32, 6)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
-    test_dir = joinpath(img_dir, "test")
+    validation_dir = joinpath(img_dir, "validation")
     mkdir(train_dir)
-    mkdir(test_dir)
+    mkdir(validation_dir)
     dummy_settings = Settings(
         Dict(
             :nrsamples => 5,
             :truth_dir => train_dir,
-            :sim_dir => test_dir,
+            :sim_dir => validation_dir,
             :newsize => (32, 32, 32),
         ),
         Dict(),
@@ -425,9 +429,11 @@ end
     matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => imgs[:, :, :, 1]))
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => imgs[:, :, :, 2]))
     matwrite(joinpath(train_dir, "exclusive_train.h5"), Dict("gt" => imgs[:, :, :, 3]))
-    matwrite(joinpath(test_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
-    matwrite(joinpath(test_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
-    matwrite(joinpath(test_dir, "exclusive_test.h5"), Dict("sim" => imgs[:, :, :, 6]))
+    matwrite(joinpath(validation_dir, "a.h5"), Dict("sim" => imgs[:, :, :, 4]))
+    matwrite(joinpath(validation_dir, "b.h5"), Dict("sim" => imgs[:, :, :, 5]))
+    matwrite(
+        joinpath(validation_dir, "exclusive_validation.h5"), Dict("sim" => imgs[:, :, :, 6])
+    )
     # Load the pictures and compare
     imgs_x, imgs_y = load_data(dummy_settings; T=Float32)
     @test size(imgs_x) == (32, 32, 32, 1, 2)
@@ -441,23 +447,23 @@ end
     img_dir = mktempdir()
     imgs = rand(Float32, 32, 32, 6)
     train_dir = joinpath(img_dir, "train")
-    test_dir = joinpath(img_dir, "test")
+    validation_dir = joinpath(img_dir, "validation")
     mkdir(train_dir)
-    mkdir(test_dir)
+    mkdir(validation_dir)
     dummy_settings = Settings(
         Dict(
             :nrsamples => 5,
             :truth_dir => train_dir,
-            :sim_dir => test_dir,
+            :sim_dir => validation_dir,
             :newsize => (32, 32, 32),
         ),
         Dict(),
         Dict(),
         Dict(),
     )
-    save(joinpath(test_dir, "a.png"), imgs[:, :, 4])
-    save(joinpath(test_dir, "b.png"), imgs[:, :, 5])
-    save(joinpath(test_dir, "exclusive_test.png"), imgs[:, :, 6])
+    save(joinpath(validation_dir, "a.png"), imgs[:, :, 4])
+    save(joinpath(validation_dir, "b.png"), imgs[:, :, 5])
+    save(joinpath(validation_dir, "exclusive_validation.png"), imgs[:, :, 6])
     vols = rand(Float32, 32, 32, 32, 6)
     matwrite(joinpath(train_dir, "a.h5"), Dict("gt" => vols[:, :, :, 1]))
     matwrite(joinpath(train_dir, "b.h5"), Dict("gt" => vols[:, :, :, 2]))
@@ -475,13 +481,13 @@ end
     imgs = rand(Float32, 32, 32, 12)
     img_dir = mktempdir()
     train_dir = joinpath(img_dir, "train")
-    test_dir = joinpath(img_dir, "test")
+    validation_dir = joinpath(img_dir, "validation")
     samples_to_load = 5
     dummy_settings = Settings(
         Dict(
             :nrsamples => samples_to_load,
             :truth_dir => train_dir,
-            :sim_dir => test_dir,
+            :sim_dir => validation_dir,
             :newsize => (16, 17),
             :snr => 80,
         ),
@@ -491,20 +497,22 @@ end
     )
     for i in 1:6
         save(joinpath(train_dir, "img_$(i).png"), imgs[:, :, i])
-        save(joinpath(test_dir, "img_$(i).png"), imgs[:, :, i])
+        save(joinpath(validation_dir, "img_$(i).png"), imgs[:, :, i])
     end
-    train_x, train_y, test_x, test_y = prepare_data(dummy_settings; T=Float32)
-    @test all([eltype(x) == Float32 for x in [train_x, train_y, test_x, test_y]])
+    train_x, train_y, validation_x, validation_y = prepare_data(dummy_settings; T=Float32)
+    @test all([
+        eltype(x) == Float32 for x in [train_x, train_y, validation_x, validation_y]
+    ])
     split_ind = trunc(Int, 0.7 * samples_to_load)
     @test size(train_x) == (16, 17, 1, split_ind)
-    @test size(test_x) == (16, 17, 1, samples_to_load - split_ind)
+    @test size(validation_x) == (16, 17, 1, samples_to_load - split_ind)
     @test size(train_x) == size(train_y)
-    @test size(test_x) == size(test_y)
+    @test size(validation_x) == size(validation_y)
     @test all(-1 * one(Float32) .<= train_y .<= one(Float32))
-    @test all(-1 * one(Float32) .<= test_y .<= one(Float32))
+    @test all(-1 * one(Float32) .<= validation_y .<= one(Float32))
     # Add a bit of tolerance, since "x" data gets some additional noise after being mapped to range [0, 1]
     @test all(-1.2 * one(Float32) .<= train_x .<= 1.2)
-    @test all(-1.2 * one(Float32) .<= test_x .<= 1.2)
+    @test all(-1.2 * one(Float32) .<= validation_x .<= 1.2)
 end
 
 @testset "prepare_psfs" begin
@@ -615,12 +623,12 @@ end
 
 @testset "_ensure_existence" begin
     dir = mktempdir()
-    mypath = joinpath(dir, "test")
-    _ensure_existence(joinpath(dir, "test"))
-    _ensure_existence(joinpath(dir, "test2"))
+    mypath = joinpath(dir, "validation")
+    _ensure_existence(joinpath(dir, "validation"))
+    _ensure_existence(joinpath(dir, "validation2"))
     dirlist = readdir(dir)
     @test length(dirlist) == 2
-    @test issetequal(["test", "test2"], dirlist)
+    @test issetequal(["validation", "validation2"], dirlist)
 end
 
 @testset "Reading options file" begin

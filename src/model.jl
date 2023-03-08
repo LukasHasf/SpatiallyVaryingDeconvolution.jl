@@ -58,7 +58,7 @@ function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
         deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
     end
     dimension = ndims(deconv_stage.PSF) + 1
-    if size(deconv_stage.PSF, 3)==1 && deconv_stage isa RLLayer_FLFM.RL_FLFM
+    if size(deconv_stage.PSF, 3) == 1 && deconv_stage isa RLLayer_FLFM.RL_FLFM
         dimension -= 1
     end
     modelUNet = UNet.Unet(
@@ -112,44 +112,44 @@ function save_model(
     return modelpath
 end
 
-"""    setup_training(model, train_x, train_y, test_x, test_y, settings)
+"""    setup_training(model, train_x, train_y, validation_x, validation_y, settings)
 
 Helper function to prepare training of the model.
 
 Selects sample data for plotting, prepares the dataset and initializes some arrays storing losses.
 
-Returns one example data point from `test_x` for plotting, the trainable parameters of `model`, the `DataLoader` containing `train_x` and `train_y`, and two zero-vectors of length `epochs`.
+Returns one example data point from `validation_x` for plotting, the trainable parameters of `model`, the `DataLoader` containing `train_x` and `train_y`, and two zero-vectors of length `epochs`.
 """
-function setup_training(model, train_x, train_y, test_x, test_y, settings)
-    example_data_x = copy(selectdim(test_x, ndims(test_x), 1))
+function setup_training(model, train_x, train_y, validation_x, validation_y, settings)
+    example_data_x = copy(selectdim(validation_x, ndims(validation_x), 1))
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
-    example_data_y = copy(selectdim(test_y, ndims(test_y), 1))
+    example_data_y = copy(selectdim(validation_y, ndims(validation_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
     plot_prediction(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
     pars = Flux.params(model)
     training_datapoints = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=false)
     epochs = settings.training[:epochs]
-    losses_test = zeros(Float64, epochs)
+    losses_validation = zeros(Float64, epochs)
     losses_train = zeros(Float64, epochs)
-    return example_data_x, pars, training_datapoints, losses_test, losses_train
+    return example_data_x, pars, training_datapoints, losses_validation, losses_train
 end
 
-"""    train_model(model, train_x, train_y, test_x, test_y, loss, settings; plotloss=false)
+"""    train_model(model, train_x, train_y, validation_x, validation_y, loss, settings; plotloss=false)
 
 Train Flux model `model` on the dataset `(train_x, train_y)`. Each epoch, evaluate performance
-on both the training dataset and the tesing dataset `(test_x, test_y)`, using the loss function `loss`.
+on both the training dataset and the validation dataset `(validation_x, validation_y)`, using the loss function `loss`.
 
 Use the `settings` object for all other training related options. For these settings, refer to the documentation.
 
-If `plotloss==true`, plot a graph showing the history of training and test losses.
+If `plotloss==true`, plot a graph showing the history of training and validation losses.
 """
 function train_model(
-    model, train_x, train_y, test_x, test_y, loss, settings; plotloss=false
+    model, train_x, train_y, validation_x, validation_y, loss, settings; plotloss=false
 )
     train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=true)
-    test_data_iterator = Flux.DataLoader((test_x, test_y); batchsize=1)
-    example_data_x, pars, training_datapoints, losses_test, losses_train = setup_training(
-        model, train_x, train_y, test_x, test_y, settings
+    validation_data_iterator = Flux.DataLoader((validation_x, validation_y); batchsize=1)
+    example_data_x, pars, training_datapoints, losses_validation, losses_train = setup_training(
+        model, train_x, train_y, validation_x, validation_y, settings
     )
     epochs = settings.training[:epochs]
     epoch_offset = settings.checkpoints[:epoch_offset]
@@ -167,12 +167,12 @@ function train_model(
         )
         trainmode!(model, false)
         losses_train[epoch] = mean(_help_evaluate_loss(train_data_iterator, loss))
-        losses_test[epoch] = mean(_help_evaluate_loss(test_data_iterator, loss))
+        losses_validation[epoch] = mean(_help_evaluate_loss(validation_data_iterator, loss))
         println(
             "\r Loss (train): " *
             string(losses_train[epoch]) *
-            ", Loss (test): " *
-            string(losses_test[epoch]),
+            ", Loss (validation): " *
+            string(losses_validation[epoch]),
         )
 
         if (saveevery != 0 && epoch % saveevery == 0)
@@ -193,20 +193,22 @@ function train_model(
                 pred_to_plot, psf_to_plot, epoch, epoch_offset, settings.training[:plot_dir]
             )
             if plotloss
-                plot_losses(losses_train, losses_test, epoch, settings.training[:plot_dir])
+                plot_losses(
+                    losses_train, losses_validation, epoch, settings.training[:plot_dir]
+                )
             end
         end
         write_to_logfile(
             settings.training[:logfile],
             epoch + epoch_offset,
             losses_train[epoch],
-            losses_test[epoch],
+            losses_validation[epoch],
         )
         # Early stopping logic
         if early_stopping_patience > 0 && epoch > 1
             # Chech that new loss is minimal loss and that loss is actually changing
-            if losses_test[epoch] == minimum(losses_test[1:epoch]) &&
-                !iszero(losses_test[epoch] - losses_test[epoch - 1])
+            if losses_validation[epoch] == minimum(losses_validation[1:epoch]) &&
+                !iszero(losses_validation[epoch] - losses_validation[epoch - 1])
                 savedir = joinpath(settings.checkpoints[:checkpoint_dir], "early_stop")
                 # Right now, existence of the early stopping checkpoint folder is not checked while reading the YYAML file -> TODO
                 _ensure_existence(savedir)

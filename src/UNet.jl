@@ -421,10 +421,7 @@ function Unet(
     encoder = Chain(initial_block, encoder_blocks...)
     in_channels = sum([2^(3 + i) for i in 1:(depth + 1)])
     attention_module = if final_attention
-        Chain(
-            u_tanh,
-            Conv(kernel_base, in_channels => 1; pad=SamePad()),
-        )
+        Chain(u_tanh, Conv(kernel_base, in_channels => 1; pad=SamePad()))
     else
         nothing
     end

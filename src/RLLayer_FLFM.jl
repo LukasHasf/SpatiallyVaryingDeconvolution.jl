@@ -22,7 +22,9 @@ leave this number small.
 """
 function RL_FLFM(PSFs; n_iter=10)
     if ndims(PSFs) == 3
-        println("RL_FLFM deconvolution only works with 3D PSFs. For 2D RL deconvolution, use RL.")
+        println(
+            "RL_FLFM deconvolution only works with 3D PSFs. For 2D RL deconvolution, use RL.",
+        )
         println("Reshape to 3D PSFs with a depth of 1? (y/n)")
         response = readline()
         if lowercase(response) == "y"

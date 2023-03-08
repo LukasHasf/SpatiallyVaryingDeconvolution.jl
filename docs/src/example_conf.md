@@ -7,7 +7,7 @@ data:
     x_path : ../training_data/Data/Simulated_Miniscope_2D_Training_data/
     # Path to ground truth
     y_path : ../training_data/Data/Ground_truth_downsampled/
-    # How many training+testing samples to load from x_path and y_path
+    # How many training+validation samples to load from x_path and y_path
     nrsamples: 1000
     # Data needs to be resized to be a power of two along each axis
     resize_to : [64, 64]
@@ -40,7 +40,7 @@ training:
     epochs: 50
     # The employed optimizer
     optimizer: ADADelta
-    # How often should a plot of the evaluation of the model on the first test data be plotted? 0 for never
+    # How often should a plot of the evaluation of the model on the first validation data be plotted? 0 for never
     plot_interval: 1
     # Where should that plot be saved?
     plot_path: examples/training_progress/
@@ -74,9 +74,9 @@ Here's a list of what each field in the configuration field does:
 - `multiscale` : Whether to use multiscale convolutions instead of normal ones. Increases performance in conjuction with transfer training, but requires more memory (significantly more in 3D).
 - `deconv` :  Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`. `"wiener"` for a Wiener deconvolution layer, `"rl"` for Richardson-Lucy deconvolution layer and `"rl_flfm"` for a Richardson-Lucy deconvolution that is adapted to Fourier Light Field Microscopy (2D observation -> 3D reconstruction).
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.
-- `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% testing data.
+- `nrsamples` : The number of samples to load and train with. They will be divided into 70% training and 30% validation data.
 - `epochs` : The number of epochs the model will be trained.
-- `log_losses` : Boolean to indicate if the train and test loss after each epoch should be saved into a file.
-- `plot_interval`, `plot_path` : Plot the result of using the model on the first testing sample every `plot_interval`-th epoch and save the result in the directory `plot_path`. Set `plot_interval` to `0` to deactivate.
+- `log_losses` : Boolean to indicate if the train and validation loss after each epoch should be saved into a file.
+- `plot_interval`, `plot_path` : Plot the result of using the model on the first validation sample every `plot_interval`-th epoch and save the result in the directory `plot_path`. Set `plot_interval` to `0` to deactivate.
 - `load_checkpoints`, `checkpoint_path` : You can continue training from a previously saved checkpoint. If you want to do so, set `load_checkpoints` to `true` and provide the path to the checkpoint you want to load. Alternatively, set `load_checkpoints` to `latest` to load the most recent checkpoint in `checkpoint_dir`. In that case, `checkpoint_path` is ignored.
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this. At the end of training, a checkpoint will be saved regardless.

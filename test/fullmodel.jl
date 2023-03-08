@@ -154,8 +154,8 @@ end
     model = my_gpu(SpatiallyVaryingDeconvolution.make_model(psfs, model_settings))
     train_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     train_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
-    test_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
-    test_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    validation_x = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
+    validation_y = my_gpu(rand(Float32, Ny, Nx, nrchannels, 50))
     kernel = _get_default_kernel(2; T=Float32)
     kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
     loss_fn = let model = model, kernel = kernel
@@ -181,7 +181,14 @@ end
         Dict(:save_interval => 1, :checkpoint_dir => chkptdir, :epoch_offset => 0),
     )
     SpatiallyVaryingDeconvolution.train_model(
-        model, train_x, train_y, test_x, test_y, loss_fn, settings; plotloss=true
+        model,
+        train_x,
+        train_y,
+        validation_x,
+        validation_y,
+        loss_fn,
+        settings;
+        plotloss=true,
     )
     @test isfile(logfile)
     @test length(readdir(chkptdir)) == 2
