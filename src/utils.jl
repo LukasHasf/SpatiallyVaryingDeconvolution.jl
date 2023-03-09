@@ -27,6 +27,7 @@ using FileIO
 using CUDA
 using Dates
 using ProgressMeter
+using Statistics
 
 # Hardcoded mappings between the config yaml fields and internally used symbols
 const data_dict = Dict(
@@ -114,7 +115,8 @@ gaussian standard deviation `σ` by `σ = 1/√λ`.
 """
 function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     # Define the gaussian and possion noise parameters such that the resulting images has the specified SNR
-    λ = 3 / 2 * SNR^2
+    μ = mean(img)
+    λ = 3 / 2 * (SNR^2 / μ^2)
     σ = inv(√λ)
     # Apply the noise
     gaussian_noise = randn(T, size(img)) .* σ
