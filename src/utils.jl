@@ -110,13 +110,13 @@ The SNR is defined as the contrast of the image divided by the standard deviatio
 
 In the special case of this package, the contrast is always assumed to be unity.
 
-The employed Poisson scaling `λ` is related to the employed 
+The employed Poisson scaling `λ` is related to the 
 gaussian standard deviation `σ` by `σ = 1/√λ`.
 """
 function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     # Define the gaussian and possion noise parameters such that the resulting images has the specified SNR
     μ = mean(img)
-    λ = 3 / 2 * (SNR^2 / μ^2)
+    λ = SNR^2 * (1 + 1/μ^2)
     σ = inv(√λ)
     # Apply the noise
     gaussian_noise = randn(T, size(img)) .* σ

@@ -218,26 +218,27 @@ end
     # Testing applynoise for images
     scales = [1.0, 20.0, 300.0, 4000.0]
     img_batch = ones(Float32, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, :)
-    noisy_batch = apply_noise(img_batch)
+    noisy_batch = apply_noise(img_batch; SNR=70)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
         s = scales[i]
         nimg = img_batch[:, :, :, i]
         @test mean(nimg) ≈ s atol = s * 0.01
-        @test zero(eltype(nimg)) < std(nimg) < 0.025 + s / sqrt(500)
+        # σ(noise) = μ/SNR
+        @test std(nimg) ≈ s / 70 atol = s * 0.01
     end
 
     # Testing applynoise for volumes
     scales = [1.0, 20.0, 300.0, 4000.0]
     img_batch =
         ones(Float32, 100, 200, 300, 1, length(scales)) .* reshape(scales, 1, 1, 1, 1, :)
-    noisy_batch = apply_noise(img_batch)
+    noisy_batch = apply_noise(img_batch; SNR=70)
     @test size(img_batch) == size(noisy_batch)
     for i in eachindex(scales)
         s = scales[i]
         nimg = img_batch[:, :, :, :, i]
         @test mean(nimg) ≈ s atol = s * 0.01
-        @test zero(eltype(nimg)) < std(nimg) < 0.025 + s / sqrt(500)
+        @test std(nimg) ≈ s / 70 atol = s * 0.01
     end
 end
 
