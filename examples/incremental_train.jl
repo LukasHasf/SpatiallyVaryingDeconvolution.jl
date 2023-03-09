@@ -73,21 +73,35 @@ function append_to_filename(path, s)
     return joinpath(path_parts[1:(end - 1)]..., filename)
 end
 
+function get_early_stop_path(model_path)
+    checkpoint_dir = dirname(model_path)
+    early_stop_path = joinpath(checkpoint_dir, "early_stop")
+    checkpoint_path = only(readdir(early_stop_path; join=true))
+    return checkpoint_path
+end
+
 function train_path(options_path, resolutions)
     # First: Train initial model
     options = Settings(options_path)
     dims = length(options.data[:newsize])
     dims_helper = ntuple(x -> one(Integer), dims)
     options.data[:newsize] = dims_helper .* resolutions[1]
+    early_stop = options.training[:early_stopping]
     model = prepare_model!(options)
     @info "Training initial model"
     model_path = start_training(model, options)
+    if early_stop
+        model_path = get_early_stop_path(model_path)
+    end
     renamed_model_path = append_to_filename(model_path, "_tl_r_$(resolutions[1])")
     model_path = mv(model_path, renamed_model_path)
     # Then transfer parameters to a neural network training on a different resolution
     for r in resolutions[2:end]
         @info "Transfer training to resolution $(r)"
         model_path = transfer_train(model_path, dims_helper .* r, options_path)
+        if early_stop
+            model_path = get_early_stop_path(model_path)
+        end
         renamed_model_path = append_to_filename(model_path, "_tl_r_$(r)")
         model_path = mv(model_path, renamed_model_path)
     end
