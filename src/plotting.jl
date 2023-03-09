@@ -71,7 +71,7 @@ end
 
 function plot_losses(train_loss, validation_loss, epoch, plotdirectory)
     plot(train_loss[1:epoch]; label="Train loss")
-    xlabel!("Epochs")
+    xlabel!("Epoch")
     ylabel!("Loss")
     plot!(validation_loss[1:epoch]; label="Validation loss")
     return savefig(joinpath(plotdirectory, "lossplot.png"))
