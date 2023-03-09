@@ -116,11 +116,11 @@ gaussian standard deviation `σ` by `σ = 1/√λ`.
 function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     # Define the gaussian and possion noise parameters such that the resulting images has the specified SNR
     μ = mean(img)
-    λ = SNR^2 * (1 + 1/μ^2)
+    λ = SNR^2 * (1/μ + 1/μ^2)
     σ = inv(√λ)
     # Apply the noise
     gaussian_noise = randn(T, size(img)) .* σ
-    poisson_image = poisson(img, λ)
+    poisson_image = poisson(img, λ * maximum(img))
     return poisson_image .+ gaussian_noise
 end
 
