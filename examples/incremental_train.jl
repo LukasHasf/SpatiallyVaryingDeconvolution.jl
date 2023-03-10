@@ -86,7 +86,7 @@ function train_path(options_path, resolutions)
     dims = length(options.data[:newsize])
     dims_helper = ntuple(x -> one(Integer), dims)
     options.data[:newsize] = dims_helper .* resolutions[1]
-    early_stop = options.training[:early_stopping]
+    early_stop = options.training[:early_stopping] > 0
     model = prepare_model!(options)
     @info "Training initial model"
     model_path = start_training(model, options)
