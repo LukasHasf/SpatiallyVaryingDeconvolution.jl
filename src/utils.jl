@@ -334,20 +334,28 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
     return first.(valid_names), last.(valid_names)
 end
 
+function _map_to_zero_one(channel, min_x, max_x)
+    out = channel .- min_x
+    out .*= inv(max_x - min_x)
+    return out
+end
+
 function _map_to_zero_one(x; T=Float32)
-    min_x, max_x = T.(extrema(x))
     out_x = similar(x, T)
-    out_x .= x .- min_x
-    out_x .*= inv(max_x - min_x)
+    for i in axes(x, ndims(x)-1)
+        channel = selectdim(x, ndims(x)-1, i)
+        min_x, max_x = extrema(channel)
+        selectdim(out_x, ndims(x)-1, i) .= _map_to_zero_one(channel, min_x, max_x)
+    end
     return out_x
 end
 
-function load_images(complete_files, directory; newsize=(128, 128), T=Float32)
-    images = Array{T,4}(undef, (newsize..., 1, length(complete_files)))
+function load_images(complete_files, directory; newsize=(128, 128), T=Float32, channels=1)
+    images = Array{T,4}(undef, (newsize..., channels, length(complete_files)))
     for (i, filename) in enumerate(complete_files)
         filepath = joinpath(directory, filename)
         # TODO: Flip images along first axis?
-        images[:, :, 1, i] .= _map_to_zero_one(imresize(load(filepath), newsize))
+        images[:, :, :, i] .= _map_to_zero_one(imresize(load(filepath), newsize))
     end
     return images
 end
