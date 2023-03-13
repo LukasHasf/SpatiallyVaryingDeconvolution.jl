@@ -630,11 +630,14 @@ function _center_psfs(psfs, center, ref_index, positions, channels)
     spatial_dims = channels == 1 ? ndims(psfs) - 1 : ndims(psfs) - 2
     channel_dim = ndims(psfs) - 1
     psfs = channels == 1 ? reshape(psfs, size(psfs)[1:spatial_dims]..., 1, size(psfs, ndims(psfs))) : psfs
+    psfs_registration = selectdim(sqrt.(sum(abs2, psfs; dims=channel_dim)), channel_dim, 1)
+    _, shifts = registerPSFs(
+                    psfs_registration, collect(selectdim(psfs_registration, ndims(psfs_registration), ref_index))
+                )
     if isnothing(positions)
         for i in axes(psfs, channel_dim)
             channel_psf = selectdim(psfs, channel_dim, i)
-            psfs_temp, _ = registerPSFs(channel_psf, collect(selectdim(channel_psf, ndims(channel_psf), ref_index)))
-            selectdim(psfs, channel_dim, i) .= psfs_temp
+            selectdim(psfs, channel_dim, i) .= shift_psfs(channel_psf, shifts)
         end
     else
         center_pos = size(psfs)[1:spatial_dims] .÷ 2 .+ 1
