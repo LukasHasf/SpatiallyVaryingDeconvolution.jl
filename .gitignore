@@ -13,3 +13,4 @@ testing.jl
 *.swp
 myoptions_desktop.yaml
 options.yaml
+testme.jl
