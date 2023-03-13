@@ -383,7 +383,8 @@ function Unet(
 
     residual_block = nothing
     if residual
-        residual_block = ConvBlock(channels, labels; conv_config...)
+        channels_after_residual = final_attention ? 2^4 : labels
+        residual_block = ConvBlock(channels, channels_after_residual; conv_config...)
     end
 
     attention_blocks = repeat([false], depth)
@@ -421,7 +422,7 @@ function Unet(
     encoder = Chain(initial_block, encoder_blocks...)
     in_channels = sum([2^(3 + i) for i in 1:(depth + 1)])
     attention_module = if final_attention
-        Chain(u_tanh, Conv(kernel_base, in_channels => 1; pad=SamePad()))
+        Chain(u_tanh, Conv(kernel_base, in_channels => labels; pad=SamePad()))
     else
         nothing
     end

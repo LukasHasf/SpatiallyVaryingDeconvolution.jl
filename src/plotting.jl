@@ -47,6 +47,21 @@ function sliced_plot(arr)
     return plot(p_yx, p_yz, p_xz, my_colorbar; layout=l)
 end
 
+function plot_prediction_rgb(prediction, psf, epoch, epoch_offset, plotdirectory)
+    prediction = cpu(prediction)[:, :, :, 1]
+    psf = cpu(psf)[:, :, :, 1]
+    prediction_rgb = _rgb_to_img(prediction)
+    psf_rgb = _rgb_to_img(psf)
+    prediction_path = joinpath(
+        plotdirectory, "Epoch" * string(epoch + epoch_offset) * "_predict.png"
+    )
+    psf_path = joinpath(
+        plotdirectory, "LearnedPSF_epoch" * string(epoch + epoch_offset) * ".png"
+    )
+    save(prediction_path, prediction_rgb)
+    return save(psf_path, psf_rgb)
+end
+
 function plot_prediction(prediction, psf, epoch, epoch_offset, plotdirectory)
     prediction = cpu(prediction)
     psf = cpu(psf)

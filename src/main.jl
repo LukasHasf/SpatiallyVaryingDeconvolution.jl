@@ -58,12 +58,16 @@ function start_training(settings::Settings; T=Float32)
     model = prepare_model!(settings)
     println("Model takes $(pretty_summarysize(cpu(model))) of memory.")
     # Define the loss function
+    channels = settings.data[:channels]
     kernel = _get_default_kernel(dims; T=T)
-    kernel = my_gpu(reshape(kernel, size(kernel)..., 1, 1))
+    kernel = reshape(kernel, size(kernel)..., 1, 1)
+    kernel = repeat(kernel, ones(Int, dims)..., channels, 1)
+    kernel = my_gpu(kernel)
 
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)
-            return L1_SSIM_loss(model(x), y; kernel=kernel)
+            #return L1_SSIM_loss(model(x), y; kernel=kernel)
+            return L1_loss(model(x), y)
         end
     end
     # Training

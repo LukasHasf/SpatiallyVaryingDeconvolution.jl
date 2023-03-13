@@ -47,7 +47,7 @@ Entries in `model_settings` affect the UNet unless stated otherwise. The `key=>t
 - `:multiscale => Bool` : Use expensive multiscale convolutions for up- / downscaling
 - `:deconv => String` : Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`
 """
-function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
+function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true, channels=1)
     # Define Neural Network
     nrPSFs = size(psfs)[end]
     if model_settings[:deconv] == "wiener"
@@ -57,13 +57,13 @@ function make_model(psfs, model_settings::Dict{Symbol,Any}; on_gpu=true)
     elseif model_settings[:deconv] == "rl_flfm"
         deconv_stage = RLLayer_FLFM.RL_FLFM(psfs)
     end
-    dimension = ndims(deconv_stage.PSF) + 1
+    dimension = ndims(deconv_stage.PSF)
     if size(deconv_stage.PSF, 3) == 1 && deconv_stage isa RLLayer_FLFM.RL_FLFM
         dimension -= 1
     end
     modelUNet = UNet.Unet(
-        nrPSFs,
-        1,
+        nrPSFs * channels,
+        channels,
         dimension;
         up="nearest",
         activation="relu",
@@ -125,13 +125,14 @@ function setup_training(model, train_x, train_y, validation_x, validation_y, set
     example_data_x = my_gpu(reshape(example_data_x, size(example_data_x)..., 1))
     example_data_y = copy(selectdim(validation_y, ndims(validation_y), 1))
     example_data_y = reshape(example_data_y, size(example_data_y)..., 1)
-    plot_prediction(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
+    plot_function = settings.data[:channels] == 1 ? plot_prediction : plot_prediction_rgb
+    plot_function(example_data_y, model[1].PSF, -1, 0, settings.training[:plot_dir])
     pars = Flux.params(model)
     training_datapoints = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=false)
     epochs = settings.training[:epochs]
     losses_validation = zeros(Float64, epochs)
     losses_train = zeros(Float64, epochs)
-    return example_data_x, pars, training_datapoints, losses_validation, losses_train
+    return example_data_x, pars, training_datapoints, losses_validation, losses_train, plot_function
 end
 
 """    train_model(model, train_x, train_y, validation_x, validation_y, loss, settings; plotloss=false)
@@ -148,7 +149,7 @@ function train_model(
 )
     train_data_iterator = Flux.DataLoader((train_x, train_y); batchsize=1, shuffle=true)
     validation_data_iterator = Flux.DataLoader((validation_x, validation_y); batchsize=1)
-    example_data_x, pars, training_datapoints, losses_validation, losses_train = setup_training(
+    example_data_x, pars, training_datapoints, losses_validation, losses_train, plot_function = setup_training(
         model, train_x, train_y, validation_x, validation_y, settings
     )
     epochs = settings.training[:epochs]
@@ -189,7 +190,7 @@ function train_model(
         if (plotevery != 0 && epoch % plotevery == 0)
             pred_to_plot = model(example_data_x)
             psf_to_plot = model[1].PSF
-            plot_prediction(
+            plot_function(
                 pred_to_plot, psf_to_plot, epoch, epoch_offset, settings.training[:plot_dir]
             )
             if plotloss

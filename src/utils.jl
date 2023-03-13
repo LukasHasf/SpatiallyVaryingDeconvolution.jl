@@ -40,6 +40,7 @@ const data_dict = Dict(
     :psfs_path => "psfs_path",
     :psfs_key => "psfs_key",
     :snr => "SNR",
+    :channels => "channels",
 )
 const model_dict = Dict(
     :depth => "depth",
@@ -116,6 +117,9 @@ gaussian standard deviation `σ` by `σ = 1/√λ`.
 function add_noise(img::AbstractArray{T}; SNR=70) where {T}
     # Define the gaussian and possion noise parameters such that the resulting images has the specified SNR
     μ = mean(img)
+    if iszero(μ)
+        return img
+    end
     λ = SNR^2 * (1/μ + 1/μ^2)
     σ = inv(√λ)
     # Apply the noise
@@ -172,7 +176,7 @@ function Settings(path)
 end
 
 function get_load_data_settings(s::Settings)
-    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize]
+    return s.data[:nrsamples], s.data[:truth_dir], s.data[:sim_dir], s.data[:newsize], s.data[:channels]
 end
 
 function check_types(type_dict, value_dict)
@@ -192,6 +196,7 @@ function process_data_dict(my_data)
         :psfs_path => String,
         :psfs_key => String,
         :snr => Int,
+        :channels => Int,
     )
     check_types(type_dict, my_data)
     my_data[:newsize] = tuple(my_data[:newsize]...)
@@ -334,28 +339,38 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
     return first.(valid_names), last.(valid_names)
 end
 
-function _map_to_zero_one(channel, min_x, max_x)
-    out = channel .- min_x
+function _map_to_zero_one(img, min_x, max_x)
+    out = img .- min_x
     out .*= inv(max_x - min_x)
     return out
 end
 
-function _map_to_zero_one(x; T=Float32)
-    out_x = similar(x, T)
-    for i in axes(x, ndims(x)-1)
-        channel = selectdim(x, ndims(x)-1, i)
-        min_x, max_x = extrema(channel)
-        selectdim(out_x, ndims(x)-1, i) .= _map_to_zero_one(channel, min_x, max_x)
-    end
-    return out_x
+function _map_to_zero_one(img)
+    return _map_to_zero_one(img, extrema(img)...)
+end
+
+function _img_to_rgb(img, T=Float32)
+    img_r = red.(img)
+    img_g = green.(img)
+    img_b = blue.(img)
+    return T.(cat(img_r, img_g, img_b; dims=3))
+end
+
+function _rgb_to_img(img)
+    img = _map_to_zero_one(img, extrema(img)...)
+    img_r = selectdim(img, 3, 1)
+    img_g = selectdim(img, 3, 2)
+    img_b = selectdim(img, 3, 3)
+    return colorview(RGB, img_r, img_g, img_b)
 end
 
 function load_images(complete_files, directory; newsize=(128, 128), T=Float32, channels=1)
     images = Array{T,4}(undef, (newsize..., channels, length(complete_files)))
+    to_channels = channels==1 ? identity : x -> _img_to_rgb(x, T)
     for (i, filename) in enumerate(complete_files)
         filepath = joinpath(directory, filename)
-        # TODO: Flip images along first axis?
-        images[:, :, :, i] .= _map_to_zero_one(imresize(load(filepath), newsize))
+        img = _map_to_zero_one(to_channels(imresize(load(filepath), newsize)))
+        images[:, :, :, i] .= any(isnan.(img)) ? 0.0 : img
     end
     return images
 end
@@ -392,7 +407,7 @@ function is_volume(filename)
 end
 
 function load_data(settings::Settings; T=Float32)
-    nrsamples, truth_directory, simulated_directory, newsize = get_load_data_settings(
+    nrsamples, truth_directory, simulated_directory, newsize, channels = get_load_data_settings(
         settings
     )
     complete_files_truth, complete_files_sim = find_complete(
@@ -401,8 +416,8 @@ function load_data(settings::Settings; T=Float32)
     if all(is_image.([complete_files_sim[1], complete_files_truth[1]])) &&
         settings.model[:deconv] != "rl_flfm"
         # 2D => 2D deconvolution with Wiener or RL deconvolution
-        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T)
-        y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T)
+        x_data = load_images(complete_files_sim, simulated_directory; newsize=newsize, T=T, channels=channels)
+        y_data = load_images(complete_files_truth, truth_directory; newsize=newsize, T=T, channels=channels)
     elseif all(is_image.([complete_files_sim[1], complete_files_truth[1]])) &&
         settings.model[:deconv] == "rl_flfm"
         # 2D => 2D deconvolution with RL deconvolution for FLFM. This deconvolution needs 3D input and output, so if
@@ -459,7 +474,7 @@ function prepare_model!(settings::Settings)
     if !settings.checkpoints[:load_checkpoints]
         psfs = prepare_psfs(settings)
         psfs = my_gpu(psfs)
-        model = my_gpu(make_model(psfs, settings.model))
+        model = my_gpu(make_model(psfs, settings.model; channels=settings.data[:channels]))
     else
         model, optimizer = my_gpu(load_model(settings.checkpoints[:checkpoint_path]))
         settings.training[:optimizer] = optimizer
@@ -603,7 +618,7 @@ function train_real_gradient!(loss, ps, data, opt; batch_size=2)
     return finish!(p)
 end
 
-function _center_psfs(psfs, center, ref_index, positions)
+function _center_psfs(psfs, center, ref_index, positions, channels)
     if !center
         return psfs
     end
@@ -612,10 +627,17 @@ function _center_psfs(psfs, center, ref_index, positions)
     else
         ref_index
     end
+    spatial_dims = channels == 1 ? ndims(psfs) - 1 : ndims(psfs) - 2
+    channel_dim = ndims(psfs) - 1
+    psfs = channels == 1 ? reshape(psfs, size(psfs)[1:spatial_dims]..., 1, size(psfs, ndims(psfs))) : psfs
     if isnothing(positions)
-        psfs, _ = registerPSFs(psfs, collect(selectdim(psfs, ndims(psfs), ref_index)))
+        for i in axes(psfs, channel_dim)
+            channel_psf = selectdim(psfs, channel_dim, i)
+            psfs_temp, _ = registerPSFs(channel_psf, collect(selectdim(channel_psf, ndims(channel_psf), ref_index)))
+            selectdim(psfs, channel_dim, i) .= psfs_temp
+        end
     else
-        center_pos = size(psfs)[1:(end - 1)] .÷ 2 .+ 1
+        center_pos = size(psfs)[1:spatial_dims] .÷ 2 .+ 1
         shifts = 1 .* (center_pos .- positions)
         psfs = shift_psfs(psfs, shifts)
     end
@@ -628,18 +650,20 @@ function prepare_psfs(settings::Settings; T=Float32)
     uncentered_psfs, positions = readPSFs(
         settings.data[:psfs_path], settings.data[:psfs_key]
     )
+    channels = settings.data[:channels]
     psfs = _center_psfs(
         uncentered_psfs,
         settings.data[:center_psfs],
         settings.data[:psf_ref_index],
         positions,
+        channels
     )
     dims = length(settings.data[:newsize])
     nrPSFs = size(psfs)[end]
-    resized_psfs = Array{T,dims + 1}(undef, settings.data[:newsize]..., nrPSFs)
+    resized_psfs = Array{T,dims + 2}(undef, settings.data[:newsize]..., channels, nrPSFs)
     for i in 1:nrPSFs
-        selectdim(resized_psfs, dims + 1, i) .= imresize(
-            collect(selectdim(psfs, dims + 1, i)), settings.data[:newsize]
+        selectdim(resized_psfs, dims + 2, i) .= imresize(
+            collect(selectdim(psfs, dims + 2, i)), (settings.data[:newsize]..., channels)
         )
     end
     psfs = resized_psfs

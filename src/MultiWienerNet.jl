@@ -54,15 +54,16 @@ function toMultiWienerWithPlan(m; on_gpu=true)
     nd = ndims(sim_psf)
     sz = size(sim_psf)
     nrPSFs = size(m.PSF, nd)
-    plan_x = plan_rfft(similar(sim_psf, sz[1:(nd - 1)]..., 1, 1), 1:(nd - 1))
-    plan = plan_rfft(sim_psf, 1:(nd - 1))
+    channels = size(m.PSF, nd - 1)
+    plan_x = plan_rfft(similar(sim_psf, sz[1:(nd - 1)]..., 1), 1:(nd - 2))
+    plan = plan_rfft(sim_psf, 1:(nd - 2))
     dummy_for_inv = to_gpu_cpu(
         similar(
             sim_psf,
             complex(eltype(sim_psf)),
-            trunc.(Int, sz[1:(nd - 1)] .÷ [2, ones(nd - 2)...] .+ [1, zeros(nd - 2)...])...,
+            trunc.(Int, sz[1:(nd - 2)] .÷ [2, ones(nd - 3)...] .+ [1, zeros(nd - 3)...])...,
+            channels,
             nrPSFs,
-            1,
         ),
     )
     inv_plan = plan_irfft(dummy_for_inv, size(m.PSF, 1), 1:(ndims(dummy_for_inv) - 2))
@@ -86,12 +87,16 @@ end
 Flux.@functor MultiWiener
 
 function (m::MultiWienerWithPlan)(x)
-    dims = 1:(ndims(m.PSF) - 1)
+    dims = 1:(ndims(m.PSF) - 2)
     H = m.plan * m.PSF
     x̂ = m.plan_x * (fftshift(x, dims))
     output = conj.(H) .* x̂ ./ (abs2.(H) .+ m.lambda)
     iffted_output = m.inv_plan.scale .* (m.inv_plan.p * output)
-    return iffted_output
+    iffted_output = reshape(iffted_output, size(iffted_output)[dims]..., prod(size(m.PSF)[(end-1):end]), 1)
+    output = [selectdim(iffted_output, ndims(iffted_output), i) for i in axes(iffted_output, ndims(iffted_output))]
+    output = cat(output...; dims=ndims(m.PSF)-1)
+    output = reshape(output, size(output)..., 1)
+    return output
 end
 Flux.@functor MultiWienerWithPlan
 Flux.trainable(m::MultiWienerWithPlan) = (PSF=m.PSF, lambda=m.lambda)
