@@ -263,9 +263,13 @@ function process_checkpoints_dict(my_checkpoints)
     return my_checkpoints
 end
 
+"""    find_most_recent_checkpoint(path)
+
+Find the most recent checkpoint in directory `path`.
+
+Caution: The age of a checkpoint is determined by the date in its name and not file creation time or similar.
+"""
 function find_most_recent_checkpoint(path)
-    # Find the most recent checkpoint in dir `checkpoint_dir`.
-    # This is where the previous run should've saved checkpoints
     most_recent = nothing
     most_recent_chkp = nothing
     checkpoint_path = nothing
@@ -334,6 +338,10 @@ function find_complete(nrsamples, truth_directory, simulated_directory)
     return first.(valid_names), last.(valid_names)
 end
 
+"""    _map_to_zero_one(x; T=Float32)
+
+Map the values in array `x` to the interval [0,1] and return the array with mapped values.
+"""
 function _map_to_zero_one(x; T=Float32)
     min_x, max_x = T.(extrema(x))
     out_x = similar(x, T)
