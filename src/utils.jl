@@ -459,6 +459,13 @@ function prepare_model!(settings::Settings)
     return model
 end
 
+"""    prepare_data(settings::Settings; T=Float32)
+
+Return the datasets `train_x`, `train_y`, `validation_x`, `validation_y`.
+They have the shape `[x,y,(z), channel, sample]`.
+`train_x` and `validation_x` are the noisy and blurred input data and `train_y`, `validation_y` are the groundtruths.
+Returns training and validation datasets.
+"""
 function prepare_data(settings::Settings; T=Float32)
     x_data, y_data = load_data(settings; T=T)
     SNR = settings.data[:snr]
@@ -489,6 +496,11 @@ function show_cuda_capability()
     end
 end
 
+"""    my_cu(x)
+
+Moves `x` from a GPU to the CPU and return the moved `x`.
+If `x` is already on CPU, return `x`.
+"""
 function my_cu(x)
     global CUDA_functional
     if CUDA_functional
@@ -497,6 +509,11 @@ function my_cu(x)
     return x
 end
 
+"""    my_gpu(x)
+
+If a valid GPU is available, move `x` onto the GPU and return the moved `x`.
+Else, just return `x`.
+"""
 function my_gpu(x)
     global CUDA_functional
     if CUDA_functional
@@ -549,6 +566,10 @@ function _init_logfile(logfile)
     end
 end
 
+"""    write_to_logfile(logfile, epoch, train_loss, validation_loss)
+
+Helper function to write train and validation loss history to `logfile`.
+"""
 function write_to_logfile(logfile, epoch, train_loss, validation_loss)
     if isnothing(logfile)
         return nothing
