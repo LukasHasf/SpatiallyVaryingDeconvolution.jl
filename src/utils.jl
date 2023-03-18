@@ -46,7 +46,7 @@ const model_dict = Dict(
     :attention => "attention",
     :dropout => "dropout",
     :separable => "separable",
-    :final_attention => "final_attention",
+    :final_convolution => "final_convolution",
     :multiscale => "multiscale",
     :deconv => "deconv",
 )
@@ -204,7 +204,7 @@ function process_model_dict(my_model)
         :attention => Bool,
         :dropout => Bool,
         :separable => Bool,
-        :final_attention => Bool,
+        :final_convolution => Bool,
         :multiscale => Bool,
         :deconv => String,
     )

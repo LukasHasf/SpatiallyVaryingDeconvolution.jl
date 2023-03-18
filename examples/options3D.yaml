@@ -23,7 +23,7 @@ model:
     attention: true
     dropout: true
     separable: true
-    final_attention: true
+    final_convolution: true
     # In 3D, multiscale requires a lot of memory
     multiscale: false
     deconv: wiener

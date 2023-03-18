@@ -306,7 +306,7 @@ end
 
 Flux.@functor Unet
 
-"""    function Unet(channels::Int=1, labels::Int=channels, dims=4; residual::Bool=false, up="nearest", down="maxpool", activation="relu", norm="batch", attention=false, depth=4, dropout=false, separable=false, final_attention=false, multiscale=false, kwargs...)
+"""    function Unet(channels::Int=1, labels::Int=channels, dims=4; residual::Bool=false, up="nearest", down="maxpool", activation="relu", norm="batch", attention=false, depth=4, dropout=false, separable=false, final_convolution=false, multiscale=false, kwargs...)
 
 Create an U-Net, which accepts data with `channels` channels and outputs data with `labels` channels.
 
@@ -330,7 +330,7 @@ The total dimensionsality of the input data should be given by `dims` ( 2 or 3 s
 
 - `separable::Bool` : Whether to use separable convolution kernels.
 
-- `final_attention::Bool` : Whether to add a layer at the end which convolves the outputs of the decoder path with a 1x1 kernel after passing a self-attention gate.
+- `final_convolution::Bool` : Whether to add a layer at the end which convolves the outputs of the decoder path with a 1x1 kernel after passing a `tanh` activation function.
 
 - `multiscale::Bool` : Whether to use multiscale convolution blocks, which consist of several convolution with different kernel sizes. This improves transfer learning performance, but requires a lot more computations, especially in 3D.
 """
@@ -347,7 +347,7 @@ function Unet(
     depth=4,
     dropout=false,
     separable=false,
-    final_attention=false,
+    final_convolution=false,
     multiscale=false,
     kwargs...,
 )
@@ -406,7 +406,7 @@ function Unet(
                 tuple(2 .* ones(Int, dims - 2)...), chs => chs; stride=2, groups=chs
             )
         end
-        second_index = (!final_attention && (i == depth)) ? labels : 2^(5 + depth - (i + 1))
+        second_index = (!final_convolution && (i == depth)) ? labels : 2^(5 + depth - (i + 1))
         # The last decoding block shouldn't have dropout
         config = i == depth ? conv_config_initial : conv_config
         u = UNetUpBlock(
@@ -420,7 +420,7 @@ function Unet(
     decoder = ntuple(i -> up_blocks[i], depth)
     encoder = Chain(initial_block, encoder_blocks...)
     in_channels = sum([2^(3 + i) for i in 1:(depth + 1)])
-    attention_module = if final_attention
+    attention_module = if final_convolution
         Chain(u_tanh, Conv(kernel_base, in_channels => 1; pad=SamePad()))
     else
         nothing

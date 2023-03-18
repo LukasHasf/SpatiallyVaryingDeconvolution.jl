@@ -23,7 +23,7 @@ model:
     attention: true
     dropout: false
     separable: false
-    final_attention: true
+    final_convolution: true
     multiscale: false
     deconv: wiener
 

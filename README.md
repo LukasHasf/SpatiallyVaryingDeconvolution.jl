@@ -47,7 +47,7 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `attention` : Boolean to indicate if the UNet should use attention gates.
 - `dropout` : Boolean to indicate if the UNet should employ dopout-layers during training.
 - `separable` : Whether to use separable or regular convolutions in the UNet convolution layers.
-- `final_attention` : Whether to add a convolution layer which processes all intermediate (upsampled) activations in the decoder path followed by an attention gate.
+- `final_convolution` : Whether to add a convolution layer which processes all intermediate (upsampled) activations in the decoder path after a `tanh` activation function.
 - `multiscale` : Whether to use multiscale convolutions instead of normal ones. Increases performance in conjuction with transfer training, but requires more memory (significantly more in 3D).
 - `deconv` :  Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`. `"wiener"` for a Wiener deconvolution layer, `"rl"` for Richardson-Lucy deconvolution layer and `"rl_flfm"` for a Richardson-Lucy deconvolution that is adapted to Fourier Light Field Microscopy (2D observation -> 3D reconstruction).
 - `psfs_path`, `psfs_key` : Path to file containing the PSFs. `mat` files have `dict`-like structure, so you also need to provide the key with which one can access the PSFs array.

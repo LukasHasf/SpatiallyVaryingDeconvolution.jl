@@ -570,7 +570,7 @@ end
             :attention => false,
             :dropout => true,
             :separable => false,
-            :final_attention => true,
+            :final_convolution => true,
             :multiscale => false,
             :deconv => "wiener",
         ),
@@ -601,7 +601,7 @@ end
             :attention => false,
             :dropout => true,
             :separable => false,
-            :final_attention => true,
+            :final_convolution => true,
             :multiscale => false,
         ),
         Dict(:optimizer => Flux.Adam()),
@@ -643,7 +643,7 @@ end
     @test settings.model[:attention] == true
     @test settings.model[:dropout] == true
     @test settings.model[:separable] == true
-    @test settings.model[:final_attention] == true
+    @test settings.model[:final_convolution] == true
     @test settings.model[:multiscale] == false
     @test settings.model[:deconv] == "wiener"
     @test settings.data[:psfs_path] == "../../SpatiallyVaryingConvolution/comaPSF.mat"

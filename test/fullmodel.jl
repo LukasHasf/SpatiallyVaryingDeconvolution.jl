@@ -11,7 +11,7 @@
         :dropout => false,
         :depth => 3,
         :separable => false,
-        :final_attention => false,
+        :final_convolution => false,
         :multiscale => false,
         :deconv => "wiener",
     )
@@ -95,7 +95,7 @@ end
         dropout=false,
         norm="batch",
         separable=true,
-        final_attention=false,
+        final_convolution=false,
         multiscale=true,
     )
     img = rand(Float32, Ny, Nx, nrch, batchsize)
@@ -146,7 +146,7 @@ end
         :dropout => false,
         :depth => 3,
         :separable => false,
-        :final_attention => false,
+        :final_convolution => false,
         :multiscale => false,
         :deconv => "wiener",
     )
@@ -202,7 +202,7 @@ end
         :dropout => false,
         :depth => 3,
         :separable => false,
-        :final_attention => false,
+        :final_convolution => false,
         :multiscale => false,
         :deconv => "rl",
     )
@@ -235,7 +235,7 @@ end
         :dropout => false,
         :depth => 3,
         :separable => false,
-        :final_attention => false,
+        :final_convolution => false,
         :multiscale => false,
         :deconv => "rl_flfm",
     )

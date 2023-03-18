@@ -43,7 +43,7 @@ Entries in `model_settings` affect the UNet unless stated otherwise. The `key=>t
 - `:dropout => Bool` : use dropout layers
 - `:depth => Int` : depth of the UNet
 - `:separable => Bool` : use separable convolutions in UNet
-- `:final_attention => Bool` : `cat` all activations in the decoder path of the UNet  and pass them through an attention gate and a convolution before outputting
+- `:final_convolution => Bool` : `cat` all activations in the decoder path of the UNet  and pass them through a `tanh` and a convolution before outputting
 - `:multiscale => Bool` : Use expensive multiscale convolutions for up- / downscaling
 - `:deconv => String` : Which type of deconvolution layer to use. Currently available: `"wiener"`, `"rl"`, `"rl_flfm"`
 """

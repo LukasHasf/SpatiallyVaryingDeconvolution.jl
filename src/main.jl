@@ -33,7 +33,7 @@ All numeric data will be of type `T` (default `Float32`).
 
 - `separable::Bool` : Indicates whether to use separable convolution filters in a conv-block
 
-- `final_attention::Bool` : Indicates whether to use a final layer appending all activations in the expanding path and attention gating them
+- `final_convolution::Bool` : Whether to add a layer at the end of the U-NEt which convolves the outputs of the decoder path with a 1x1 kernel after passing a `tanh` activation function.
 
 - `checkpoint_path::String` : (If `load_checkpoints`) Path of checkpoint to load
 
