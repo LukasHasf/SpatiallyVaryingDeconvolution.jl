@@ -48,8 +48,8 @@ function sliced_plot(arr)
 end
 
 function plot_prediction_rgb(prediction, psf, epoch, epoch_offset, plotdirectory)
-    prediction = cpu(prediction)[:, :, :, 1]
-    psf = cpu(psf)[:, :, :, 1]
+    prediction = clamp.(cpu(prediction)[:, :, :, 1], 0, 1)
+    psf = _map_to_zero_one(cpu(psf)[:, :, :, 1])
     prediction_rgb = _rgb_to_img(prediction)
     psf_rgb = _rgb_to_img(psf)
     prediction_path = joinpath(
