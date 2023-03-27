@@ -5,6 +5,32 @@ function nn_convolve(img::AbstractArray{T,N}; kernel::AbstractArray{T,N}) where 
     return convolved
 end
 
+function rgb_to_lab(a::AbstractArray)
+    r = selectdim(a, ndims(a)-1, 1)
+    g = selectdim(a, ndims(a)-1, 2)
+    b = selectdim(a, ndims(a)-1, 3)
+    x = 0.4124564 .* r .+ 0.3575761 .* g .+ 0.1804375 .* b
+    y = 0.2126729 .* r .+ 0.7151522 .* g .+ 0.0721750 .* b
+    z = 0.0193339 .* r .+ 0.1191920 .* g .+ 0.9503041 .* b
+    x_n = 94.811
+    y_n = 100.0
+    z_n = 107.304
+    l = 116 .* (y ./ y_n) .^ (1/3)
+    a = 500 .* ((x ./ x_n) .^ (1/3) .- (y ./ y_n) .^ (1/3))
+    b = 200 .* ((y ./ y_n) .^ (1/3) .- (z ./ z_n) .^ (1/3))
+    # Normalize components
+    l_norm = l ./ 25
+    a_norm = (a .+ 110) ./ 220
+    b_norm = (b .+ 44) ./ 88
+    return l_norm, a_norm, b_norm
+end
+
+function color_loss(ŷ, y)
+    l1, a1, b1 = rgb_to_lab(ŷ)
+    l2, a2, b2 = rgb_to_lab(y)
+    return L2_loss(l1, l2) + L2_loss(a1, a2) + L2_loss(b1, b2)
+end
+
 """    SSIM_loss(ŷ::AbstractArray{T,N}, y::AbstractArray{T,N}; kernel=nothing)
 
 SSIM loss between `ŷ` and `y` using kernel `kernel`.
@@ -37,6 +63,10 @@ Mean absolute error between `ŷ` and `y`.
 """
 function L1_loss(ŷ, y)
     return Flux.Losses.mae(y, ŷ)
+end
+
+function L2_loss(ŷ, y)
+    return Flux.Losses.mse(y, ŷ)
 end
 
 """    spectral_loss(ŷ, y)
