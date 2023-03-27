@@ -26,8 +26,8 @@ function rgb_to_lab(a::AbstractArray)
 end
 
 function color_loss(ŷ, y)
-    l1, a1, b1 = rgb_to_lab(ŷ)
-    l2, a2, b2 = rgb_to_lab(y)
+    l1, a1, b1 = rgb_to_lab(abs.(ŷ))
+    l2, a2, b2 = rgb_to_lab(abs.(y))
     return L2_loss(l1, l2) + L2_loss(a1, a2) + L2_loss(b1, b2)
 end
 
