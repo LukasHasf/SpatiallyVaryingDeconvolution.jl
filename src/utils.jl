@@ -357,7 +357,6 @@ function _img_to_rgb(img, T=Float32)
 end
 
 function _rgb_to_img(img)
-    img = _map_to_zero_one(img, extrema(img)...)
     img_r = selectdim(img, 3, 1)
     img_g = selectdim(img, 3, 2)
     img_b = selectdim(img, 3, 3)
