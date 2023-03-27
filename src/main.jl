@@ -67,7 +67,8 @@ function start_training(settings::Settings; T=Float32)
     loss_fn = let model = model, kernel = kernel
         function loss_fn(x, y)
             #return L1_SSIM_loss(model(x), y; kernel=kernel)
-            return L1_loss(model(x), y)
+            ŷ = model(x)
+            return L1_loss(ŷ, y) + color_loss(ŷ, y) 
         end
     end
     # Training
