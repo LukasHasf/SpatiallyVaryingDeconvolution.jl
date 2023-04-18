@@ -61,9 +61,15 @@ The [`options.yaml`](examples/options.yaml) provides a few more configuration op
 - `checkpoint_dir`, `save_interval` : During training, every `save_interval`-th epoch, a checkpoint will be saved into the directory `checkpoint_dir`. Set `save_interval` to `0` to disable this. At the end of training, a checkpoint will be saved regardless.
 
 ## Usage after training
-After training, you will have a fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function:
+After training, you will have a fully trained MultiWienerNet saved as a checkpoint. This checkpoint can be loaded and used like a normal function. Due to some problems with BSON, a few packages need to be loaded in the main session:
 ```julia
 using SpatiallyVaryingDeconvolution
+using Flux
+using CUDA
+using NNlib
+using FFTW
+using AbstractFFTs
+using Random
 model = load_model(checkpoint_path; load_optimizer=false)
 # Apply model to new blurry data
 deblurred = model(blurry)
