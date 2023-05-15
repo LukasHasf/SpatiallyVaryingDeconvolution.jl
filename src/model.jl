@@ -161,11 +161,11 @@ function train_model(
     early_stopping_counter = 0
     for epoch in 1:(epochs - epoch_offset)
         println("Epoch " * string(epoch + epoch_offset) * "/" * string(epochs))
-        trainmode!(model, true)
+        trainmode!(model)
         train_real_gradient!(
             loss, pars, training_datapoints, optimizer; batch_size=batchsize
         )
-        trainmode!(model, false)
+        testmode!(model)
         losses_train[epoch] = mean(_help_evaluate_loss(train_data_iterator, loss))
         losses_validation[epoch] = mean(_help_evaluate_loss(validation_data_iterator, loss))
         println(
