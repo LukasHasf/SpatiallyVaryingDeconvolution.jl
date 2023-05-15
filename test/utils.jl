@@ -153,8 +153,8 @@ end
     end
 
     # Create a predetermined dataset
-    X = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
-    Y = my_gpu([1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    X = my_gpu(Float32[1.0, 2, 3, 4, 5, 6, 7, 8, 9])
+    Y = my_gpu(Float32[1.0, 2, 3, 4, 5, 6, 7, 8, 9])
     data = Flux.DataLoader((X, Y); batchsize=1)
     # Define optimizer and losses; Only need one optimizer since Descent is not stateful
     opt = Flux.Optimise.Descent(0.001)
